@@ -19,6 +19,22 @@ const settingsSchema = z
     missingWebsitesRequireReview: z.boolean(),
     importRetentionDays: z.coerce.number().int().min(30).max(2_555),
     defaultPageSize: z.coerce.number().int().min(10).max(100),
+    preflightEnabled: z.boolean(), workerEnabled: z.boolean(),
+    maxPreflightJobsPerDay: z.coerce.number().int().min(1).max(1000),
+    maxJobsPerWorkerRun: z.coerce.number().int().min(1).max(25),
+    maxConcurrentJobs: z.coerce.number().int().min(1).max(10),
+    perDomainDelayMs: z.coerce.number().int().min(500).max(60_000),
+    dnsTimeoutMs: z.coerce.number().int().min(500).max(15_000),
+    connectionTimeoutMs: z.coerce.number().int().min(1000).max(30_000),
+    overallRequestTimeoutMs: z.coerce.number().int().min(2000).max(60_000),
+    maxRedirects: z.coerce.number().int().min(0).max(10),
+    maxResponseBytes: z.coerce.number().int().min(50_000).max(5_000_000),
+    preflightRetryLimit: z.coerce.number().int().min(1).max(5),
+    retryBackoffSeconds: z.coerce.number().int().min(10).max(86_400),
+    preflightRecheckDays: z.coerce.number().int().min(1).max(365),
+    minimumBusinessFitScore: z.coerce.number().int().min(0).max(100),
+    requireTargetIndustry: z.boolean(), requireTargetLocation: z.boolean(),
+    fetcherUserAgent: z.string().trim().min(20).max(255),
   })
   .refine(
     (settings) =>
@@ -49,6 +65,12 @@ export async function updateSettingsAction(formData: FormData) {
       formData.get("missingWebsitesRequireReview") === "on",
     importRetentionDays: formData.get("importRetentionDays"),
     defaultPageSize: formData.get("defaultPageSize"),
+    preflightEnabled: formData.get("preflightEnabled") === "on",
+    workerEnabled: formData.get("workerEnabled") === "on",
+    maxPreflightJobsPerDay: formData.get("maxPreflightJobsPerDay"), maxJobsPerWorkerRun: formData.get("maxJobsPerWorkerRun"), maxConcurrentJobs: formData.get("maxConcurrentJobs"),
+    perDomainDelayMs: formData.get("perDomainDelayMs"), dnsTimeoutMs: formData.get("dnsTimeoutMs"), connectionTimeoutMs: formData.get("connectionTimeoutMs"), overallRequestTimeoutMs: formData.get("overallRequestTimeoutMs"),
+    maxRedirects: formData.get("maxRedirects"), maxResponseBytes: formData.get("maxResponseBytes"), preflightRetryLimit: formData.get("preflightRetryLimit"), retryBackoffSeconds: formData.get("retryBackoffSeconds"), preflightRecheckDays: formData.get("preflightRecheckDays"), minimumBusinessFitScore: formData.get("minimumBusinessFitScore"),
+    requireTargetIndustry: formData.get("requireTargetIndustry") === "on", requireTargetLocation: formData.get("requireTargetLocation") === "on", fetcherUserAgent: formData.get("fetcherUserAgent"),
   });
   const db = getDb();
   await db.transaction(async (tx) => {

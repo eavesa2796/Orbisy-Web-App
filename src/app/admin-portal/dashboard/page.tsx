@@ -41,6 +41,9 @@ export default async function DashboardPage() {
             <ol>
               <li><strong>Reply to interested businesses</strong><span>{count("replied")} active replies</span></li>
               <li><strong>Complete scheduled follow-ups</strong><span>{data.due.length} due</span></li>
+              <li><Link href="/admin-portal/preflight?status=failed"><strong>Review failed or blocked preflights</strong></Link><span>{data.preflightSummary.attention} jobs</span></li>
+              <li><Link href="/admin-portal/preflight"><strong>Decide audit eligibility</strong></Link><span>{data.preflightSummary.review} reviews</span></li>
+              <li><Link href="/admin-portal/preflight?status=passed"><strong>Review qualified leads for a future audit</strong></Link><span>{data.preflightSummary.eligible} eligible</span></li>
               <li><Link href="/admin-portal/imports/review"><strong>Review possible duplicates</strong></Link><span>{data.importSummary.review_rows} decisions</span></li>
               <li><Link href="/admin-portal/imports"><strong>Review pending import batches</strong></Link><span>{data.importSummary.pending_batches} batches</span></li>
               <li><strong>Review homepage-review requests</strong><span>{count("new_inbound")} inbound</span></li>

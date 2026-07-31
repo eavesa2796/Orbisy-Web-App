@@ -20,6 +20,8 @@ import {
   manualContactAttempts,
   outreachDrafts,
   pipelineEvents,
+  preflightJobs,
+  auditEligibilityDecisions,
 } from "@/lib/db/schema";
 import type { leadStatusValues } from "@/lib/validation";
 
@@ -27,7 +29,7 @@ export type LeadStatus = (typeof leadStatusValues)[number];
 
 export async function getOverviewData() {
   const db = getDb();
-  const [counts, due, inbound, importSummary] = await Promise.all([
+  const [counts, due, inbound, importSummary, preflightSummary] = await Promise.all([
     db
       .select({ status: leads.status, count: sql<number>`count(*)::int` })
       .from(leads)
@@ -72,6 +74,12 @@ export async function getOverviewData() {
           WHERE import_batch_id IS NOT NULL
             AND created_at >= NOW() - INTERVAL '30 days') AS newly_imported
     `),
+    db.execute<{ attention: number; review: number; eligible: number }>(sql`
+      SELECT
+        (SELECT count(*)::int FROM ${preflightJobs} WHERE status IN ('failed','blocked')) AS attention,
+        (SELECT count(*)::int FROM ${auditEligibilityDecisions} d WHERE status='needs_manual_review' AND decided_at=(SELECT max(d2.decided_at) FROM ${auditEligibilityDecisions} d2 WHERE d2.lead_id=d.lead_id)) AS review,
+        (SELECT count(*)::int FROM ${auditEligibilityDecisions} d WHERE status='eligible' AND decided_at=(SELECT max(d2.decided_at) FROM ${auditEligibilityDecisions} d2 WHERE d2.lead_id=d.lead_id)) AS eligible
+    `),
   ]);
 
   return {
@@ -84,6 +92,7 @@ export async function getOverviewData() {
       suppressed_candidates: 0,
       newly_imported: 0,
     },
+    preflightSummary: preflightSummary[0] ?? { attention: 0, review: 0, eligible: 0 },
   };
 }
 

@@ -5,6 +5,7 @@ import { requireAdmin } from "@/lib/auth";
 import { getLeadFilterOptions, getLeads, type LeadStatus } from "@/lib/data/admin";
 import { getImportSettings } from "@/lib/imports/service";
 import { leadStatusValues } from "@/lib/validation";
+import { queuePreflightsAction } from "@/app/admin-portal/preflight/actions";
 
 const labels: Record<LeadStatus, string> = {
   new_inbound: "New inbound", manually_added: "Manually added",
@@ -62,6 +63,11 @@ export default async function LeadsPage({
           <Link href="/admin-portal/imports/review">Possible duplicates</Link>
           <Link href="/admin-portal/leads?status=needs_review">Needs review</Link>
           <Link href="/admin-portal/leads?view=follow_up_due">Follow-up due</Link>
+          <Link href="/admin-portal/preflight?status=queued">Preflight queued</Link>
+          <Link href="/admin-portal/preflight?status=running">Preflight running</Link>
+          <Link href="/admin-portal/preflight?status=passed">Preflight passed</Link>
+          <Link href="/admin-portal/preflight?status=failed">Preflight failed</Link>
+          <Link href="/admin-portal/preflight?status=blocked">Preflight blocked</Link>
           <Link href="/admin-portal/leads?status=suppressed">Suppressed</Link>
         </nav>
         <form className="filter-row">
@@ -75,9 +81,9 @@ export default async function LeadsPage({
         </form>
         {!result ? <p className="muted">Connect the database to manage leads.</p> :
           result.items.length ? (
-            <div className="table-wrap"><table><thead><tr><th>Business</th><th>Status</th><th>Source</th><th>Follow-up</th></tr></thead><tbody>
-              {result.items.map((lead) => <tr key={lead.id}><td><Link href={`/admin-portal/leads/${lead.id}`}><strong>{lead.businessName}</strong></Link><span>{lead.contactName || lead.email || "No contact yet"}</span></td><td><span className="status-pill">{labels[lead.status]}</span></td><td>{lead.sourceName}</td><td>{lead.followUpAt?.toLocaleDateString() ?? "—"}</td></tr>)}
-            </tbody></table></div>
+            <form action={queuePreflightsAction}><div className="table-wrap"><table><thead><tr><th>Select</th><th>Business</th><th>Status</th><th>Source</th><th>Follow-up</th></tr></thead><tbody>
+              {result.items.map((lead) => <tr key={lead.id}><td><input type="checkbox" name="leadId" value={lead.id} aria-label={`Select ${lead.businessName}`} disabled={lead.status === "suppressed"}/></td><td><Link href={`/admin-portal/leads/${lead.id}`}><strong>{lead.businessName}</strong></Link><span>{lead.contactName || lead.email || "No contact yet"}</span></td><td><span className="status-pill">{labels[lead.status]}</span></td><td>{lead.sourceName}</td><td>{lead.followUpAt?.toLocaleDateString() ?? "—"}</td></tr>)}
+            </tbody></table></div><button className="button button-secondary" type="submit">Queue selected for preflight</button></form>
           ) : <div className="empty-state"><h2>No leads match this view</h2><p>Adjust the filter or add a permitted lead manually.</p></div>}
         {result && result.total > result.pageSize && (
           <nav className="pagination" aria-label="Lead pages">
