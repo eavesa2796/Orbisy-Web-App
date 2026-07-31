@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Inbox, PhoneForwarded, UsersRound } from "lucide-react";
+import { ArrowRight, FileWarning, Inbox, PhoneForwarded, UsersRound } from "lucide-react";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { requireAdmin } from "@/lib/auth";
 import { getOverviewData } from "@/lib/data/admin";
@@ -34,6 +34,18 @@ export default async function DashboardPage() {
             <article className="metric-card"><Inbox /><span>New inbound</span><strong>{count("new_inbound")}</strong></article>
             <article className="metric-card"><UsersRound /><span>Needs review</span><strong>{count("needs_review")}</strong></article>
             <article className="metric-card"><PhoneForwarded /><span>Follow-ups due</span><strong>{data.due.length}</strong></article>
+            <article className="metric-card"><FileWarning /><span>Import reviews</span><strong>{data.importSummary.review_rows}</strong></article>
+          </section>
+          <section className="admin-card action-queue">
+            <div className="card-heading"><div><p className="eyebrow">Ordered by business value</p><h2>Action queue</h2></div></div>
+            <ol>
+              <li><strong>Reply to interested businesses</strong><span>{count("replied")} active replies</span></li>
+              <li><strong>Complete scheduled follow-ups</strong><span>{data.due.length} due</span></li>
+              <li><Link href="/admin-portal/imports/review"><strong>Review possible duplicates</strong></Link><span>{data.importSummary.review_rows} decisions</span></li>
+              <li><Link href="/admin-portal/imports"><strong>Review pending import batches</strong></Link><span>{data.importSummary.pending_batches} batches</span></li>
+              <li><strong>Review homepage-review requests</strong><span>{count("new_inbound")} inbound</span></li>
+              <li><Link href="/admin-portal/imports"><strong>Add more businesses only when this queue is low</strong></Link><span>{data.importSummary.newly_imported} imported in 30 days</span></li>
+            </ol>
           </section>
 
           <section className="admin-grid">

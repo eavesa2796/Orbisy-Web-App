@@ -21,7 +21,16 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
       <section className="admin-grid">
         <article className="admin-card">
           <h2>Lead details</h2>
-          <dl className="detail-list"><div><dt>Website</dt><dd>{lead.websiteUrl ? <a href={lead.websiteUrl} rel="noreferrer" target="_blank">{lead.websiteUrl}</a> : "No website listed"}</dd></div><div><dt>Category</dt><dd>{lead.category || "—"}</dd></div><div><dt>Location</dt><dd>{lead.location || "—"}</dd></div><div><dt>Source</dt><dd>{lead.sourceName}</dd></div></dl>
+          <dl className="detail-list">
+            <div><dt>Website</dt><dd>{lead.websiteUrl ? <a href={lead.websiteUrl} rel="noreferrer" target="_blank">{lead.websiteUrl}</a> : lead.websiteState === "not_listed" ? "No website listed by source" : "Unknown"}</dd></div>
+            <div><dt>Industry</dt><dd>{lead.industry || lead.category || "—"}</dd></div>
+            <div><dt>Location</dt><dd>{[lead.city, lead.state].filter(Boolean).join(", ") || lead.location || "—"}</dd></div>
+            <div><dt>Public phone</dt><dd>{lead.phone || "—"}</dd></div>
+            <div><dt>Source</dt><dd>{lead.sourceName}</dd></div>
+            <div><dt>Source identifier</dt><dd>{lead.sourceIdentifier || "—"}</dd></div>
+            <div><dt>Import batch</dt><dd>{lead.importBatchId ? <a href={`/admin-portal/imports/${lead.importBatchId}`}>{lead.importBatchId}</a> : "Manual or inbound"}</dd></div>
+            <div><dt>Discovered</dt><dd>{lead.dateDiscovered?.toLocaleDateString() || "—"}</dd></div>
+          </dl>
           <form action={updateLeadAction.bind(null, id)} className="admin-form single-column">
             <label>Status<select name="status" defaultValue={lead.status}>{leadStatusValues.map((status) => <option key={status} value={status}>{status.replaceAll("_", " ")}</option>)}</select></label>
             <label>Follow-up<input type="datetime-local" name="followUpAt" defaultValue={lead.followUpAt ? lead.followUpAt.toISOString().slice(0, 16) : ""} /></label>

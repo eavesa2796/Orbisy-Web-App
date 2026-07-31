@@ -1,0 +1,1 @@
+ALTER TABLE "import_candidates" ADD CONSTRAINT "import_candidate_suppression_fk" FOREIGN KEY ("suppression_entry_id") REFERENCES "public"."suppression_entries"("id") ON DELETE set null ON UPDATE no action;

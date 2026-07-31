@@ -28,8 +28,12 @@ export default function PrivacyPage() {
       <p>
         The private administrator system may contain business contact
         information entered manually from documented public or otherwise
-        permitted sources. It may also contain notes, follow-up dates, pipeline
-        history, suppression choices, and manually recorded contact attempts.
+        permitted sources or imported through administrator-reviewed CSV files.
+        Orbisy records source attribution and may retain the original imported
+        value alongside a normalized value used for duplicate and suppression
+        checks. Imported information may be incomplete, outdated, or inaccurate.
+        It may also contain notes, follow-up dates, pipeline history, suppression
+        choices, and manually recorded contact attempts.
       </p>
 
       <h2>Anonymous website analytics</h2>
@@ -68,7 +72,7 @@ export default function PrivacyPage() {
         useful for the stated purposes or required for legitimate operational,
         legal, security, or accounting needs. Backup deletion may be delayed
         until the relevant backup expires. A minimal suppression record may be
-        retained to prevent renewed contact.
+        retained without automatic expiration to prevent renewed contact.
       </p>
 
       <h2>Security and limitations</h2>
