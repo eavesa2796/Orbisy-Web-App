@@ -16,6 +16,14 @@ import {
   suppressionEntries,
 } from "@/lib/db/schema";
 import { leadSchema, updateLeadSchema } from "@/lib/validation";
+import {
+  normalizeEmail,
+  normalizePhone,
+  normalizePostalCode,
+  normalizeSourceIdentifier,
+  normalizeState,
+  normalizeWebsite,
+} from "@/lib/imports/normalization";
 
 function string(formData: FormData, key: string) {
   return String(formData.get(key) ?? "").trim();
@@ -43,16 +51,33 @@ export async function createLeadAction(formData: FormData) {
     email: string(formData, "email"),
     websiteUrl: string(formData, "websiteUrl"),
     category: string(formData, "category"),
+    industry: string(formData, "industry"),
+    address: string(formData, "address"),
+    city: string(formData, "city"),
+    state: string(formData, "state"),
+    postalCode: string(formData, "postalCode"),
+    phone: string(formData, "phone"),
     location: string(formData, "location"),
     sourceName: string(formData, "sourceName"),
     sourceUrl: string(formData, "sourceUrl"),
+    sourceIdentifier: string(formData, "sourceIdentifier"),
   });
+  const website = normalizeWebsite(parsed.websiteUrl);
 
   const [lead] = await getDb()
     .insert(leads)
     .values({
       ...parsed,
       email: parsed.email?.toLowerCase() || undefined,
+      normalizedEmail: normalizeEmail(parsed.email),
+      phone: parsed.phone || undefined,
+      normalizedPhone: normalizePhone(parsed.phone),
+      websiteUrl: website.websiteUrl,
+      normalizedDomain: website.normalizedDomain,
+      websiteState: parsed.websiteUrl ? "provided" : "not_listed",
+      state: normalizeState(parsed.state),
+      postalCode: normalizePostalCode(parsed.postalCode),
+      sourceIdentifier: normalizeSourceIdentifier(parsed.sourceIdentifier),
       status: "manually_added",
     })
     .returning({ id: leads.id });
@@ -216,6 +241,16 @@ export async function suppressLeadAction(id: string, formData: FormData) {
       normalizedDomain: lead.websiteUrl
         ? new URL(lead.websiteUrl).hostname.replace(/^www\./, "")
         : undefined,
+      normalizedPhone: lead.normalizedPhone,
+      normalizedSourceIdentifier: lead.sourceIdentifier,
+      type: lead.normalizedEmail
+        ? "email"
+        : lead.normalizedDomain
+          ? "domain"
+          : lead.normalizedPhone
+            ? "phone"
+            : "lead",
+      createdBy: admin.email,
       reason,
     });
   });

@@ -8,6 +8,20 @@
       "when": 1785424949878,
       "tag": "0000_boring_calypso",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1785443846495,
+      "tag": "0001_parallel_vampiro",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1785443874227,
+      "tag": "0002_bouncy_madame_masque",
+      "breakpoints": true
     }
   ]
 }

@@ -1,12 +1,13 @@
-# Orbisy — Phase One
+# Orbisy — Phase Two
 
 Orbisy is Anthony Eaves’s Chicago-based software-development business. This
-Phase One MVP combines a public service website, secure inbound forms, a
-single-administrator lead workspace, manual outreach preparation, and
-privacy-conscious first-party analytics.
+MVP combines a public service website, secure inbound forms, a
+single-administrator lead workspace, manual outreach preparation,
+privacy-conscious first-party analytics, and an administrator-reviewed
+business-import workflow.
 
-No automated outreach, CSV importing, website auditing, lead scoring, public
-reports, or bulk email exists in this phase.
+No automated outreach, website auditing, lead scoring, public reports, or bulk
+email exists in this phase.
 
 ## Architecture
 
@@ -16,6 +17,8 @@ reports, or bulk email exists in this phase.
 - Route Handlers for public submissions and anonymous analytics
 - Database-backed rate limits suitable for a single-region MVP
 - Optional Cloudflare Turnstile and optional Resend inbound notifications
+- Bounded CSV parsing, deterministic normalization, source attribution,
+  duplicate review, and suppression checks
 
 Public forms create both an immutable contact submission and a prioritized
 lead. Admin authorization is enforced in every protected page and Server
@@ -71,6 +74,25 @@ npm run db:migrate
 The generated migration is in `drizzle/`. Production migrations should run as
 a controlled release step, not from a public request.
 
+Phase Two adds migrations `0001_parallel_vampiro.sql` and
+`0002_bouncy_madame_masque.sql`. They add tables, enum types, indexes, foreign
+keys, and nullable/defaulted columns without dropping or rewriting Phase One
+records. The migration test applies Phase One, inserts a fixture lead, applies
+Phase Two, and verifies the original record remains.
+
+Before a production migration:
+
+1. Confirm the provider backup or point-in-time recovery setting.
+2. Run `npm test` and `npm run db:migrate` against a development database.
+3. Record current row counts for `leads`, `contact_submissions`, and
+   `analytics_events`.
+4. Run the migration once in a controlled release step.
+5. Verify old row counts and the new import tables.
+
+Recovery guidance: do not manually edit the Drizzle journal. If a migration
+fails, stop application promotion, preserve the database error, and restore
+from the provider backup when a partial change cannot be safely completed.
+
 ## Supabase authentication
 
 1. Create a Supabase project and enable email/password authentication.
@@ -107,6 +129,49 @@ Global Privacy Control, Do Not Track, and the Privacy Policy opt-out are
 honored. Old events are pruned as new events arrive according to
 `ANALYTICS_RETENTION_DAYS`.
 
+## Phase Two lead imports
+
+The administrator can open `/admin-portal/imports`, download a template, select
+a permitted CSV, map its columns, and create a preview. The preview stores
+original source values separately from normalized comparison values. Ready
+rows are imported only after explicit confirmation; invalid, uncertain,
+duplicate, and suppressed rows remain out of the active pipeline.
+
+Default limits are 1 MB and 500 data rows. Both are stored in PostgreSQL and
+can be adjusted conservatively in Settings. Files beyond the configured
+synchronous limit are rejected rather than attempted in a normal request.
+
+Supported mappings:
+
+- Business name (required)
+- Category and industry
+- Street address, city, state, postal code, and general location
+- Website URL
+- Public business email and phone
+- Contact name when legitimately available
+- Source name, URL, identifier, and date discovered
+
+The CSV parser supports quoted fields and rejects malformed structures, null
+bytes, unsupported UTF-8, oversized records, excessive rows, unsupported file
+types, and missing business-name mappings. Rejected-row downloads prefix
+formula-like values before CSV encoding.
+
+Duplicate classifications are explainable: new record, exact duplicate, likely
+duplicate, possible duplicate, existing suppressed, or manual review required.
+Exact source identifiers, domains, public emails, and phone numbers are checked
+first. Similar business-name/location matches require an administrator
+decision. Filling an existing lead only populates missing values; it does not
+replace higher-quality existing information.
+
+Suppression checks cover normalized email, domain, phone, source identifier,
+and lead-level suppression. Standalone suppression entries can be created at
+`/admin-portal/suppressions`. They do not automatically expire.
+
+Provider adapters currently exist only for manual entry and CSV. A future
+licensed provider must implement the same validation, normalization, source
+identifier, and attribution contract. Scraping Google, LinkedIn, Yelp,
+Facebook, or prohibited directories is outside the supported workflow.
+
 ## Quality checks
 
 ```bash
@@ -118,10 +183,12 @@ npm run build
 npm run verify
 ```
 
-Tests currently cover submission validation and the strict analytics event
-allowlist. Before launch, manually test the signed-out and signed-in admin
-flows against the configured Supabase project and verify form persistence in
-the production-like database.
+Tests cover submission validation, the analytics allowlist, CSV parsing,
+normalization, export formula-injection protection, administrator email policy,
+import confirmation policy, suppression matching, and additive migration
+behavior. Before release, manually test signed-out and signed-in import routes,
+column mapping, confirmation, review decisions, and downloads against a
+development database.
 
 ## Deployment guidance
 
@@ -153,18 +220,21 @@ domain only after the preview environment passes verification.
   subscriptions or automated outreach.
 - Monitor form abuse, auth logs, database capacity, and notification failures.
 
-## Phase One limitations
+## Current limitations
 
 - One administrator only
-- No file uploads or screenshot storage
+- CSV uploads are bounded and processed synchronously; no original file blob is retained
 - No background job worker
-- No data-provider integrations, imports, audits, scores, or reports
+- No licensed data-provider integration, website audits, scores, or reports
 - No automatic email outreach or email sequencing
 - No analytics session replay or individual visitor profiles
 - Portfolio cards and links are explicitly labeled placeholders
+- Possible-duplicate thresholds are stored for future scoring refinement; the
+  MVP uses deterministic exact and name/location rules
+- Import correction is performed by fixing and re-uploading rejected rows
 
 ## Recommended next step
 
-Configure a development PostgreSQL database and Supabase project, run the
-migration, create the allowlisted administrator, and complete a local
-end-to-end acceptance test before creating any production deployment.
+Run both Phase Two migrations against a separate development database, complete
+the administrator import acceptance test, back up production, and request
+explicit authorization before applying migrations or deploying.

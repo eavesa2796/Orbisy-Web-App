@@ -1,8 +1,21 @@
 import "server-only";
-import { and, asc, desc, eq, ilike, lte, or, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  gte,
+  ilike,
+  isNotNull,
+  lte,
+  or,
+  sql,
+} from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import {
   leads,
+  importBatches,
+  importCandidates,
   leadNotes,
   manualContactAttempts,
   outreachDrafts,
@@ -14,46 +27,82 @@ export type LeadStatus = (typeof leadStatusValues)[number];
 
 export async function getOverviewData() {
   const db = getDb();
-  const counts = await db
-    .select({ status: leads.status, count: sql<number>`count(*)::int` })
-    .from(leads)
-    .groupBy(leads.status);
+  const [counts, due, inbound, importSummary] = await Promise.all([
+    db
+      .select({ status: leads.status, count: sql<number>`count(*)::int` })
+      .from(leads)
+      .groupBy(leads.status),
+    db
+      .select({
+        id: leads.id,
+        businessName: leads.businessName,
+        status: leads.status,
+        followUpAt: leads.followUpAt,
+      })
+      .from(leads)
+      .where(lte(leads.followUpAt, new Date()))
+      .orderBy(asc(leads.followUpAt))
+      .limit(8),
+    db
+      .select({
+        id: leads.id,
+        businessName: leads.businessName,
+        status: leads.status,
+        createdAt: leads.createdAt,
+      })
+      .from(leads)
+      .where(eq(leads.status, "new_inbound"))
+      .orderBy(desc(leads.priority), desc(leads.createdAt))
+      .limit(8),
+    db.execute<{
+      pending_batches: number;
+      review_rows: number;
+      suppressed_candidates: number;
+      newly_imported: number;
+    }>(sql`
+      SELECT
+        (SELECT count(*)::int FROM ${importBatches}
+          WHERE status IN ('draft', 'validating', 'ready', 'completed_with_errors'))
+          AS pending_batches,
+        (SELECT count(*)::int FROM ${importCandidates}
+          WHERE status = 'needs_review') AS review_rows,
+        (SELECT count(*)::int FROM ${importCandidates}
+          WHERE status = 'suppressed') AS suppressed_candidates,
+        (SELECT count(*)::int FROM ${leads}
+          WHERE import_batch_id IS NOT NULL
+            AND created_at >= NOW() - INTERVAL '30 days') AS newly_imported
+    `),
+  ]);
 
-  const due = await db
-    .select({
-      id: leads.id,
-      businessName: leads.businessName,
-      status: leads.status,
-      followUpAt: leads.followUpAt,
-    })
-    .from(leads)
-    .where(lte(leads.followUpAt, new Date()))
-    .orderBy(asc(leads.followUpAt))
-    .limit(8);
-
-  const inbound = await db
-    .select({
-      id: leads.id,
-      businessName: leads.businessName,
-      status: leads.status,
-      createdAt: leads.createdAt,
-    })
-    .from(leads)
-    .where(eq(leads.status, "new_inbound"))
-    .orderBy(desc(leads.priority), desc(leads.createdAt))
-    .limit(8);
-
-  return { counts, due, inbound };
+  return {
+    counts,
+    due,
+    inbound,
+    importSummary: importSummary[0] ?? {
+      pending_batches: 0,
+      review_rows: 0,
+      suppressed_candidates: 0,
+      newly_imported: 0,
+    },
+  };
 }
 
 export async function getLeads(options: {
   status?: LeadStatus;
   query?: string;
   page?: number;
+  source?: string;
+  industry?: string;
+  location?: string;
+  websiteState?: "unknown" | "provided" | "not_listed";
+  importBatchId?: string;
+  view?: string;
+  importedAfter?: Date;
+  pageSize?: number;
 }) {
   const db = getDb();
   const page = Math.max(options.page ?? 1, 1);
-  const pageSize = 20;
+  const pageSize = Math.min(Math.max(options.pageSize ?? 20, 10), 100);
   const filters = [
     options.status ? eq(leads.status, options.status) : undefined,
     options.query
@@ -61,7 +110,29 @@ export async function getLeads(options: {
           ilike(leads.businessName, `%${options.query}%`),
           ilike(leads.contactName, `%${options.query}%`),
           ilike(leads.email, `%${options.query}%`),
+          ilike(leads.phone, `%${options.query}%`),
+          ilike(leads.normalizedDomain, `%${options.query}%`),
+          ilike(leads.city, `%${options.query}%`),
+          ilike(leads.sourceIdentifier, `%${options.query}%`),
         )
+      : undefined,
+    options.source ? eq(leads.sourceName, options.source) : undefined,
+    options.industry ? eq(leads.industry, options.industry) : undefined,
+    options.location
+      ? or(
+          ilike(leads.location, `%${options.location}%`),
+          ilike(leads.city, `%${options.location}%`),
+        )
+      : undefined,
+    options.websiteState
+      ? eq(leads.websiteState, options.websiteState)
+      : undefined,
+    options.importBatchId ? eq(leads.importBatchId, options.importBatchId) : undefined,
+    options.importedAfter ? gte(leads.createdAt, options.importedAfter) : undefined,
+    options.view === "newly_imported" ? isNotNull(leads.importBatchId) : undefined,
+    options.view === "follow_up_due" ? lte(leads.followUpAt, new Date()) : undefined,
+    options.view === "no_website"
+      ? eq(leads.websiteState, "not_listed")
       : undefined,
   ].filter(Boolean);
 
@@ -81,6 +152,25 @@ export async function getLeads(options: {
   ]);
 
   return { items, total: total[0]?.count ?? 0, page, pageSize };
+}
+
+export async function getLeadFilterOptions() {
+  const db = getDb();
+  const [sources, industries] = await Promise.all([
+    db
+      .selectDistinct({ value: leads.sourceName })
+      .from(leads)
+      .orderBy(leads.sourceName),
+    db
+      .selectDistinct({ value: leads.industry })
+      .from(leads)
+      .where(isNotNull(leads.industry))
+      .orderBy(leads.industry),
+  ]);
+  return {
+    sources: sources.map((item) => item.value),
+    industries: industries.map((item) => item.value).filter(Boolean) as string[],
+  };
 }
 
 export async function getLead(id: string) {

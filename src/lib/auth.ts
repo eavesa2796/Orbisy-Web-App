@@ -2,6 +2,7 @@ import "server-only";
 import { cache } from "react";
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { isAdminEmailAllowed } from "@/lib/imports/policy";
 
 export type AdminIdentity = {
   id: string;
@@ -19,7 +20,7 @@ export const getAdminIdentity = cache(async (): Promise<AdminIdentity | null> =>
   const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
   const email = user?.email?.trim().toLowerCase();
 
-  if (!user || !email || !adminEmail || email !== adminEmail) return null;
+  if (!user || !email || !isAdminEmailAllowed(email, adminEmail)) return null;
   return { id: user.id, email };
 });
 

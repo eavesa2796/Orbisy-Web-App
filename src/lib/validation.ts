@@ -54,9 +54,16 @@ export const leadSchema = z.object({
   email: z.union([z.literal(""), z.email()]).optional(),
   websiteUrl: optionalUrl,
   category: z.string().trim().max(120).optional(),
+  industry: z.string().trim().max(120).optional(),
+  address: z.string().trim().max(255).optional(),
+  city: z.string().trim().max(120).optional(),
+  state: z.string().trim().max(80).optional(),
+  postalCode: z.string().trim().max(20).optional(),
+  phone: z.string().trim().max(40).optional(),
   location: z.string().trim().max(160).optional(),
   sourceName: cleanText(120),
   sourceUrl: optionalUrl,
+  sourceIdentifier: z.string().trim().max(255).optional(),
 });
 
 export const leadStatusValues = [
