@@ -1,4 +1,4 @@
-# Orbisy — Phase Two
+# Orbisy — Phase Three
 
 Orbisy is Anthony Eaves’s Chicago-based software-development business. This
 MVP combines a public service website, secure inbound forms, a
@@ -6,8 +6,52 @@ single-administrator lead workspace, manual outreach preparation,
 privacy-conscious first-party analytics, and an administrator-reviewed
 business-import workflow.
 
-No automated outreach, website auditing, lead scoring, public reports, or bulk
-email exists in this phase.
+Phase Three adds safe, inexpensive business preflight checks, explainable
+Business Fit scoring, and audit eligibility. It does not perform deep website
+audits, calculate a Website Improvement Score, discover businesses, integrate
+Google Places, create outreach, or send email.
+
+## Phase Three architecture
+
+Administrators queue a bounded set of non-suppressed leads. PostgreSQL stores
+idempotent jobs and workers claim them atomically with `FOR UPDATE SKIP LOCKED`.
+A partial unique index prevents multiple active jobs for one lead/version.
+Retries are bounded with backoff, and the global/worker kill switches plus
+suppression are rechecked before network activity.
+
+The server-only transport accepts only HTTP(S), resolves DNS before connecting,
+rejects mixed or prohibited answers, and pins a validated address through the
+request lookup callback. It blocks loopback, private, link-local, carrier-grade
+NAT, multicast, unspecified, reserved/documentation, IPv4-mapped IPv6, and
+metadata destinations. Every redirect is parsed, resolved, revalidated, and
+pinned. Byte limits apply while streaming; redirect, connection, and overall
+timeouts are bounded. Remote code is never executed and response bodies are
+not stored.
+
+`robots.txt` uses the same controls. An explicit homepage disallow stops the
+homepage request; missing or unreachable robots data is recorded truthfully.
+Only robots policy and the homepage are checked—there is no broad crawl.
+
+Business Fit `business-fit-v1` weights target industry 35, target location 30,
+public business contact path 15, and current-service suitability 20. Gates,
+inputs, factors, points, versions, and explanations are retained. Suppression,
+exact duplicates, and existing relationships are gates rather than hidden
+deductions. Audit eligibility is a separate decision and only marks a lead for
+future Phase Four work; it never starts a deep audit.
+
+### Local worker execution
+
+After applying migrations to a development database, configure a strong
+`PREFLIGHT_WORKER_SECRET` and enable both switches in Settings:
+
+```bash
+curl -X POST http://localhost:3000/api/internal/preflight-worker \
+  -H "Authorization: Bearer $PREFLIGHT_WORKER_SECRET"
+```
+
+Use a trusted scheduler only. The secret is compared using constant-time
+digests; the route URL is not a security boundary. Production scheduling is
+intentionally not enabled.
 
 ## Architecture
 
@@ -58,6 +102,8 @@ sign-in.
 | `RESEND_API_KEY` | No | Optional notification for new inbound forms only |
 | `RESEND_FROM_EMAIL` | With Resend | Verified sender |
 | `NOTIFICATION_EMAIL` | No | Notification destination; defaults to `info@orbisy.com` |
+| `PREFLIGHT_WORKER_SECRET` | For workers | Dedicated secret of at least 24 random characters |
+| `ORBISY_FETCHER_USER_AGENT` | No | Identifiable fetcher user-agent override |
 
 Never commit `.env.local` or production secrets.
 
@@ -79,6 +125,13 @@ Phase Two adds migrations `0001_parallel_vampiro.sql` and
 keys, and nullable/defaulted columns without dropping or rewriting Phase One
 records. The migration test applies Phase One, inserts a fixture lead, applies
 Phase Two, and verifies the original record remains.
+
+Phase Three adds `0003_foamy_vulture.sql`: four enums, versioned preflight
+job/run/check, Business Fit and eligibility tables, indexes, foreign keys, and
+bounded settings columns. It contains no drops or data rewrites. The migration
+compatibility test preserves representative Phase One and Phase Two fixtures
+through Phase Three. Do not apply it to production without explicit
+authorization, verified backups, and a controlled release.
 
 Before a production migration:
 
@@ -220,12 +273,20 @@ domain only after the preview environment passes verification.
   subscriptions or automated outreach.
 - Monitor form abuse, auth logs, database capacity, and notification failures.
 
-## Current limitations
+## Phase Three failure behavior and limitations
 
 - One administrator only
 - CSV uploads are bounded and processed synchronously; no original file blob is retained
-- No background job worker
-- No licensed data-provider integration, website audits, scores, or reports
+- The database worker must be invoked by a trusted scheduler; no production
+  schedule is enabled in this repository.
+- Failed jobs retain safe error categories and use bounded retry/backoff. Prior
+  successful runs and scores are never overwritten by later failures.
+- Per-domain delay is bounded configuration for worker/scheduler coordination;
+  each run claims only the configured concurrency-sized batch.
+- Robots parsing is deliberately bounded to homepage policy.
+- No licensed provider or Google Places integration, deep website audits,
+  Lighthouse/PageSpeed, Core Web Vitals, screenshots, design/accessibility/SEO
+  scoring, Website Improvement Score, outreach, or private reports
 - No automatic email outreach or email sequencing
 - No analytics session replay or individual visitor profiles
 - Portfolio cards and links are explicitly labeled placeholders
@@ -235,6 +296,10 @@ domain only after the preview environment passes verification.
 
 ## Recommended next step
 
-Run both Phase Two migrations against a separate development database, complete
-the administrator import acceptance test, back up production, and request
-explicit authorization before applying migrations or deploying.
+Orbisy findings are informational, not guarantees of business outcomes.
+Eligible businesses still require a future audit and manual review.
+
+Run all migrations against a separate development database, configure a
+development-only worker secret, and test queue, retry, cancellation, and
+override flows. Request explicit authorization before any production
+migration, scheduler, or deployment. Deep audits remain Phase Four work.

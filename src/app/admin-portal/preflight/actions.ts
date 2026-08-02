@@ -1,0 +1,15 @@
+"use server";
+import { revalidatePath } from "next/cache";
+import { z } from "zod";
+import { requireAdmin } from "@/lib/auth";
+import { getDb } from "@/lib/db";
+import { adminActivityLogs, auditEligibilityDecisions, preflightJobs } from "@/lib/db/schema";
+import { inArray } from "drizzle-orm";
+import { queuePreflightJobs } from "@/lib/preflight/service";
+
+const idsSchema = z.array(z.uuid()).min(1).max(50);
+function formIds(form: FormData) { return idsSchema.parse(form.getAll("leadId").map(String)); }
+export async function queuePreflightsAction(form: FormData) { const admin = await requireAdmin(); await queuePreflightJobs(formIds(form), admin.email); revalidatePath("/admin-portal/preflight"); }
+export async function retryPreflightAction(form: FormData) { const admin = await requireAdmin(); const id = z.uuid().parse(form.get("jobId")); const db = getDb(); await db.transaction(async tx => { await tx.update(preflightJobs).set({ status: "queued", scheduledAt: new Date(), completedAt: null, lastError: null, errorClassification: null, updatedAt: new Date() }).where(inArray(preflightJobs.id, [id])); await tx.insert(adminActivityLogs).values({ adminEmail: admin.email, action: "preflight.retried", entityType: "preflight_job", entityId: id }); }); revalidatePath("/admin-portal/preflight"); }
+export async function cancelPreflightAction(form: FormData) { const admin = await requireAdmin(); const id = z.uuid().parse(form.get("jobId")); const db = getDb(); await db.transaction(async tx => { await tx.update(preflightJobs).set({ status: "cancelled", completedAt: new Date(), updatedAt: new Date() }).where(inArray(preflightJobs.id, [id])); await tx.insert(adminActivityLogs).values({ adminEmail: admin.email, action: "preflight.cancelled", entityType: "preflight_job", entityId: id }); }); revalidatePath("/admin-portal/preflight"); }
+export async function overrideEligibilityAction(form: FormData) { const admin = await requireAdmin(); const parsed = z.object({ leadId: z.uuid(), previousId: z.uuid(), status: z.enum(["eligible","needs_manual_review","ineligible","blocked"]), reason: z.string().trim().min(5).max(500), currentlySuppressed: z.enum(["true","false"]) }).parse(Object.fromEntries(form)); if (parsed.currentlySuppressed === "true" && parsed.status === "eligible") throw new Error("Suppression cannot be overridden."); const db = getDb(); await db.transaction(async tx => { const [decision] = await tx.insert(auditEligibilityDecisions).values({ leadId: parsed.leadId, status: parsed.status, reasonCodes: ["administrator_override"], explanation: parsed.reason, isOverride: true, previousDecisionId: parsed.previousId, decidedBy: admin.email }).returning({ id: auditEligibilityDecisions.id }); await tx.insert(adminActivityLogs).values({ adminEmail: admin.email, action: "audit_eligibility.overridden", entityType: "audit_eligibility", entityId: decision.id, metadata: { previousId: parsed.previousId, newStatus: parsed.status, reason: parsed.reason } }); }); revalidatePath("/admin-portal/preflight"); }
