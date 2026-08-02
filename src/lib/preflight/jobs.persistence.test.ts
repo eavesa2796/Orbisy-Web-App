@@ -57,4 +57,32 @@ describe("database-backed preflight queue invariants", () => {
     const remaining = await db.query<{ count: number }>(`select count(*)::int as count from preflight_jobs where status='queued'`);
     expect(remaining.rows[0]?.count).toBe(1);
   });
+
+  it("rehydrates claimed IDs with application field names", async () => {
+    await addJob("11111111-1111-4111-8111-111111111111");
+    const claimed = await db.query<{ id: string }>(`
+      with claimable as (
+        select id from preflight_jobs where status='queued' for update skip locked limit 1
+      ) update preflight_jobs j set status='running',claimed_at=now(),worker_id='test-worker',
+        attempt_count=j.attempt_count+1,updated_at=now() from claimable c where j.id=c.id returning j.id
+    `);
+    const hydrated = await db.query<{ leadId: string; attemptCount: number; maxAttempts: number }>(`
+      select lead_id as "leadId", attempt_count as "attemptCount", max_attempts as "maxAttempts"
+      from preflight_jobs where id=$1
+    `, [claimed.rows[0]?.id]);
+    expect(hydrated.rows[0]).toEqual({ leadId, attemptCount: 1, maxAttempts: 3 });
+  });
+
+  it("recovers an expired running lease for a bounded retry", async () => {
+    const id = "11111111-1111-4111-8111-111111111111";
+    await addJob(id, "queued");
+    await db.query(`update preflight_jobs set status='running',attempt_count=1,claimed_at=now()-interval '10 minutes' where id=$1`, [id]);
+    await db.query(`
+      update preflight_jobs set status='retry_scheduled',scheduled_at=now(),worker_id=null,
+        last_error='Worker lease expired before completion.',error_classification='worker_lease_expired',updated_at=now()
+      where status='running' and claimed_at < now()-interval '5 minutes' and attempt_count < max_attempts
+    `);
+    const result = await db.query<{ status: string; worker_id: string | null; error_classification: string }>(`select status,worker_id,error_classification from preflight_jobs where id=$1`, [id]);
+    expect(result.rows[0]).toEqual({ status: "retry_scheduled", worker_id: null, error_classification: "worker_lease_expired" });
+  });
 });

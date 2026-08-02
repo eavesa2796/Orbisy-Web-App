@@ -7,6 +7,7 @@ import { safeFetch } from "./safe-fetch";
 import { calculateBusinessFit, decideAuditEligibility } from "./scoring";
 
 export const PREFLIGHT_VERSION = "preflight-v1";
+export const WORKER_LEASE_SECONDS = 300;
 export async function queuePreflightJobs(leadIds: string[], actor: string) {
   const ids = [...new Set(leadIds)].slice(0, 50); if (!ids.length) return 0;
   const settings = await getImportSettings(); if (!settings.preflightEnabled) throw new Error("Preflight is disabled by the global kill switch.");
@@ -27,13 +28,38 @@ export async function queuePreflightJobs(leadIds: string[], actor: string) {
 
 export async function claimPreflightJobs(workerId: string, limit: number) {
   const db = getDb();
-  return db.transaction(async (tx) => tx.execute<typeof preflightJobs.$inferSelect>(sql`
-    with claimable as (
-      select id from preflight_jobs where status in ('queued','retry_scheduled') and scheduled_at <= now()
-      order by priority desc, scheduled_at asc for update skip locked limit ${limit}
-    ) update preflight_jobs j set status='running', claimed_at=now(), worker_id=${workerId},
-      attempt_count=j.attempt_count+1, updated_at=now() from claimable c where j.id=c.id returning j.*
-  `));
+  return db.transaction(async (tx) => {
+    await tx.execute(sql`
+      update preflight_jobs set
+        status = case when attempt_count >= max_attempts then 'failed'::preflight_job_status else 'retry_scheduled'::preflight_job_status end,
+        scheduled_at = case when attempt_count >= max_attempts then scheduled_at else now() end,
+        completed_at = case when attempt_count >= max_attempts then now() else null end,
+        worker_id = null,
+        last_error = 'Worker lease expired before completion.',
+        error_classification = 'worker_lease_expired',
+        updated_at = now()
+      where status = 'running'
+        and claimed_at < now() - (${WORKER_LEASE_SECONDS} * interval '1 second')
+    `);
+    const claimed = await tx.execute<{ id: string }>(sql`
+      with claimable as (
+        select id from preflight_jobs where status in ('queued','retry_scheduled') and scheduled_at <= now()
+        order by priority desc, scheduled_at asc for update skip locked limit ${limit}
+      ) update preflight_jobs j set status='running', claimed_at=now(), worker_id=${workerId},
+        attempt_count=j.attempt_count+1, updated_at=now() from claimable c where j.id=c.id returning j.id
+    `);
+    const ids = claimed.map((row) => row.id);
+    if (!ids.length) return [];
+    return tx.select().from(preflightJobs).where(inArray(preflightJobs.id, ids));
+  });
+}
+
+function safeLogError(error: unknown) {
+  const value = error as { name?: unknown; code?: unknown } | null;
+  return {
+    name: typeof value?.name === "string" ? value.name.slice(0, 80) : "UnknownError",
+    code: typeof value?.code === "string" ? value.code.slice(0, 80) : undefined,
+  };
 }
 
 function targetMatch(value: string | null, targets: string[]) {
@@ -104,7 +130,10 @@ export async function runWorker(workerId: string) {
     const [lead] = await getDb().select({ websiteUrl: leads.websiteUrl }).from(leads).where(eq(leads.id, job.leadId)).limit(1);
     let domain: string | null = null; try { domain = lead?.websiteUrl ? new URL(lead.websiteUrl).hostname : null; } catch {}
     if (domain) { const wait = Math.max(0, (lastDomain.get(domain) || 0) + settings.perDomainDelayMs - Date.now()); if (wait) await new Promise(resolve => setTimeout(resolve, wait)); lastDomain.set(domain, Date.now()); }
-    try { await processPreflightJob(job); } catch { await finalizeFailure(job, "unexpected_processing_error", true); }
+    try { await processPreflightJob(job); } catch (error) {
+      console.error("[preflight-worker] job processing failed", { jobId: job.id, ...safeLogError(error) });
+      await finalizeFailure(job, "unexpected_processing_error", true);
+    }
   }
   return { claimed: jobs.length, processed: jobs.length, disabled: false };
 }
