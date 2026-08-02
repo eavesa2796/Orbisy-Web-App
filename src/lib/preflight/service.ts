@@ -75,7 +75,16 @@ function robotsAllows(body: string) {
 function safeError(error: unknown) {
   const code = error instanceof Error ? error.message : "unknown_error";
   const allowed = new Set(["invalid_url","unsupported_scheme","embedded_credentials","invalid_hostname","prohibited_hostname","ambiguous_ip","dns_no_addresses","dns_timeout","prohibited_address","response_too_large","overall_timeout","connection_timeout","too_many_redirects","unsupported_content_type"]);
-  return allowed.has(code) ? code : "network_request_failed";
+  if (allowed.has(code)) return code;
+  const systemCode = (error as { code?: unknown } | null)?.code;
+  if (typeof systemCode !== "string") return "network_request_failed";
+  if (systemCode === "EAI_AGAIN") return "dns_temporary_failure";
+  if (systemCode === "ENOTFOUND") return "dns_no_addresses";
+  if (["ENETUNREACH", "EHOSTUNREACH"].includes(systemCode)) return "network_unreachable";
+  if (["ECONNREFUSED", "ECONNRESET", "EPIPE"].includes(systemCode)) return "connection_failed";
+  if (systemCode === "ERR_INVALID_IP_ADDRESS") return "invalid_pinned_address";
+  if (systemCode.includes("CERT") || systemCode.includes("TLS")) return "tls_validation_failed";
+  return "network_request_failed";
 }
 
 export async function processPreflightJob(job: typeof preflightJobs.$inferSelect) {
@@ -111,7 +120,7 @@ export async function processPreflightJob(job: typeof preflightJobs.$inferSelect
     const [score] = await tx.insert(businessFitScores).values({ leadId: lead.id, runId: run.id, scoreVersion: fit.version, totalScore: fit.total, factors: fit.factors, eligibilityGates: fit.gates, inputSnapshot: fit.inputSnapshot }).returning({ id: businessFitScores.id });
     const decision = decideAuditEligibility({ preflightPassed: passed, safeReachableWebsite: passed, suppressed: false, exactDuplicate, industryMatch, locationMatch, score: fit.total, minimumScore: settings.minimumBusinessFitScore, requireIndustry: settings.requireTargetIndustry, requireLocation: settings.requireTargetLocation, recentlyChecked: false, activeAuditOrJob: false });
     await tx.insert(auditEligibilityDecisions).values({ leadId: lead.id, runId: run.id, scoreId: score.id, status: decision.status, reasonCodes: decision.reasonCodes, explanation: decision.explanation });
-    const retryable = Boolean(errorCategory && ["dns_timeout","overall_timeout","connection_timeout","network_request_failed"].includes(errorCategory) && job.attemptCount < job.maxAttempts);
+    const retryable = Boolean(errorCategory && ["dns_timeout","dns_temporary_failure","network_unreachable","connection_failed","overall_timeout","connection_timeout","network_request_failed"].includes(errorCategory) && job.attemptCount < job.maxAttempts);
     await tx.update(preflightJobs).set({ status: retryable ? "retry_scheduled" : runStatus, scheduledAt: retryable ? new Date(Date.now() + settings.retryBackoffSeconds * 1000 * 2 ** Math.max(0, job.attemptCount - 1)) : job.scheduledAt, completedAt: retryable ? null : new Date(), updatedAt: new Date(), lastError: errorCategory?.replaceAll("_", " "), errorClassification: errorCategory }).where(eq(preflightJobs.id, job.id));
     await tx.update(leads).set({ lastVerifiedAt: new Date(), updatedAt: new Date() }).where(eq(leads.id, lead.id));
   });
