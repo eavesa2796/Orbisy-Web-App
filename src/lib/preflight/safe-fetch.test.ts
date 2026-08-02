@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it, vi } from "vitest";
-import { safeFetch, type SafeRequest } from "./safe-fetch";
+import { pinnedLookupResult, safeFetch, type SafeRequest } from "./safe-fetch";
 
 const base = {
   maxRedirects: 2,
@@ -12,6 +12,18 @@ const base = {
 };
 
 describe("safe fetch policy orchestration", () => {
+  it("prefers a validated IPv4 address when IPv6 is also available", () => {
+    expect(pinnedLookupResult([
+      { address: "2606:4700:4700::1111", family: 6 },
+      { address: "1.1.1.1", family: 4 },
+    ], false)).toEqual({ address: "1.1.1.1", family: 4 });
+  });
+
+  it("returns an address array for Node all-address lookup mode", () => {
+    expect(pinnedLookupResult([{ address: "1.1.1.1", family: 4 }], true))
+      .toEqual([{ address: "1.1.1.1", family: 4 }]);
+  });
+
   it("re-resolves and revalidates every redirect", async () => {
     const resolver = vi.fn(async (host: string) =>
       host === "first.example"

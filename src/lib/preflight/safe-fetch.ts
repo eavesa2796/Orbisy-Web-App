@@ -13,10 +13,27 @@ export type SafeFetchResult = { finalUrl: string; status: number; redirectCount:
 export type SafeResponse = { status: number; headers: http.IncomingHttpHeaders; body: string };
 export type SafeRequest = (url: URL, addresses: ResolvedAddress[], options: SafeFetchOptions) => Promise<SafeResponse>;
 
+export function pinnedLookupResult(addresses: ResolvedAddress[], all: boolean) {
+  const pinned = addresses.find((address) => address.family === 4) ?? addresses[0];
+  if (!pinned) throw new Error("dns_no_addresses");
+  return all ? [pinned] : pinned;
+}
+
+export function createPinnedLookup(addresses: ResolvedAddress[]): LookupFunction {
+  return ((_hostname: string, lookupOptions: { all?: boolean }, callback: (...args: unknown[]) => void) => {
+    const all = lookupOptions?.all === true;
+    const result = pinnedLookupResult(addresses, all);
+    if (all) callback(null, result);
+    else {
+      const pinned = result as ResolvedAddress;
+      callback(null, pinned.address, pinned.family);
+    }
+  }) as LookupFunction;
+}
+
 export function requestOnce(url: URL, addresses: ResolvedAddress[], options: SafeFetchOptions): Promise<SafeResponse> {
   return new Promise((resolve, reject) => {
-    const pinned = addresses[0];
-    const lookup: LookupFunction = (_hostname, _opts, callback) => callback(null, pinned.address, pinned.family);
+    const lookup = createPinnedLookup(addresses);
     const transport = url.protocol === "https:" ? https : http;
     const request = transport.request(url, {
       method: "GET", lookup, servername: url.hostname,
