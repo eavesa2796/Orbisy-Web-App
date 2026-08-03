@@ -41,12 +41,12 @@ export default async function DashboardPage() {
             <ol>
               <li><strong>Reply to interested businesses</strong><span>{count("replied")} active replies</span></li>
               <li><strong>Complete scheduled follow-ups</strong><span>{data.due.length} due</span></li>
-              <li><Link href="/admin-portal/preflight?status=failed"><strong>Review failed or blocked preflights</strong></Link><span>{data.preflightSummary.attention} jobs</span></li>
-              <li><Link href="/admin-portal/preflight"><strong>Decide audit eligibility</strong></Link><span>{data.preflightSummary.review} reviews</span></li>
-              <li><Link href="/admin-portal/preflight?status=passed"><strong>Review qualified leads for a future audit</strong></Link><span>{data.preflightSummary.eligible} eligible</span></li>
+              <li><Link href="/admin-portal/preflight?status=failed"><strong>Review failed or blocked jobs</strong></Link><span>{data.preflightSummary.attention + data.auditSummary.attention} jobs</span></li>
+              <li><Link href="/admin-portal/audits?status=completed"><strong>Verify completed deep audits</strong></Link><span>{data.auditSummary.verification} audits</span></li>
+              <li><Link href="/admin-portal/audits"><strong>Review eligible leads waiting to be queued</strong></Link><span>{data.auditSummary.eligible_waiting} eligible</span></li>
+              <li><strong>Review homepage-review requests</strong><span>{count("new_inbound")} inbound</span></li>
               <li><Link href="/admin-portal/imports/review"><strong>Review possible duplicates</strong></Link><span>{data.importSummary.review_rows} decisions</span></li>
               <li><Link href="/admin-portal/imports"><strong>Review pending import batches</strong></Link><span>{data.importSummary.pending_batches} batches</span></li>
-              <li><strong>Review homepage-review requests</strong><span>{count("new_inbound")} inbound</span></li>
               <li><Link href="/admin-portal/imports"><strong>Add more businesses only when this queue is low</strong></Link><span>{data.importSummary.newly_imported} imported in 30 days</span></li>
             </ol>
           </section>

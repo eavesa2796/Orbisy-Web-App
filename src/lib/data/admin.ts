@@ -22,6 +22,8 @@ import {
   pipelineEvents,
   preflightJobs,
   auditEligibilityDecisions,
+  auditJobs,
+  auditRuns,
 } from "@/lib/db/schema";
 import type { leadStatusValues } from "@/lib/validation";
 
@@ -29,7 +31,7 @@ export type LeadStatus = (typeof leadStatusValues)[number];
 
 export async function getOverviewData() {
   const db = getDb();
-  const [counts, due, inbound, importSummary, preflightSummary] = await Promise.all([
+  const [counts, due, inbound, importSummary, preflightSummary, auditSummary] = await Promise.all([
     db
       .select({ status: leads.status, count: sql<number>`count(*)::int` })
       .from(leads)
@@ -80,6 +82,15 @@ export async function getOverviewData() {
         (SELECT count(*)::int FROM ${auditEligibilityDecisions} d WHERE status='needs_manual_review' AND decided_at=(SELECT max(d2.decided_at) FROM ${auditEligibilityDecisions} d2 WHERE d2.lead_id=d.lead_id)) AS review,
         (SELECT count(*)::int FROM ${auditEligibilityDecisions} d WHERE status='eligible' AND decided_at=(SELECT max(d2.decided_at) FROM ${auditEligibilityDecisions} d2 WHERE d2.lead_id=d.lead_id)) AS eligible
     `),
+    db.execute<{ attention: number; verification: number; eligible_waiting: number }>(sql`
+      SELECT
+        (SELECT count(*)::int FROM ${auditJobs} WHERE status IN ('failed','blocked')) AS attention,
+        (SELECT count(*)::int FROM ${auditRuns} WHERE status IN ('completed','completed_with_warnings') AND review_completed_at IS NULL) AS verification,
+        (SELECT count(*)::int FROM ${auditEligibilityDecisions} d
+          WHERE status='eligible'
+            AND decided_at=(SELECT max(d2.decided_at) FROM ${auditEligibilityDecisions} d2 WHERE d2.lead_id=d.lead_id)
+            AND NOT EXISTS (SELECT 1 FROM ${auditJobs} j WHERE j.lead_id=d.lead_id AND j.status IN ('queued','running','retry_scheduled'))) AS eligible_waiting
+    `),
   ]);
 
   return {
@@ -93,6 +104,7 @@ export async function getOverviewData() {
       newly_imported: 0,
     },
     preflightSummary: preflightSummary[0] ?? { attention: 0, review: 0, eligible: 0 },
+    auditSummary: auditSummary[0] ?? { attention: 0, verification: 0, eligible_waiting: 0 },
   };
 }
 

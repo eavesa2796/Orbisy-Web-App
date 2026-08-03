@@ -24,6 +24,15 @@ describe("safe fetch policy orchestration", () => {
       .toEqual([{ address: "1.1.1.1", family: 4 }]);
   });
 
+  it("validates a redirect before connecting to its destination", async () => {
+    const request = vi.fn(async () => ({ status: 302, headers: { location: "https://other.example/path" }, body: "" }));
+    await expect(safeFetch("https://first.example", {
+      ...base, request, resolver: async () => [{ address: "1.1.1.1", family: 4 }],
+      validateRedirect: (url) => { if (url.hostname !== "first.example") throw new Error("cross_domain_destination"); },
+    })).rejects.toThrow("cross_domain_destination");
+    expect(request).toHaveBeenCalledTimes(1);
+  });
+
   it("re-resolves and revalidates every redirect", async () => {
     const resolver = vi.fn(async (host: string) =>
       host === "first.example"

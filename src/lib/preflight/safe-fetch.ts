@@ -8,6 +8,7 @@ export type SafeFetchOptions = {
   maxRedirects: number; maxBytes: number; dnsTimeoutMs: number; connectionTimeoutMs: number; overallTimeoutMs: number;
   userAgent: string; resolver?: (host: string) => Promise<ResolvedAddress[]>;
   request?: SafeRequest;
+  validateRedirect?: (url: URL) => void;
 };
 export type SafeFetchResult = { finalUrl: string; status: number; redirectCount: number; contentType: string; body: string };
 export type SafeResponse = { status: number; headers: http.IncomingHttpHeaders; body: string };
@@ -65,10 +66,12 @@ export async function safeFetch(input: string, options: SafeFetchOptions): Promi
     const response = await (options.request ?? requestOnce)(url, addresses, options);
     if ([301, 302, 303, 307, 308].includes(response.status) && response.headers.location) {
       if (redirects >= options.maxRedirects) throw new Error("too_many_redirects");
-      url = parsePublicHttpUrl(new URL(response.headers.location, url).toString()); redirects += 1; continue;
+      url = parsePublicHttpUrl(new URL(response.headers.location, url).toString());
+      options.validateRedirect?.(url);
+      redirects += 1; continue;
     }
     const contentType = String(response.headers["content-type"] || "").toLowerCase();
-    if (!/^(text\/html|application\/xhtml\+xml|text\/plain)(;|$)/.test(contentType)) throw new Error("unsupported_content_type");
+    if (!/^(text\/html|application\/xhtml\+xml|text\/plain|application\/xml|text\/xml)(;|$)/.test(contentType)) throw new Error("unsupported_content_type");
     return { finalUrl: url.toString(), status: response.status, redirectCount: redirects, contentType, body: response.body };
   }
 }

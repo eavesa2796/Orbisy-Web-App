@@ -1,4 +1,4 @@
-# Orbisy — Phase Three
+# Orbisy — Phase Four
 
 Orbisy is Anthony Eaves’s Chicago-based software-development business. This
 MVP combines a public service website, secure inbound forms, a
@@ -6,10 +6,63 @@ single-administrator lead workspace, manual outreach preparation,
 privacy-conscious first-party analytics, and an administrator-reviewed
 business-import workflow.
 
-Phase Three adds safe, inexpensive business preflight checks, explainable
-Business Fit scoring, and audit eligibility. It does not perform deep website
-audits, calculate a Website Improvement Score, discover businesses, integrate
-Google Places, create outreach, or send email.
+Phase Four adds private, objective deep website audits, bounded evidence-backed
+findings, a versioned Website Improvement Score, separate Audit Confidence, and
+administrator verification. It does not discover businesses, generate reports
+or outreach, send email, calculate revenue loss, or run automatically.
+
+## Phase Four architecture
+
+An administrator explicitly queues a Phase Three-eligible or administrator-
+approved lead. Separate PostgreSQL audit jobs are atomically claimed with a
+bounded lease and concurrency lock. Suppression, exact duplicates, existing
+relationships, operating switches, daily limits, and re-audit intervals are
+checked before work; suppression is checked again before network activity and
+between selected pages.
+
+The worker inspects the final Phase Three homepage and at most a conservative
+number of useful same-registrable-domain pages. Page discovery favors contact,
+services, about, and booking pages. Every initial URL, discovered link, and
+redirect passes the Phase Three DNS validation, address pinning, SSRF blocking,
+timeout, redirect, content-type, and streamed byte-limit pipeline. Robots rules
+are applied by path. Remote JavaScript is never executed, forms are never
+submitted, and full response bodies are not stored.
+
+Independently testable analyzers record objective HTML indicators for
+reliability, mobile foundations, contact paths, technical SEO, accessibility
+fundamentals, links, and images. Findings store bounded evidence, severity,
+confidence, source, analyzer version, affected URL, and verification history.
+They are informational—not penetration testing, SEO forecasting, WCAG/legal
+certification, or a guarantee of business results.
+
+`website-improvement-v1` remains separate from Business Fit. Each awarded point
+maps to a fixed finding rule and retained finding ID, with category caps of 20
+mobile, 20 conversion, 15 performance, 15 SEO, 10 accessibility, 10 reliability,
+and 10 administrator-supported manual opportunity. Missing or unavailable
+checks add no points. Rejected findings are excluded only from a new reviewed
+score; earlier scores are preserved.
+
+Audit Confidence is separately versioned from the opportunity score and records
+analyzer coverage, page coverage, optional provider availability, failures,
+conflicts, and manual-review coverage. Phase Five readiness requires a completed
+run, the configured confidence level, no pending findings, no suppression or
+blocking error, and explicit administrator review completion.
+
+### Local deep-audit worker
+
+After applying migrations to a development database, set a development-only
+`DEEP_AUDIT_WORKER_SECRET` of at least 24 random characters. Enable both Phase
+Four switches in the local Settings page, queue one controlled eligible lead,
+and invoke:
+
+```bash
+curl -X POST http://localhost:3000/api/internal/deep-audit-worker \
+  -H "Authorization: Bearer $DEEP_AUDIT_WORKER_SECRET"
+```
+
+The endpoint URL is not a security boundary. No Vercel Cron or other production
+scheduler is included. Keep both production deep-audit switches off until a
+separate controlled rollout is approved.
 
 ## Phase Three architecture
 
@@ -36,8 +89,8 @@ Business Fit `business-fit-v1` weights target industry 35, target location 30,
 public business contact path 15, and current-service suitability 20. Gates,
 inputs, factors, points, versions, and explanations are retained. Suppression,
 exact duplicates, and existing relationships are gates rather than hidden
-deductions. Audit eligibility is a separate decision and only marks a lead for
-future Phase Four work; it never starts a deep audit.
+deductions. Audit eligibility is a separate decision that permits an explicit
+Phase Four queue action; it never starts a deep audit automatically.
 
 ### Local worker execution
 
@@ -104,6 +157,8 @@ sign-in.
 | `NOTIFICATION_EMAIL` | No | Notification destination; defaults to `info@orbisy.com` |
 | `PREFLIGHT_WORKER_SECRET` | For workers | Dedicated secret of at least 24 random characters |
 | `ORBISY_FETCHER_USER_AGENT` | No | Identifiable fetcher user-agent override |
+| `DEEP_AUDIT_WORKER_SECRET` | For Phase 4 workers | Separate secret of at least 24 random characters |
+| `PAGESPEED_API_KEY` | No | Optional Google PageSpeed provider; absence is recorded as unavailable |
 
 Never commit `.env.local` or production secrets.
 
@@ -132,6 +187,15 @@ bounded settings columns. It contains no drops or data rewrites. The migration
 compatibility test preserves representative Phase One and Phase Two fixtures
 through Phase Three. Do not apply it to production without explicit
 authorization, verified backups, and a controlled release.
+
+Phase Four adds `0004_glamorous_doctor_spectrum.sql` and
+`0005_nifty_vindicator.sql`. They add separate audit job/run/page/finding,
+score-version, Website Improvement Score, confidence, and review-history tables;
+conservative disabled settings; indexes and foreign keys; RLS with no public
+policies; and database-level safety bounds. They contain no drops, renames,
+deletes, or rewrites. The migration test preserves representative Phase One,
+Two, and Three records through both migrations. Do not apply these migrations
+to production as part of development.
 
 Before a production migration:
 
@@ -273,7 +337,7 @@ domain only after the preview environment passes verification.
   subscriptions or automated outreach.
 - Monitor form abuse, auth logs, database capacity, and notification failures.
 
-## Phase Three failure behavior and limitations
+## Preflight failure behavior and limitations
 
 - One administrator only
 - CSV uploads are bounded and processed synchronously; no original file blob is retained
@@ -284,9 +348,8 @@ domain only after the preview environment passes verification.
 - Per-domain delay is bounded configuration for worker/scheduler coordination;
   each run claims only the configured concurrency-sized batch.
 - Robots parsing is deliberately bounded to homepage policy.
-- No licensed provider or Google Places integration, deep website audits,
-  Lighthouse/PageSpeed, Core Web Vitals, screenshots, design/accessibility/SEO
-  scoring, Website Improvement Score, outreach, or private reports
+- No licensed discovery provider or Google Places integration. Phase Four deep
+  audits remain separate from preflight and never begin from eligibility alone.
 - No automatic email outreach or email sequencing
 - No analytics session replay or individual visitor profiles
 - Portfolio cards and links are explicitly labeled placeholders
@@ -296,10 +359,62 @@ domain only after the preview environment passes verification.
 
 ## Recommended next step
 
-Orbisy findings are informational, not guarantees of business outcomes.
-Eligible businesses still require a future audit and manual review.
+### Failure recovery and retention
 
-Run all migrations against a separate development database, configure a
-development-only worker secret, and test queue, retry, cancellation, and
-override flows. Request explicit authorization before any production
-migration, scheduler, or deployment. Deep audits remain Phase Four work.
+- Retryable network failures use bounded exponential backoff and a fixed attempt
+  limit. Permanent policy failures are blocked or failed with safe categories.
+- A five-minute lease returns abandoned work to the bounded queue or exhausts it
+  safely. PostgreSQL coordination prevents simultaneous claims above the
+  configured concurrency.
+- Later failures never delete earlier successful audits, scores, findings, or
+  review decisions. Rejected findings remain in history.
+- Audit retention defaults to `0`, meaning indefinite retention. Phase Four has
+  no automatic deletion task. Any future retention process requires an explicit
+  migration and operational review.
+
+### Optional PageSpeed
+
+PageSpeed is server-only and disabled by default. It runs only when both the
+stored switch and `PAGESPEED_API_KEY` are present, uses the already validated
+public homepage URL, requests mobile performance only, and stores provider,
+score, availability, duration, and safe error classification. Missing,
+rate-limited, malformed, or unavailable provider data adds no opportunity
+points and does not fail the audit. No billing is enabled by this repository.
+
+### Current limitations and Phase Five boundary
+
+- Objective static HTML inspection cannot judge visual quality, persuasive
+  writing, comprehensive mobile usability, search rankings, legal compliance,
+  or complete accessibility.
+- Client-rendered content is not executed and may therefore be unavailable.
+- PageSpeed is optional; no local Lighthouse, browser, screenshot, Chromium,
+  Puppeteer, or Playwright audit runs in production.
+- Crawling, internal-link checks, evidence, pages, redirects, bytes, time,
+  retries, concurrency, and daily work are strictly bounded.
+- Phase Four creates no outreach brief, private/public report, public audit
+  page, proposal, revenue-loss calculation, email, sequence, payment, Google
+  Places discovery, or automatic publication.
+- A Phase Five-ready flag is private workflow state only. Phase Four does not
+  use it to generate or send anything.
+
+### Development and production rollout checklist
+
+1. Keep production migrations, secrets, switches, workers, and schedulers unchanged.
+2. Apply all migrations only to a separate development database.
+3. Configure a development-only worker secret and optionally a development
+   PageSpeed key with reviewed quota and billing settings.
+4. Run `npm ci`, lint, type checking, tests, build, and `git diff --check`.
+5. Manually verify signed-out denial, signed-in queueing, cancellation, one
+   controlled audit, evidence display, finding verification/rejection/editing,
+   manual findings, score recalculation, review reopening, and suppression.
+6. Review the generated Phase Four SQL, RLS state, dependency audit, and pull
+   request before authorizing any merge.
+7. After a separately approved database backup decision, apply production SQL
+   in a controlled step and verify earlier row counts and new defaults.
+8. Add `DEEP_AUDIT_WORKER_SECRET` separately, deploy with both switches off,
+   verify private pages, then run at most one explicitly approved acceptance job.
+9. Do not configure a production scheduler during Phase Four.
+
+The next development step is local acceptance testing on the feature branch.
+Request explicit authorization before pushing, opening a pull request, applying
+production migrations, configuring secrets, deploying, or invoking production.
