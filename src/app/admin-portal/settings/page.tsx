@@ -15,6 +15,8 @@ export default async function SettingsPage() {
     ["Turnstile spam protection", Boolean(process.env.TURNSTILE_SECRET_KEY), "Required before production form launch"],
     ["Inbound notifications", Boolean(process.env.RESEND_API_KEY), "Optional; form storage works without email"],
     ["Preflight worker secret", Boolean(process.env.PREFLIGHT_WORKER_SECRET), "Required before worker execution"],
+    ["Deep-audit worker secret", Boolean(process.env.DEEP_AUDIT_WORKER_SECRET), "Required only for the separate Phase 4 worker"],
+    ["PageSpeed", Boolean(process.env.PAGESPEED_API_KEY), "Optional; unavailable checks do not count as failures"],
   ] as const;
 
   return (
@@ -59,7 +61,30 @@ export default async function SettingsPage() {
           <label className="checkbox"><input name="requireTargetIndustry" type="checkbox" defaultChecked={settings.requireTargetIndustry}/> Require target-industry match</label>
           <label className="checkbox"><input name="requireTargetLocation" type="checkbox" defaultChecked={settings.requireTargetLocation}/> Require target-location match</label>
           <label>Fetcher user agent<input name="fetcherUserAgent" minLength={20} maxLength={255} defaultValue={settings.fetcherUserAgent}/></label>
-          <button className="button button-primary" type="submit">Save import settings</button>
+          <h3>Deep-audit operating controls</h3>
+          <label className="checkbox"><input name="deepAuditEnabled" type="checkbox" defaultChecked={settings.deepAuditEnabled}/> Deep-audit global switch enabled</label>
+          <label className="checkbox"><input name="deepAuditWorkerEnabled" type="checkbox" defaultChecked={settings.deepAuditWorkerEnabled}/> Deep-audit worker enabled</label>
+          <label className="checkbox"><input name="pageSpeedEnabled" type="checkbox" defaultChecked={settings.pageSpeedEnabled}/> PageSpeed integration enabled</label>
+          <label>Maximum audits per day<input name="maxAuditsPerDay" type="number" min={1} max={100} defaultValue={settings.maxAuditsPerDay}/></label>
+          <label>Jobs per worker invocation<input name="maxAuditJobsPerWorkerRun" type="number" min={1} max={5} defaultValue={settings.maxAuditJobsPerWorkerRun}/></label>
+          <label>Maximum concurrent audits<input name="maxConcurrentAudits" type="number" min={1} max={3} defaultValue={settings.maxConcurrentAudits}/></label>
+          <label>Maximum pages per website<input name="maxPagesPerAudit" type="number" min={1} max={5} defaultValue={settings.maxPagesPerAudit}/></label>
+          <label>Maximum internal links checked<input name="maxInternalLinksChecked" type="number" min={0} max={50} defaultValue={settings.maxInternalLinksChecked}/></label>
+          <label>Per-domain delay (ms)<input name="auditPerDomainDelayMs" type="number" min={500} max={60000} defaultValue={settings.auditPerDomainDelayMs}/></label>
+          <label>DNS timeout (ms)<input name="auditDnsTimeoutMs" type="number" min={500} max={15000} defaultValue={settings.auditDnsTimeoutMs}/></label>
+          <label>Connection timeout (ms)<input name="auditConnectionTimeoutMs" type="number" min={1000} max={30000} defaultValue={settings.auditConnectionTimeoutMs}/></label>
+          <label>Page timeout (ms)<input name="auditPageTimeoutMs" type="number" min={2000} max={60000} defaultValue={settings.auditPageTimeoutMs}/></label>
+          <label>Overall audit timeout (ms)<input name="overallAuditTimeoutMs" type="number" min={5000} max={180000} defaultValue={settings.overallAuditTimeoutMs}/></label>
+          <label>Maximum redirects<input name="auditMaxRedirects" type="number" min={0} max={10} defaultValue={settings.auditMaxRedirects}/></label>
+          <label>Maximum bytes per page<input name="maxResponseBytesPerPage" type="number" min={50000} max={2000000} defaultValue={settings.maxResponseBytesPerPage}/></label>
+          <label>Maximum bytes per audit<input name="maxTotalBytesPerAudit" type="number" min={100000} max={8000000} defaultValue={settings.maxTotalBytesPerAudit}/></label>
+          <label>Retry limit<input name="auditRetryLimit" type="number" min={1} max={5} defaultValue={settings.auditRetryLimit}/></label>
+          <label>Retry backoff seconds<input name="auditRetryBackoffSeconds" type="number" min={10} max={86400} defaultValue={settings.auditRetryBackoffSeconds}/></label>
+          <label>Re-audit interval days<input name="reauditIntervalDays" type="number" min={1} max={730} defaultValue={settings.reauditIntervalDays}/></label>
+          <label>Minimum Business Fit Score<input name="auditMinimumBusinessFitScore" type="number" min={0} max={100} defaultValue={settings.auditMinimumBusinessFitScore}/></label>
+          <label>Minimum Audit Confidence<select name="minimumAuditConfidence" defaultValue={settings.minimumAuditConfidence}><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select></label>
+          <label>Retention days (0 keeps history indefinitely)<input name="auditRetentionDays" type="number" min={0} max={2555} defaultValue={settings.auditRetentionDays}/></label>
+          <button className="button button-primary" type="submit">Save settings</button>
         </form>
       </section>
     </AdminShell>

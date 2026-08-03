@@ -35,12 +35,36 @@ const settingsSchema = z
     minimumBusinessFitScore: z.coerce.number().int().min(0).max(100),
     requireTargetIndustry: z.boolean(), requireTargetLocation: z.boolean(),
     fetcherUserAgent: z.string().trim().min(20).max(255),
+    deepAuditEnabled: z.boolean(), deepAuditWorkerEnabled: z.boolean(),
+    maxAuditsPerDay: z.coerce.number().int().min(1).max(100),
+    maxAuditJobsPerWorkerRun: z.coerce.number().int().min(1).max(5),
+    maxConcurrentAudits: z.coerce.number().int().min(1).max(3),
+    maxPagesPerAudit: z.coerce.number().int().min(1).max(5),
+    maxInternalLinksChecked: z.coerce.number().int().min(0).max(50),
+    auditPerDomainDelayMs: z.coerce.number().int().min(500).max(60_000),
+    auditDnsTimeoutMs: z.coerce.number().int().min(500).max(15_000),
+    auditConnectionTimeoutMs: z.coerce.number().int().min(1000).max(30_000),
+    auditPageTimeoutMs: z.coerce.number().int().min(2000).max(60_000),
+    overallAuditTimeoutMs: z.coerce.number().int().min(5000).max(180_000),
+    auditMaxRedirects: z.coerce.number().int().min(0).max(10),
+    maxResponseBytesPerPage: z.coerce.number().int().min(50_000).max(2_000_000),
+    maxTotalBytesPerAudit: z.coerce.number().int().min(100_000).max(8_000_000),
+    auditRetryLimit: z.coerce.number().int().min(1).max(5),
+    auditRetryBackoffSeconds: z.coerce.number().int().min(10).max(86_400),
+    reauditIntervalDays: z.coerce.number().int().min(1).max(730),
+    auditMinimumBusinessFitScore: z.coerce.number().int().min(0).max(100),
+    minimumAuditConfidence: z.enum(["low", "medium", "high"]),
+    pageSpeedEnabled: z.boolean(),
+    auditRetentionDays: z.coerce.number().int().min(0).max(2_555),
   })
   .refine(
     (settings) =>
       settings.possibleDuplicateThreshold < settings.likelyDuplicateThreshold,
     { message: "Possible threshold must be lower than likely threshold." },
-  );
+  )
+  .refine((settings) => settings.maxTotalBytesPerAudit >= settings.maxResponseBytesPerPage, {
+    message: "Total audit bytes must be at least the per-page byte limit.",
+  });
 
 function lines(value: FormDataEntryValue | null) {
   return String(value || "")
@@ -71,6 +95,14 @@ export async function updateSettingsAction(formData: FormData) {
     perDomainDelayMs: formData.get("perDomainDelayMs"), dnsTimeoutMs: formData.get("dnsTimeoutMs"), connectionTimeoutMs: formData.get("connectionTimeoutMs"), overallRequestTimeoutMs: formData.get("overallRequestTimeoutMs"),
     maxRedirects: formData.get("maxRedirects"), maxResponseBytes: formData.get("maxResponseBytes"), preflightRetryLimit: formData.get("preflightRetryLimit"), retryBackoffSeconds: formData.get("retryBackoffSeconds"), preflightRecheckDays: formData.get("preflightRecheckDays"), minimumBusinessFitScore: formData.get("minimumBusinessFitScore"),
     requireTargetIndustry: formData.get("requireTargetIndustry") === "on", requireTargetLocation: formData.get("requireTargetLocation") === "on", fetcherUserAgent: formData.get("fetcherUserAgent"),
+    deepAuditEnabled: formData.get("deepAuditEnabled") === "on",
+    deepAuditWorkerEnabled: formData.get("deepAuditWorkerEnabled") === "on",
+    maxAuditsPerDay: formData.get("maxAuditsPerDay"), maxAuditJobsPerWorkerRun: formData.get("maxAuditJobsPerWorkerRun"), maxConcurrentAudits: formData.get("maxConcurrentAudits"),
+    maxPagesPerAudit: formData.get("maxPagesPerAudit"), maxInternalLinksChecked: formData.get("maxInternalLinksChecked"), auditPerDomainDelayMs: formData.get("auditPerDomainDelayMs"),
+    auditDnsTimeoutMs: formData.get("auditDnsTimeoutMs"), auditConnectionTimeoutMs: formData.get("auditConnectionTimeoutMs"), auditPageTimeoutMs: formData.get("auditPageTimeoutMs"), overallAuditTimeoutMs: formData.get("overallAuditTimeoutMs"),
+    auditMaxRedirects: formData.get("auditMaxRedirects"), maxResponseBytesPerPage: formData.get("maxResponseBytesPerPage"), maxTotalBytesPerAudit: formData.get("maxTotalBytesPerAudit"),
+    auditRetryLimit: formData.get("auditRetryLimit"), auditRetryBackoffSeconds: formData.get("auditRetryBackoffSeconds"), reauditIntervalDays: formData.get("reauditIntervalDays"),
+    auditMinimumBusinessFitScore: formData.get("auditMinimumBusinessFitScore"), minimumAuditConfidence: formData.get("minimumAuditConfidence"), pageSpeedEnabled: formData.get("pageSpeedEnabled") === "on", auditRetentionDays: formData.get("auditRetentionDays"),
   });
   const db = getDb();
   await db.transaction(async (tx) => {
@@ -83,7 +115,7 @@ export async function updateSettingsAction(formData: FormData) {
       });
     await tx.insert(adminActivityLogs).values({
       adminEmail: admin.email,
-      action: "settings.imports_updated",
+      action: "settings.operating_controls_updated",
       entityType: "app_settings",
       metadata: {
         targetIndustryCount: parsed.targetIndustries.length,

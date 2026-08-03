@@ -1,5 +1,6 @@
 import {
   boolean,
+  check,
   foreignKey,
   index,
   integer,
@@ -93,6 +94,34 @@ export const preflightCheckStatus = pgEnum("preflight_check_status", [
 export const auditEligibilityStatus = pgEnum("audit_eligibility_status", [
   "eligible", "needs_manual_review", "ineligible", "blocked", "not_evaluated",
 ]);
+export const auditJobStatus = pgEnum("audit_job_status", [
+  "queued", "running", "completed", "completed_with_warnings", "failed",
+  "blocked", "retry_scheduled", "cancelled",
+]);
+export const auditRunStatus = pgEnum("audit_run_status", [
+  "running", "completed", "completed_with_warnings", "failed", "blocked",
+]);
+export const auditPageStatus = pgEnum("audit_page_status", [
+  "inspected", "skipped", "blocked", "unavailable",
+]);
+export const auditFindingCategory = pgEnum("audit_finding_category", [
+  "mobile_usability", "conversion_path_cta", "performance", "technical_seo",
+  "accessibility", "reliability_security", "manual_review_opportunity",
+]);
+export const auditFindingSeverity = pgEnum("audit_finding_severity", [
+  "informational", "low", "medium", "high",
+]);
+export const auditFindingConfidence = pgEnum("audit_finding_confidence", [
+  "low", "medium", "high",
+]);
+export const auditFindingSource = pgEnum("audit_finding_source", ["automated", "manual"]);
+export const auditVerificationStatus = pgEnum("audit_verification_status", [
+  "pending", "verified", "rejected", "edited", "not_required",
+]);
+export const websiteImprovementBand = pgEnum("website_improvement_band", [
+  "low_opportunity", "minor_opportunities", "manual_review", "strong_opportunity", "high_priority",
+]);
+export const auditConfidenceLevel = pgEnum("audit_confidence_level", ["low", "medium", "high"]);
 
 export const appSettings = pgTable("app_settings", {
   id: varchar("id", { length: 40 }).primaryKey().default("default"),
@@ -148,10 +177,44 @@ export const appSettings = pgTable("app_settings", {
   requireTargetLocation: boolean("require_target_location").default(true).notNull(),
   fetcherUserAgent: varchar("fetcher_user_agent", { length: 255 })
     .default("OrbisyPreflight/1.0 (+https://orbisy.com/preflight)").notNull(),
+  deepAuditEnabled: boolean("deep_audit_enabled").default(false).notNull(),
+  deepAuditWorkerEnabled: boolean("deep_audit_worker_enabled").default(false).notNull(),
+  maxAuditsPerDay: integer("max_audits_per_day").default(10).notNull(),
+  maxAuditJobsPerWorkerRun: integer("max_audit_jobs_per_worker_run").default(1).notNull(),
+  maxConcurrentAudits: integer("max_concurrent_audits").default(1).notNull(),
+  maxPagesPerAudit: integer("max_pages_per_audit").default(3).notNull(),
+  maxInternalLinksChecked: integer("max_internal_links_checked").default(20).notNull(),
+  auditPerDomainDelayMs: integer("audit_per_domain_delay_ms").default(2000).notNull(),
+  auditDnsTimeoutMs: integer("audit_dns_timeout_ms").default(3000).notNull(),
+  auditConnectionTimeoutMs: integer("audit_connection_timeout_ms").default(5000).notNull(),
+  auditPageTimeoutMs: integer("audit_page_timeout_ms").default(12000).notNull(),
+  overallAuditTimeoutMs: integer("overall_audit_timeout_ms").default(30000).notNull(),
+  auditMaxRedirects: integer("audit_max_redirects").default(5).notNull(),
+  maxResponseBytesPerPage: integer("max_response_bytes_per_page").default(1_000_000).notNull(),
+  maxTotalBytesPerAudit: integer("max_total_bytes_per_audit").default(2_500_000).notNull(),
+  auditRetryLimit: integer("audit_retry_limit").default(3).notNull(),
+  auditRetryBackoffSeconds: integer("audit_retry_backoff_seconds").default(120).notNull(),
+  reauditIntervalDays: integer("reaudit_interval_days").default(90).notNull(),
+  auditMinimumBusinessFitScore: integer("audit_minimum_business_fit_score").default(65).notNull(),
+  minimumAuditConfidence: auditConfidenceLevel("minimum_audit_confidence").default("medium").notNull(),
+  pageSpeedEnabled: boolean("pagespeed_enabled").default(false).notNull(),
+  auditRetentionDays: integer("audit_retention_days").default(0).notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .defaultNow()
     .notNull(),
-});
+}, (table) => [
+  check("app_settings_audit_daily_bound", sql`${table.maxAuditsPerDay} between 1 and 100`),
+  check("app_settings_audit_batch_bound", sql`${table.maxAuditJobsPerWorkerRun} between 1 and 5`),
+  check("app_settings_audit_concurrency_bound", sql`${table.maxConcurrentAudits} between 1 and 3`),
+  check("app_settings_audit_pages_bound", sql`${table.maxPagesPerAudit} between 1 and 5`),
+  check("app_settings_audit_links_bound", sql`${table.maxInternalLinksChecked} between 0 and 50`),
+  check("app_settings_audit_redirects_bound", sql`${table.auditMaxRedirects} between 0 and 10`),
+  check("app_settings_audit_page_bytes_bound", sql`${table.maxResponseBytesPerPage} between 50000 and 2000000`),
+  check("app_settings_audit_total_bytes_bound", sql`${table.maxTotalBytesPerAudit} between ${table.maxResponseBytesPerPage} and 8000000`),
+  check("app_settings_audit_retry_bound", sql`${table.auditRetryLimit} between 1 and 5`),
+  check("app_settings_audit_score_bound", sql`${table.auditMinimumBusinessFitScore} between 0 and 100`),
+  check("app_settings_audit_retention_bound", sql`${table.auditRetentionDays} between 0 and 2555`),
+]);
 
 export const importBatches = pgTable(
   "import_batches",
@@ -592,3 +655,149 @@ export const auditEligibilityDecisions = pgTable("audit_eligibility_decisions", 
   explanation: text("explanation").notNull(), isOverride: boolean("is_override").default(false).notNull(), previousDecisionId: uuid("previous_decision_id"),
   decidedBy: varchar("decided_by", { length: 254 }), decidedAt: timestamp("decided_at", { withTimezone: true }).defaultNow().notNull(),
 }, (table) => [index("audit_eligibility_lead_idx").on(table.leadId, table.decidedAt)]);
+
+export const auditJobs = pgTable("audit_jobs", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  leadId: uuid("lead_id").notNull().references(() => leads.id, { onDelete: "cascade" }),
+  eligibilityDecisionId: uuid("eligibility_decision_id").notNull().references(() => auditEligibilityDecisions.id, { onDelete: "restrict" }),
+  status: auditJobStatus("status").default("queued").notNull(),
+  priority: integer("priority").default(0).notNull(),
+  attemptCount: integer("attempt_count").default(0).notNull(),
+  maxAttempts: integer("max_attempts").default(3).notNull(),
+  scheduledAt: timestamp("scheduled_at", { withTimezone: true }).defaultNow().notNull(),
+  claimedAt: timestamp("claimed_at", { withTimezone: true }),
+  completedAt: timestamp("completed_at", { withTimezone: true }),
+  workerId: varchar("worker_id", { length: 120 }),
+  auditVersion: varchar("audit_version", { length: 40 }).notNull(),
+  idempotencyKey: varchar("idempotency_key", { length: 180 }).notNull(),
+  lastError: text("last_error"),
+  errorClassification: varchar("error_classification", { length: 60 }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  index("audit_job_status_schedule_idx").on(table.status, table.scheduledAt),
+  index("audit_job_lead_idx").on(table.leadId, table.createdAt),
+  uniqueIndex("audit_job_idempotency_unique").on(table.idempotencyKey),
+  uniqueIndex("audit_job_active_unique").on(table.leadId, table.auditVersion)
+    .where(sql`${table.status} in ('queued', 'running', 'retry_scheduled')`),
+  check("audit_job_attempt_bound", sql`${table.attemptCount} >= 0 and ${table.maxAttempts} between 1 and 5`),
+]).enableRLS();
+
+export const auditRuns = pgTable("audit_runs", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  jobId: uuid("job_id").notNull().references(() => auditJobs.id, { onDelete: "cascade" }),
+  leadId: uuid("lead_id").notNull().references(() => leads.id, { onDelete: "cascade" }),
+  auditVersion: varchar("audit_version", { length: 40 }).notNull(),
+  status: auditRunStatus("status").default("running").notNull(),
+  startedAt: timestamp("started_at", { withTimezone: true }).defaultNow().notNull(),
+  completedAt: timestamp("completed_at", { withTimezone: true }),
+  settingsSnapshot: jsonb("settings_snapshot").$type<Record<string, unknown>>().default({}).notNull(),
+  analyzerAvailability: jsonb("analyzer_availability").$type<Record<string, unknown>>().default({}).notNull(),
+  errorClassification: varchar("error_classification", { length: 60 }),
+  safeErrorSummary: text("safe_error_summary"),
+  reviewCompletedAt: timestamp("review_completed_at", { withTimezone: true }),
+  reviewCompletedBy: varchar("review_completed_by", { length: 254 }),
+  phaseFiveReady: boolean("phase_five_ready").default(false).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  index("audit_run_lead_created_idx").on(table.leadId, table.createdAt),
+  index("audit_run_job_idx").on(table.jobId),
+]).enableRLS();
+
+export const auditPages = pgTable("audit_pages", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  runId: uuid("run_id").notNull().references(() => auditRuns.id, { onDelete: "cascade" }),
+  leadId: uuid("lead_id").notNull().references(() => leads.id, { onDelete: "cascade" }),
+  requestedUrl: text("requested_url").notNull(),
+  finalUrl: text("final_url"),
+  pageType: varchar("page_type", { length: 40 }).notNull(),
+  selectionReason: text("selection_reason").notNull(),
+  status: auditPageStatus("status").notNull(),
+  statusReason: text("status_reason"),
+  httpStatus: integer("http_status"),
+  contentType: varchar("content_type", { length: 120 }),
+  responseBytes: integer("response_bytes"),
+  redirectCount: integer("redirect_count"),
+  durationMs: integer("duration_ms"),
+  robotsResult: varchar("robots_result", { length: 60 }),
+  errorClassification: varchar("error_classification", { length: 60 }),
+  safeErrorSummary: text("safe_error_summary"),
+  inspectedAt: timestamp("inspected_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [index("audit_page_run_idx").on(table.runId, table.createdAt)]).enableRLS();
+
+export const auditFindings = pgTable("audit_findings", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  runId: uuid("run_id").notNull().references(() => auditRuns.id, { onDelete: "cascade" }),
+  leadId: uuid("lead_id").notNull().references(() => leads.id, { onDelete: "cascade" }),
+  category: auditFindingCategory("category").notNull(),
+  findingType: varchar("finding_type", { length: 100 }).notNull(),
+  originalExplanation: text("original_explanation").notNull(),
+  administratorExplanation: text("administrator_explanation"),
+  evidence: jsonb("evidence").$type<Record<string, unknown>>().default({}).notNull(),
+  affectedUrl: text("affected_url"),
+  severity: auditFindingSeverity("severity").notNull(),
+  confidence: auditFindingConfidence("confidence").notNull(),
+  source: auditFindingSource("source").notNull(),
+  verificationStatus: auditVerificationStatus("verification_status").default("pending").notNull(),
+  suggestedImprovement: text("suggested_improvement").notNull(),
+  analyzerVersion: varchar("analyzer_version", { length: 40 }).notNull(),
+  verifiedBy: varchar("verified_by", { length: 254 }),
+  verifiedAt: timestamp("verified_at", { withTimezone: true }),
+  auditTimestamp: timestamp("audit_timestamp", { withTimezone: true }).defaultNow().notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  index("audit_finding_run_category_idx").on(table.runId, table.category),
+  index("audit_finding_review_idx").on(table.verificationStatus, table.createdAt),
+]).enableRLS();
+
+export const scoreVersions = pgTable("score_versions", {
+  version: varchar("version", { length: 40 }).primaryKey(),
+  categoryWeights: jsonb("category_weights").$type<Record<string, number>>().notNull(),
+  rules: jsonb("rules").$type<Record<string, unknown>>().notNull(),
+  description: text("description").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}).enableRLS();
+
+export const websiteImprovementScores = pgTable("website_improvement_scores", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  runId: uuid("run_id").notNull().references(() => auditRuns.id, { onDelete: "cascade" }),
+  leadId: uuid("lead_id").notNull().references(() => leads.id, { onDelete: "cascade" }),
+  scoreVersion: varchar("score_version", { length: 40 }).notNull().references(() => scoreVersions.version, { onDelete: "restrict" }),
+  categoryResults: jsonb("category_results").$type<Record<string, unknown>>().notNull(),
+  findingIds: jsonb("finding_ids").$type<string[]>().default([]).notNull(),
+  inputSnapshot: jsonb("input_snapshot").$type<Record<string, unknown>>().notNull(),
+  totalScore: integer("total_score").notNull(),
+  scoreBand: websiteImprovementBand("score_band").notNull(),
+  coveragePercent: integer("coverage_percent").notNull(),
+  provisional: boolean("provisional").default(true).notNull(),
+  manuallyReviewed: boolean("manually_reviewed").default(false).notNull(),
+  calculatedAt: timestamp("calculated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  index("website_score_run_idx").on(table.runId, table.calculatedAt),
+  check("website_score_total_bound", sql`${table.totalScore} between 0 and 100`),
+  check("website_score_coverage_bound", sql`${table.coveragePercent} between 0 and 100`),
+]).enableRLS();
+
+export const auditConfidenceScores = pgTable("audit_confidence_scores", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  runId: uuid("run_id").notNull().references(() => auditRuns.id, { onDelete: "cascade" }),
+  level: auditConfidenceLevel("level").notNull(),
+  factors: jsonb("factors").$type<Record<string, unknown>>().notNull(),
+  explanation: text("explanation").notNull(),
+  calculationVersion: varchar("calculation_version", { length: 40 }).notNull(),
+  calculatedAt: timestamp("calculated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [index("audit_confidence_run_idx").on(table.runId, table.calculatedAt)]).enableRLS();
+
+export const auditReviewEvents = pgTable("audit_review_events", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  runId: uuid("run_id").notNull().references(() => auditRuns.id, { onDelete: "cascade" }),
+  leadId: uuid("lead_id").notNull().references(() => leads.id, { onDelete: "cascade" }),
+  findingId: uuid("finding_id").references(() => auditFindings.id, { onDelete: "set null" }),
+  eventType: varchar("event_type", { length: 80 }).notNull(),
+  administratorEmail: varchar("administrator_email", { length: 254 }).notNull(),
+  explanation: text("explanation").notNull(),
+  evidence: jsonb("evidence").$type<Record<string, unknown>>().default({}).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [index("audit_review_run_idx").on(table.runId, table.createdAt)]).enableRLS();
