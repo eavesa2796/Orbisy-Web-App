@@ -456,23 +456,6 @@ export const manualContactAttempts = pgTable("manual_contact_attempts", {
     .notNull(),
 });
 
-export const outreachDrafts = pgTable("outreach_drafts", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  leadId: uuid("lead_id")
-    .notNull()
-    .references(() => leads.id, { onDelete: "cascade" }),
-  subject: varchar("subject", { length: 160 }).notNull(),
-  body: text("body").notNull(),
-  verifiedObservations: jsonb("verified_observations")
-    .$type<string[]>()
-    .default([])
-    .notNull(),
-  readyForManualUse: boolean("ready_for_manual_use").default(false).notNull(),
-  updatedAt: timestamp("updated_at", { withTimezone: true })
-    .defaultNow()
-    .notNull(),
-});
-
 export const suppressionEntries = pgTable(
   "suppression_entries",
   {
@@ -801,3 +784,42 @@ export const auditReviewEvents = pgTable("audit_review_events", {
   evidence: jsonb("evidence").$type<Record<string, unknown>>().default({}).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 }, (table) => [index("audit_review_run_idx").on(table.runId, table.createdAt)]).enableRLS();
+
+export const outreachDrafts = pgTable("outreach_drafts", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  leadId: uuid("lead_id")
+    .notNull()
+    .references(() => leads.id, { onDelete: "cascade" }),
+  auditRunId: uuid("audit_run_id").references(() => auditRuns.id, {
+    onDelete: "set null",
+  }),
+  briefVersion: varchar("brief_version", { length: 40 })
+    .default("outreach-brief-v1")
+    .notNull(),
+  status: varchar("status", { length: 30 }).default("draft").notNull(),
+  subject: varchar("subject", { length: 160 }).notNull(),
+  body: text("body").notNull(),
+  relevantContext: text("relevant_context"),
+  verifiedObservations: jsonb("verified_observations")
+    .$type<string[]>()
+    .default([])
+    .notNull(),
+  selectedFindingIds: jsonb("selected_finding_ids")
+    .$type<string[]>()
+    .default([])
+    .notNull(),
+  whyItMayMatter: text("why_it_may_matter"),
+  suggestedImprovement: text("suggested_improvement"),
+  personalizationNotes: text("personalization_notes"),
+  recommendedNextAction: text("recommended_next_action"),
+  readyForManualUse: boolean("ready_for_manual_use").default(false).notNull(),
+  reviewedBy: varchar("reviewed_by", { length: 254 }),
+  reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+}, (table) => [
+  index("outreach_draft_lead_updated_idx").on(table.leadId, table.updatedAt),
+  index("outreach_draft_audit_run_idx").on(table.auditRunId),
+  check("outreach_draft_status_check", sql`${table.status} in ('draft','approved','stale','blocked')`),
+]).enableRLS();

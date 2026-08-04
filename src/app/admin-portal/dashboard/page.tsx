@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, FileWarning, Inbox, PhoneForwarded, UsersRound } from "lucide-react";
+import { ArrowRight, FilePlus2, FileUp, FileWarning, Inbox, PhoneForwarded, Search, UsersRound } from "lucide-react";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { requireAdmin } from "@/lib/auth";
 import { getOverviewData } from "@/lib/data/admin";
@@ -30,6 +30,24 @@ export default async function DashboardPage() {
         </section>
       ) : (
         <>
+          <section className="admin-card company-search-card" aria-labelledby="company-search-title">
+            <div>
+              <p className="eyebrow">Company workspace</p>
+              <h2 id="company-search-title">Find a company already in Orbisy</h2>
+              <p>Search saved businesses by name, domain, contact, phone, city, or source identifier.</p>
+            </div>
+            <form action="/admin-portal/leads" method="get" role="search">
+              <label className="sr-only" htmlFor="dashboard-company-search">Search saved companies</label>
+              <Search aria-hidden="true" size={18} />
+              <input id="dashboard-company-search" name="q" placeholder="Business name, website, or city" type="search" />
+              <button className="button button-primary" type="submit">Search leads</button>
+            </form>
+            <div className="company-search-actions" aria-label="Company workflow shortcuts">
+              <Link href="/admin-portal/leads#manual-entry"><FilePlus2 size={16} /> Add manually</Link>
+              <Link href="/admin-portal/imports"><FileUp size={16} /> Import permitted CSV</Link>
+              <Link href="/admin-portal/audits">View audit-eligible leads <ArrowRight size={16} /></Link>
+            </div>
+          </section>
           <section className="metric-grid" aria-label="Lead summary">
             <article className="metric-card"><Inbox /><span>New inbound</span><strong>{count("new_inbound")}</strong></article>
             <article className="metric-card"><UsersRound /><span>Needs review</span><strong>{count("needs_review")}</strong></article>
@@ -43,6 +61,7 @@ export default async function DashboardPage() {
               <li><strong>Complete scheduled follow-ups</strong><span>{data.due.length} due</span></li>
               <li><Link href="/admin-portal/preflight?status=failed"><strong>Review failed or blocked jobs</strong></Link><span>{data.preflightSummary.attention + data.auditSummary.attention} jobs</span></li>
               <li><Link href="/admin-portal/audits?status=completed"><strong>Verify completed deep audits</strong></Link><span>{data.auditSummary.verification} audits</span></li>
+              <li><Link href="/admin-portal/leads?view=phase_five_ready"><strong>Prepare approved outreach briefs</strong></Link><span>{data.auditSummary.ready_for_brief} ready</span></li>
               <li><Link href="/admin-portal/audits"><strong>Review eligible leads waiting to be queued</strong></Link><span>{data.auditSummary.eligible_waiting} eligible</span></li>
               <li><strong>Review homepage-review requests</strong><span>{count("new_inbound")} inbound</span></li>
               <li><Link href="/admin-portal/imports/review"><strong>Review possible duplicates</strong></Link><span>{data.importSummary.review_rows} decisions</span></li>

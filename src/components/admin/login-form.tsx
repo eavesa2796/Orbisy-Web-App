@@ -48,9 +48,9 @@ export function LoginForm({ configured }: { configured: boolean }) {
   return (
     <div className="login-card">
       <div className="login-icon"><LockKeyhole size={22} /></div>
-      <p className="admin-kicker">Administrator access</p>
+      <p className="admin-kicker">Administrator sign in</p>
       <h1>Welcome back.</h1>
-      <p>Sign in to review requests and manage Orbisy&apos;s lead pipeline.</p>
+      <p>Use your approved administrator account to continue.</p>
 
       {!configured ? (
         <div className="admin-notice" role="status">

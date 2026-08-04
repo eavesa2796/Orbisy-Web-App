@@ -164,3 +164,58 @@ describe("Phase Four migration", () => {
     await db.close();
   }, 30_000);
 });
+
+describe("Phase Five migration", () => {
+  it("preserves existing outreach drafts and adds reviewed-brief controls", async () => {
+    const db = new PGlite();
+    for (const name of [
+      "0000_boring_calypso.sql",
+      "0001_parallel_vampiro.sql",
+      "0002_bouncy_madame_masque.sql",
+      "0003_foamy_vulture.sql",
+      "0004_glamorous_doctor_spectrum.sql",
+      "0005_nifty_vindicator.sql",
+    ]) {
+      await db.exec(await migration(name));
+    }
+
+    const leadId = "3f66ca54-a0e6-4e20-898b-3a270c113225";
+    await db.query(
+      `insert into leads (id,business_name,source_name,status)
+       values ($1,'Existing outreach lead','Inbound','new_inbound')`,
+      [leadId],
+    );
+    await db.query(
+      `insert into outreach_drafts (lead_id,subject,body,verified_observations,ready_for_manual_use)
+       values ($1,'Existing subject','Existing body','["Verified observation"]',true)`,
+      [leadId],
+    );
+
+    await db.exec(await migration("0006_rich_shadow_king.sql"));
+    await db.exec(await migration("0007_pale_madelyne_pryor.sql"));
+
+    const draft = await db.query<{
+      subject: string;
+      brief_version: string;
+      status: string;
+      selected_finding_ids: string[];
+    }>(
+      `select subject,brief_version,status,selected_finding_ids
+       from outreach_drafts where lead_id=$1`,
+      [leadId],
+    );
+    expect(draft.rows[0]).toMatchObject({
+      subject: "Existing subject",
+      brief_version: "outreach-brief-v1",
+      status: "draft",
+      selected_finding_ids: [],
+    });
+    await expect(db.query("update outreach_drafts set status='sent' where lead_id=$1", [leadId]))
+      .rejects.toThrow();
+    const secured = await db.query<{ relrowsecurity: boolean }>(
+      "select relrowsecurity from pg_class where relname='outreach_drafts'",
+    );
+    expect(secured.rows[0]?.relrowsecurity).toBe(true);
+    await db.close();
+  }, 30_000);
+});

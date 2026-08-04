@@ -1,4 +1,4 @@
-# Orbisy — Phase Four
+# Orbisy — Phase Five
 
 Orbisy is Anthony Eaves’s Chicago-based software-development business. This
 MVP combines a public service website, secure inbound forms, a
@@ -6,10 +6,41 @@ single-administrator lead workspace, manual outreach preparation,
 privacy-conscious first-party analytics, and an administrator-reviewed
 business-import workflow.
 
-Phase Four adds private, objective deep website audits, bounded evidence-backed
-findings, a versioned Website Improvement Score, separate Audit Confidence, and
-administrator verification. It does not discover businesses, generate reports
-or outreach, send email, calculate revenue loss, or run automatically.
+Phase Five turns administrator-approved audit evidence into private outreach
+briefs for manual use, strengthens pipeline history, adds safe dashboard search
+for businesses already stored in Orbisy, and applies the approved Orbisy brand
+assets across the public site and administrator authentication experience. It
+does not discover external businesses, generate public reports, send email,
+calculate revenue loss, or run automatically.
+
+## Phase Five architecture
+
+An outreach brief is available only for an inbound request or a lead whose
+latest completed audit is explicitly marked Phase Five-ready. Audit-based
+briefs require one or two findings verified in that exact audit run. The brief
+stores the audit reference, selected finding IDs, reviewed wording, context,
+qualified potential-impact language, a suggested improvement, personalization
+notes, recommended next action, subject, body, review identity, and status.
+
+Saving a draft never sends or publishes it. Explicit administrator approval is
+required before copy controls appear. Approval moves an appropriate lead to
+`contact_planned` and records a pipeline event; separately recording manual
+contact moves it to `contacted` and records both the attempt and status history.
+Changing reviewed audit evidence, reopening the audit, or suppressing the lead
+invalidates or blocks the brief. Unsupported monetary and revenue-loss claims
+are rejected server-side.
+
+The dashboard company search delegates to the existing server-authorized lead
+search and covers saved business names, domains, contacts, phones, cities, and
+source identifiers. It is not a discovery engine and does not scrape external
+sites. Manual entry and permitted CSV import remain the only business-data
+sources.
+
+Brand files use Next.js file-based favicon, application-icon, Apple-icon, and
+manifest conventions. The public header/footer, administrator shell, sign-in,
+and password-reset experience use the approved Orbisy logo kit. Administrator
+authorization, route hiding, noindex behavior, and authentication flow are
+unchanged.
 
 ## Phase Four architecture
 
@@ -197,6 +228,13 @@ deletes, or rewrites. The migration test preserves representative Phase One,
 Two, and Three records through both migrations. Do not apply these migrations
 to production as part of development.
 
+Phase Five adds `0006_rich_shadow_king.sql` and
+`0007_pale_madelyne_pryor.sql`. They preserve existing outreach drafts while
+adding their audit reference, structured brief fields, selected finding IDs,
+review state, indexes, constraints, and RLS with no public policies. They do not
+drop, rename, delete, or rewrite existing records. Apply them only through the
+same controlled development and production review process.
+
 Before a production migration:
 
 1. Confirm the provider backup or point-in-time recovery setting.
@@ -381,7 +419,7 @@ score, availability, duration, and safe error classification. Missing,
 rate-limited, malformed, or unavailable provider data adds no opportunity
 points and does not fail the audit. No billing is enabled by this repository.
 
-### Current limitations and Phase Five boundary
+### Current limitations and Phase Six boundary
 
 - Objective static HTML inspection cannot judge visual quality, persuasive
   writing, comprehensive mobile usability, search rankings, legal compliance,
@@ -391,29 +429,32 @@ points and does not fail the audit. No billing is enabled by this repository.
   Puppeteer, or Playwright audit runs in production.
 - Crawling, internal-link checks, evidence, pages, redirects, bytes, time,
   retries, concurrency, and daily work are strictly bounded.
-- Phase Four creates no outreach brief, private/public report, public audit
-  page, proposal, revenue-loss calculation, email, sequence, payment, Google
-  Places discovery, or automatic publication.
-- A Phase Five-ready flag is private workflow state only. Phase Four does not
-  use it to generate or send anything.
+- Phase Five creates no private/public report, public audit page, proposal,
+  revenue-loss calculation, email delivery, sequence, payment, Google Places
+  discovery, or automatic publication.
+- Browser screenshots, revocable private reports, report expiration, and any
+  licensed external discovery provider remain Phase Six decisions.
+- Phase Five-ready state permits a private draft workflow only. It never sends,
+  publishes, or contacts a business automatically.
 
 ### Development and production rollout checklist
 
 1. Keep production migrations, secrets, switches, workers, and schedulers unchanged.
-2. Apply all migrations only to a separate development database.
-3. Configure a development-only worker secret and optionally a development
-   PageSpeed key with reviewed quota and billing settings.
+2. Apply Phase Five migrations only to a separate development database first.
+3. Keep all preflight, deep-audit, and PageSpeed switches off unless a separate
+   controlled worker test requires them.
 4. Run `npm ci`, lint, type checking, tests, build, and `git diff --check`.
-5. Manually verify signed-out denial, signed-in queueing, cancellation, one
-   controlled audit, evidence display, finding verification/rejection/editing,
-   manual findings, score recalculation, review reopening, and suppression.
-6. Review the generated Phase Four SQL, RLS state, dependency audit, and pull
+5. Manually verify the public brand, favicon, responsive sign-in and password
+   reset, homepage portrait/copy, dashboard company search, inbound drafting,
+   Phase Five-ready brief creation, approval, copying, contact history, audit
+   reopening, and suppression invalidation.
+6. Review the generated Phase Five SQL, outreach-draft RLS state, dependency audit, and pull
    request before authorizing any merge.
 7. After a separately approved database backup decision, apply production SQL
-   in a controlled step and verify earlier row counts and new defaults.
-8. Add `DEEP_AUDIT_WORKER_SECRET` separately, deploy with both switches off,
-   verify private pages, then run at most one explicitly approved acceptance job.
-9. Do not configure a production scheduler during Phase Four.
+   in a controlled step and verify existing lead, audit, and outreach-draft data.
+8. Deploy with every worker switch off and verify public and private pages before
+   approving any real outreach brief.
+9. Do not configure a production scheduler or outbound email provider during Phase Five.
 
 The next development step is local acceptance testing on the feature branch.
 Request explicit authorization before pushing, opening a pull request, applying

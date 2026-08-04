@@ -2,7 +2,7 @@ import "server-only";
 
 import { desc, eq } from "drizzle-orm";
 import { getDb } from "@/lib/db";
-import { adminActivityLogs, auditConfidenceScores, auditFindings, auditPages, auditReviewEvents, auditRuns, websiteImprovementScores } from "@/lib/db/schema";
+import { adminActivityLogs, auditConfidenceScores, auditFindings, auditPages, auditReviewEvents, auditRuns, outreachDrafts, websiteImprovementScores } from "@/lib/db/schema";
 import { getImportSettings } from "@/lib/imports/service";
 import { calculateAuditConfidence } from "./confidence";
 import { phaseFiveReadiness } from "./policy";
@@ -18,6 +18,8 @@ export async function reviewFinding(input: { findingId: string; status: "verifie
     const explanation = input.explanation?.trim();
     if (input.status === "edited" && (!explanation || explanation.length < 5)) throw new Error("Edited wording requires an explanation.");
     await tx.update(auditFindings).set({ verificationStatus: input.status, administratorExplanation: explanation || current.administratorExplanation, verifiedBy: input.actor, verifiedAt: new Date(), updatedAt: new Date() }).where(eq(auditFindings.id, input.findingId));
+    await tx.update(auditRuns).set({ reviewCompletedAt: null, reviewCompletedBy: null, phaseFiveReady: false }).where(eq(auditRuns.id, current.runId));
+    await tx.update(outreachDrafts).set({ status: "stale", readyForManualUse: false, reviewedBy: null, reviewedAt: null, updatedAt: new Date() }).where(eq(outreachDrafts.auditRunId, current.runId));
     await tx.insert(auditReviewEvents).values({ runId: current.runId, leadId: current.leadId, findingId: current.id, eventType: `finding_${input.status}`, administratorEmail: input.actor, explanation: explanation || `Finding marked ${input.status}.` });
     await tx.insert(adminActivityLogs).values({ adminEmail: input.actor, action: `audit.finding_${input.status}`, entityType: "audit_finding", entityId: current.id });
   });
@@ -28,6 +30,8 @@ export async function addManualFinding(input: { runId: string; category: typeof 
   await db.transaction(async (tx) => {
     const [run] = await tx.select().from(auditRuns).where(eq(auditRuns.id, input.runId)).limit(1); if (!run) throw new Error("Audit run not found.");
     const [finding] = await tx.insert(auditFindings).values({ runId: run.id, leadId: run.leadId, category: input.category, findingType: "administrator_observation", originalExplanation: input.explanation, evidence: { observation: input.evidence }, affectedUrl: input.affectedUrl, severity: input.severity, confidence: input.confidence, source: "manual", verificationStatus: "verified", suggestedImprovement: input.suggestedImprovement, analyzerVersion: "manual-v1", verifiedBy: input.actor, verifiedAt: new Date() }).returning();
+    await tx.update(auditRuns).set({ reviewCompletedAt: null, reviewCompletedBy: null, phaseFiveReady: false }).where(eq(auditRuns.id, run.id));
+    await tx.update(outreachDrafts).set({ status: "stale", readyForManualUse: false, reviewedBy: null, reviewedAt: null, updatedAt: new Date() }).where(eq(outreachDrafts.auditRunId, run.id));
     await tx.insert(auditReviewEvents).values({ runId: run.id, leadId: run.leadId, findingId: finding.id, eventType: "manual_finding_added", administratorEmail: input.actor, explanation: input.explanation, evidence: { observation: input.evidence } });
     await tx.insert(adminActivityLogs).values({ adminEmail: input.actor, action: "audit.manual_finding_added", entityType: "audit_finding", entityId: finding.id });
   });
@@ -64,6 +68,7 @@ export async function reopenAuditReview(runId: string, actor: string, explanatio
   await db.transaction(async (tx) => {
     const [run] = await tx.update(auditRuns).set({ reviewCompletedAt: null, reviewCompletedBy: null, phaseFiveReady: false }).where(eq(auditRuns.id, runId)).returning();
     if (!run) throw new Error("Audit run not found.");
+    await tx.update(outreachDrafts).set({ status: "stale", readyForManualUse: false, reviewedBy: null, reviewedAt: null, updatedAt: new Date() }).where(eq(outreachDrafts.auditRunId, runId));
     await tx.insert(auditReviewEvents).values({ runId, leadId: run.leadId, eventType: "review_reopened", administratorEmail: actor, explanation });
     await tx.insert(adminActivityLogs).values({ adminEmail: actor, action: "audit.review_reopened", entityType: "audit_run", entityId: runId });
   });

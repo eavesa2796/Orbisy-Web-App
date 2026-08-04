@@ -68,6 +68,7 @@ export default async function LeadsPage({
           <Link href="/admin-portal/preflight?status=passed">Preflight passed</Link>
           <Link href="/admin-portal/preflight?status=failed">Preflight failed</Link>
           <Link href="/admin-portal/preflight?status=blocked">Preflight blocked</Link>
+          <Link href="/admin-portal/leads?view=phase_five_ready">Ready for outreach</Link>
           <Link href="/admin-portal/leads?status=suppressed">Suppressed</Link>
         </nav>
         <form className="filter-row">
@@ -94,7 +95,7 @@ export default async function LeadsPage({
         )}
       </section>
 
-      <details className="admin-card disclosure">
+      <details className="admin-card disclosure" id="manual-entry">
         <summary>Add a lead manually</summary>
         <form action={createLeadAction} className="admin-form">
           <label>Business name<input name="businessName" required maxLength={160} /></label>

@@ -9,6 +9,8 @@ import {
   MapPin,
   Sparkles,
 } from "lucide-react";
+import Image from "next/image";
+import { OrbisyLogo } from "@/components/orbisy-logo";
 import { PublicForm } from "@/components/public-form";
 import { TrackLink } from "@/components/track-link";
 
@@ -44,9 +46,8 @@ export default function Home() {
     <>
       <header className="site-header">
         <div className="container header-inner">
-          <a className="wordmark" href="#top" aria-label="Orbisy home">
-            <span className="wordmark-orbit" aria-hidden="true" />
-            Orbisy
+          <a className="public-brand" href="#top" aria-label="Orbisy home">
+            <OrbisyLogo className="public-brand-logo" priority />
           </a>
           <nav aria-label="Public navigation">
             <a href="#services">Services</a>
@@ -158,12 +159,22 @@ export default function Home() {
 
         <section className="section about-section" id="about">
           <div className="container about-layout">
-            <div className="about-mark" aria-hidden="true"><span>AE</span><div className="orbit-ring" /></div>
+            <figure className="about-portrait">
+              <div className="about-image-frame">
+                <Image
+                  alt="Anthony Eaves, the developer behind Orbisy"
+                  fill
+                  sizes="(max-width: 980px) 280px, 360px"
+                  src="/anthony-eaves.jpg"
+                />
+              </div>
+              <figcaption>The developer behind Orbisy</figcaption>
+            </figure>
             <div className="about-copy">
               <p className="eyebrow"><span />About Orbisy</p>
-              <h2>A thoughtful start, grounded in useful engineering.</h2>
-              <p>Anthony Eaves is a Chicago-based software developer and recent software engineering bootcamp graduate. Through Orbisy, he builds modern websites and lightweight business tools for growing companies.</p>
-              <p>His focus includes small-business websites, website improvements, custom dashboards, API integrations, and practical workflow automation. Anthony takes a straightforward, collaborative approach—understanding each business&apos;s needs before recommending a focused, maintainable solution.</p>
+              <h2>Practical software, built around how businesses work.</h2>
+              <p>Orbisy helps growing businesses improve outdated websites and replace repetitive work with practical digital tools. The focus is straightforward: modern websites, useful internal dashboards, API integrations, and workflow improvements designed around how each business actually operates.</p>
+              <p>Every project begins with understanding the problem, defining a focused scope, and building a maintainable solution without unnecessary complexity. Orbisy is based in Chicago and serves businesses locally and remotely when the project is a good fit.</p>
               <div className="about-location"><MapPin size={18} />Chicago, Illinois · Serving the Chicago metro area</div>
             </div>
           </div>
@@ -218,7 +229,7 @@ export default function Home() {
             <div className="form-intro">
               <p className="eyebrow"><span />Have a project in mind?</p>
               <h2>Let&apos;s make the next step clear.</h2>
-              <p>Share the goal, current challenge, and approximate scope. Anthony will review the request and follow up personally.</p>
+              <p>Share the goal, current challenge, and approximate scope. Orbisy will review the request and follow up personally.</p>
             </div>
             <PublicForm type="project-request" />
           </div>
@@ -227,7 +238,7 @@ export default function Home() {
 
       <footer className="site-footer">
         <div className="container footer-main">
-          <div><a className="wordmark" href="#top"><span className="wordmark-orbit" />Orbisy</a><p>Modern websites and lightweight business tools for growing companies.</p></div>
+          <div><a className="public-brand footer-brand" href="#top" aria-label="Orbisy home"><OrbisyLogo className="footer-brand-logo" /></a><p>Modern websites and lightweight business tools for growing companies.</p></div>
           <div><span>Explore</span><a href="#services">Services</a><a href="#work">Concept work</a><a href="#process">Process</a></div>
           <div>
             <span>Start a conversation</span>

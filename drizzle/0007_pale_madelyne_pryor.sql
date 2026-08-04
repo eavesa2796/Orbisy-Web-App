@@ -1,0 +1,1 @@
+ALTER TABLE "outreach_drafts" ENABLE ROW LEVEL SECURITY;
