@@ -9,16 +9,23 @@ import { leadStatusValues } from "@/lib/validation";
 
 const format = (date: Date | null) => date ? date.toLocaleString() : "—";
 
-export default async function LeadPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function LeadPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ draftSaved?: string; contactRecorded?: string }>;
+}) {
   const admin = await requireAdmin();
   const { id } = await params;
+  const { draftSaved, contactRecorded } = await searchParams;
   const data = await getLead(id);
   if (!data.lead) notFound();
   const lead = data.lead;
   const isInboundDraft = lead.status === "new_inbound" || Boolean(data.draft && !data.draft.auditRunId);
   const auditBriefAvailable = Boolean(data.phaseFiveRun && data.verifiedFindings.length);
   const selectedFindingIds = new Set(
-    data.draft?.auditRunId === data.phaseFiveRun?.id
+    data.draft && data.phaseFiveRun && data.draft.auditRunId === data.phaseFiveRun.id
       ? data.draft.selectedFindingIds
       : data.verifiedFindings.slice(0, 2).map((finding) => finding.id),
   );
@@ -32,6 +39,7 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
   return (
     <AdminShell email={admin.email}>
       <header className="admin-heading"><div><p className="eyebrow">Lead record</p><h1>{lead.businessName}</h1><p>{lead.contactName || "Contact not identified"} · {lead.email || "No email"}</p></div></header>
+      {contactRecorded === "1" && <p className="notice" role="status">Manual contact recorded and the lead moved to contacted. Orbisy did not send a message.</p>}
       <section className="admin-grid">
         <article className="admin-card">
           <h2>Lead details</h2>
@@ -74,6 +82,8 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
           )}
         </div>
         <p className="notice">Orbisy never sends this automatically. Confirm the business context, use only verified observations, check suppression status, and copy approved language into your own email client.</p>
+        {draftSaved === "draft" && <p className="notice" role="status">Outreach brief saved as a private draft. No message was sent.</p>}
+        {draftSaved === "approved" && <p className="notice" role="status">Outreach brief approved for manual use. No message was sent.</p>}
         {data.draft?.status === "stale" && <p className="notice warning-notice">This brief became stale when its audit review changed. Complete the audit review again, then review and approve this brief again.</p>}
         {data.draft?.status === "blocked" && <p className="notice error-text">This brief is blocked because the lead is suppressed.</p>}
 

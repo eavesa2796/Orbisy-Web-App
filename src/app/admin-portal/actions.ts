@@ -281,6 +281,7 @@ export async function saveDraftAction(id: string, formData: FormData) {
   await logActivity(admin.email, "outreach_draft.saved", "lead", id);
   revalidatePath(`/admin-portal/leads/${id}`);
   revalidatePath("/admin-portal/dashboard");
+  redirect(`/admin-portal/leads/${id}?draftSaved=${parsed.ready ? "approved" : "draft"}`);
 }
 
 export async function recordContactAction(id: string, formData: FormData) {
@@ -330,6 +331,8 @@ export async function recordContactAction(id: string, formData: FormData) {
   });
   await logActivity(admin.email, "contact.recorded", "lead", id);
   revalidatePath(`/admin-portal/leads/${id}`);
+  revalidatePath("/admin-portal/dashboard");
+  redirect(`/admin-portal/leads/${id}?contactRecorded=1`);
 }
 
 export async function suppressLeadAction(id: string, formData: FormData) {
