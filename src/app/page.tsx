@@ -164,8 +164,8 @@ export default function Home() {
                 <Image
                   alt="Anthony Eaves, the developer behind Orbisy"
                   fill
-                  sizes="(max-width: 980px) 280px, 360px"
-                  src="/anthony-eaves.jpg"
+                  sizes="(max-width: 980px) 280px, 300px"
+                  src="/anthony-eaves-orbisy.png"
                 />
               </div>
               <figcaption>The developer behind Orbisy</figcaption>
