@@ -6,6 +6,7 @@ import {
   eq,
   gte,
   ilike,
+  inArray,
   isNotNull,
   lte,
   or,
@@ -24,6 +25,7 @@ import {
   auditEligibilityDecisions,
   auditJobs,
   auditRuns,
+  auditFindings,
 } from "@/lib/db/schema";
 import type { leadStatusValues } from "@/lib/validation";
 
@@ -82,10 +84,18 @@ export async function getOverviewData() {
         (SELECT count(*)::int FROM ${auditEligibilityDecisions} d WHERE status='needs_manual_review' AND decided_at=(SELECT max(d2.decided_at) FROM ${auditEligibilityDecisions} d2 WHERE d2.lead_id=d.lead_id)) AS review,
         (SELECT count(*)::int FROM ${auditEligibilityDecisions} d WHERE status='eligible' AND decided_at=(SELECT max(d2.decided_at) FROM ${auditEligibilityDecisions} d2 WHERE d2.lead_id=d.lead_id)) AS eligible
     `),
-    db.execute<{ attention: number; verification: number; eligible_waiting: number }>(sql`
+    db.execute<{ attention: number; verification: number; eligible_waiting: number; ready_for_brief: number }>(sql`
       SELECT
         (SELECT count(*)::int FROM ${auditJobs} WHERE status IN ('failed','blocked')) AS attention,
         (SELECT count(*)::int FROM ${auditRuns} WHERE status IN ('completed','completed_with_warnings') AND review_completed_at IS NULL) AS verification,
+        (SELECT count(*)::int FROM ${auditRuns} ar
+          WHERE ar.phase_five_ready=true
+            AND ar.id=(SELECT ar2.id FROM ${auditRuns} ar2
+              WHERE ar2.lead_id=ar.lead_id AND ar2.phase_five_ready=true
+              ORDER BY ar2.review_completed_at DESC NULLS LAST, ar2.created_at DESC
+              LIMIT 1)
+            AND NOT EXISTS (SELECT 1 FROM ${outreachDrafts} od
+              WHERE od.audit_run_id=ar.id AND od.status='approved')) AS ready_for_brief,
         (SELECT count(*)::int FROM ${auditEligibilityDecisions} d
           WHERE status='eligible'
             AND decided_at=(SELECT max(d2.decided_at) FROM ${auditEligibilityDecisions} d2 WHERE d2.lead_id=d.lead_id)
@@ -104,7 +114,7 @@ export async function getOverviewData() {
       newly_imported: 0,
     },
     preflightSummary: preflightSummary[0] ?? { attention: 0, review: 0, eligible: 0 },
-    auditSummary: auditSummary[0] ?? { attention: 0, verification: 0, eligible_waiting: 0 },
+    auditSummary: auditSummary[0] ?? { attention: 0, verification: 0, eligible_waiting: 0, ready_for_brief: 0 },
   };
 }
 
@@ -155,6 +165,23 @@ export async function getLeads(options: {
     options.view === "no_website"
       ? eq(leads.websiteState, "not_listed")
       : undefined,
+    options.view === "phase_five_ready"
+      ? sql`exists (
+          select 1 from ${auditRuns} ar
+          where ar.lead_id=${leads.id}
+            and ar.phase_five_ready=true
+            and ar.id=(
+              select ar2.id from ${auditRuns} ar2
+              where ar2.lead_id=ar.lead_id and ar2.phase_five_ready=true
+              order by ar2.review_completed_at desc nulls last, ar2.created_at desc
+              limit 1
+            )
+            and not exists (
+              select 1 from ${outreachDrafts} od
+              where od.audit_run_id=ar.id and od.status='approved'
+            )
+        )`
+      : undefined,
   ].filter(Boolean);
 
   const where = filters.length ? and(...filters) : undefined;
@@ -196,7 +223,7 @@ export async function getLeadFilterOptions() {
 
 export async function getLead(id: string) {
   const db = getDb();
-  const [lead, notes, history, attempts, drafts] = await Promise.all([
+  const [lead, notes, history, attempts, drafts, readyRuns] = await Promise.all([
     db.select().from(leads).where(eq(leads.id, id)).limit(1),
     db
       .select()
@@ -219,8 +246,35 @@ export async function getLead(id: string) {
       .where(eq(outreachDrafts.leadId, id))
       .orderBy(desc(outreachDrafts.updatedAt))
       .limit(1),
+    db
+      .select()
+      .from(auditRuns)
+      .where(and(eq(auditRuns.leadId, id), eq(auditRuns.phaseFiveReady, true)))
+      .orderBy(desc(auditRuns.reviewCompletedAt), desc(auditRuns.createdAt))
+      .limit(1),
   ]);
-  return { lead: lead[0] ?? null, notes, history, attempts, draft: drafts[0] ?? null };
+  const phaseFiveRun = readyRuns[0] ?? null;
+  const verifiedFindings = phaseFiveRun
+    ? await db
+        .select()
+        .from(auditFindings)
+        .where(
+          and(
+            eq(auditFindings.runId, phaseFiveRun.id),
+            inArray(auditFindings.verificationStatus, ["verified", "edited"]),
+          ),
+        )
+        .orderBy(desc(auditFindings.severity), auditFindings.createdAt)
+    : [];
+  return {
+    lead: lead[0] ?? null,
+    notes,
+    history,
+    attempts,
+    draft: drafts[0] ?? null,
+    phaseFiveRun,
+    verifiedFindings,
+  };
 }
 
 export async function getAnalyticsSummary(days: number) {

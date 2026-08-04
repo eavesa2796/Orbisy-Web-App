@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { BarChart3, FileSearch, FileUp, LayoutDashboard, ScanSearch, Settings, ShieldBan, UsersRound } from "lucide-react";
 import { LogoutButton } from "@/components/admin/logout-button";
+import { OrbisyLogo } from "@/components/orbisy-logo";
 
 const links = [
   ["/admin-portal/dashboard", LayoutDashboard, "Overview"],
@@ -23,8 +24,8 @@ export function AdminShell({
   return (
     <div className="admin-app">
       <aside className="admin-sidebar">
-        <Link className="wordmark" href="/admin-portal/dashboard">
-          <span className="wordmark-orbit" /> Orbisy
+        <Link className="admin-brand" href="/admin-portal/dashboard" aria-label="Orbisy administrator overview">
+          <OrbisyLogo className="admin-brand-logo" priority />
         </Link>
         <nav aria-label="Administrator navigation">
           {links.map(([href, Icon, label]) => (
