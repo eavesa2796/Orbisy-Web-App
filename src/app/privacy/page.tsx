@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 
 export default function PrivacyPage() {
   return (
-    <LegalLayout kicker="Last updated: July 30, 2026" title="Privacy Policy">
+    <LegalLayout kicker="Last updated: August 5, 2026 · Draft—legal review required" title="Privacy Policy">
       <p>
         This draft explains the information Orbisy expects to process through
         its public website and private lead-management tools.
@@ -18,10 +18,12 @@ export default function PrivacyPage() {
 
       <h2>Information you provide</h2>
       <p>
-        When you request a homepage review or submit a project request, Orbisy
-        may collect your name, business name, email address, website URL,
-        business goal, website concern, requested service, project description,
-        timeline, budget range, and acknowledgment of this policy.
+        When you request a records-workflow review or submit another project
+        request, Orbisy may collect your name, business name, email address,
+        website URL, requested service, project description, timeline, budget
+        range, and acknowledgment of this policy. The public forms are not
+        intended for grease-interceptor tickets, manifests, photographs, or
+        other service documents. Do not submit those records through this site.
       </p>
 
       <h2>Business lead information</h2>
@@ -57,12 +59,22 @@ export default function PrivacyPage() {
         <li>Maintain suppression records to avoid unwanted contact.</li>
       </ul>
 
+      <h2>Managed-service records</h2>
+      <p>
+        If a written client agreement is later established, the parties will
+        separately confirm the approved record-transfer method, permitted uses,
+        retention, deletion, access, and service providers. The current public
+        application does not provide a customer document portal or public
+        grease-record upload feature.
+      </p>
+
       <h2>Service providers</h2>
       <p>
         Orbisy may use providers for hosting, PostgreSQL database services,
         administrator authentication, spam prevention, error monitoring, and
-        optional transactional notifications. Final providers and their
-        processing locations must be confirmed before launch.
+        optional transactional notifications. <strong>Legal-review placeholder:</strong>{" "}
+        final service providers, processing locations, and contractual terms
+        must be confirmed by the owner and qualified counsel.
       </p>
 
       <h2>Retention and deletion</h2>
@@ -80,7 +92,9 @@ export default function PrivacyPage() {
         Orbisy uses reasonable technical and organizational safeguards, but no
         online service can promise absolute security. Production backup,
         incident-response, vendor, and retention procedures must be confirmed
-        before launch.
+        before expanded service delivery. Reasonable safeguards do not mean
+        perfect security. <strong>Legal-review placeholder:</strong> final
+        incident and security commitments require owner and qualified legal review.
       </p>
 
       <h2>Your choices</h2>
