@@ -8,7 +8,7 @@ describe("analytics allowlist", () => {
         eventName: "primary_cta_click",
         sessionId: crypto.randomUUID(),
         pagePath: "/",
-        componentId: "hero_primary",
+        componentId: "hero_records_review",
       }).success,
     ).toBe(true);
   });

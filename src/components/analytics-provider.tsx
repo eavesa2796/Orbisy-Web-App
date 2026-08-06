@@ -111,7 +111,7 @@ export function AnalyticsProvider() {
           if (!id || viewed.has(id)) return;
           viewed.add(id);
           trackEvent(
-            id.startsWith("service_") ? "service_view" : "portfolio_concept_view",
+            id.startsWith("service_") ? "service_view" : "audience_view",
             id,
           );
           observer.unobserve(entry.target);

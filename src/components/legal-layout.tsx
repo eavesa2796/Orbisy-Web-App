@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
+import { OrbisyLogo } from "@/components/orbisy-logo";
 
 export function LegalLayout({
   kicker,
@@ -13,9 +14,8 @@ export function LegalLayout({
   return (
     <main className="legal-page" id="main-content">
       <div className="legal-shell">
-        <Link className="wordmark" href="/">
-          <span className="wordmark-orbit" />
-          Orbisy
+        <Link className="public-brand legal-brand" href="/" aria-label="Orbisy home">
+          <OrbisyLogo className="legal-brand-logo" priority />
         </Link>
         <p className="legal-kicker">{kicker}</p>
         <h1>{title}</h1>

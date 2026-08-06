@@ -5,7 +5,7 @@ export const siteConfig = {
   location: "Chicago, Illinois",
   url: process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
   description:
-    "Orbisy builds modern websites and lightweight business tools for growing companies.",
+    "Orbisy organizes grease-interceptor service tickets, supporting evidence, missing records, and upcoming service dates for restaurant operators and grease haulers.",
 } as const;
 
 export function hasDatabaseConfig() {

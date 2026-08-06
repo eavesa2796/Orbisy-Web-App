@@ -17,7 +17,7 @@ const display = Manrope({
 export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
   title: {
-    default: "Orbisy — Websites and business tools for growing companies",
+    default: "Orbisy — Grease-interceptor service records for restaurant operators",
     template: "%s | Orbisy",
   },
   description: siteConfig.description,
@@ -28,12 +28,12 @@ export const metadata: Metadata = {
     locale: "en_US",
     siteName: "Orbisy",
     url: "/",
-    title: "Orbisy — Websites and business tools for growing companies",
+    title: "Orbisy — Grease-interceptor service records for restaurant operators",
     description: siteConfig.description,
   },
   twitter: {
     card: "summary_large_image",
-    title: "Orbisy — Websites and business tools for growing companies",
+    title: "Orbisy — Grease-interceptor service records for restaurant operators",
     description: siteConfig.description,
   },
 };

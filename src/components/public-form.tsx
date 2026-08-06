@@ -166,10 +166,10 @@ export function PublicForm({ type }: { type: FormType }) {
                 <option value="" disabled>
                   Select a service
                 </option>
-                <option>Small-business website</option>
-                <option>Website refresh</option>
-                <option>Dashboard or internal tool</option>
-                <option>API integration or automation</option>
+                <option>Restaurant records cleanup pilot</option>
+                <option>Multi-location records management</option>
+                <option>Grease-hauler customer-history pilot</option>
+                <option>Property or facility records review</option>
                 <option>Not sure yet</option>
               </select>
             </label>
@@ -180,7 +180,7 @@ export function PublicForm({ type }: { type: FormType }) {
                 maxLength={3000}
                 required
                 rows={4}
-                placeholder="What are you hoping to improve or build?"
+                placeholder="How are records stored today, and what is difficult to retrieve or confirm?"
               />
             </label>
             <label>
@@ -190,7 +190,7 @@ export function PublicForm({ type }: { type: FormType }) {
               <input
                 name="timeline"
                 maxLength={80}
-                placeholder="For example, this fall"
+                placeholder="For example, within 30 days"
               />
             </label>
             <label>
@@ -261,7 +261,7 @@ export function PublicForm({ type }: { type: FormType }) {
           ? "Sending…"
           : type === "homepage-review"
             ? "Request my review"
-            : "Send project request"}
+            : "Request records review"}
         {state.status !== "submitting" && <ArrowRight size={18} />}
       </button>
       <p className="form-footnote">

@@ -43,4 +43,15 @@ describe("public form validation", () => {
     });
     expect(result.success).toBe(false);
   });
+
+  it("accepts the Phase 1 managed-records project request", () => {
+    const result = projectRequestSchema.safeParse({
+      ...base,
+      serviceNeeded: "Restaurant records cleanup pilot",
+      projectDescription: "Records are split between email and location folders.",
+      timeline: "Within 30 days",
+      budgetRange: "Not sure yet",
+    });
+    expect(result.success).toBe(true);
+  });
 });

@@ -10,7 +10,7 @@ import {
   projectRequestSchema,
 } from "@/lib/validation";
 
-const CONSENT_VERSION = "privacy-2026-07-30";
+const CONSENT_VERSION = "privacy-2026-08-05";
 
 export async function POST(
   request: Request,
