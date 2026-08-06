@@ -15,15 +15,10 @@ import {
 import { getDb } from "@/lib/db";
 import {
   leads,
-  importBatches,
-  importCandidates,
   leadNotes,
   manualContactAttempts,
   outreachDrafts,
   pipelineEvents,
-  preflightJobs,
-  auditEligibilityDecisions,
-  auditJobs,
   auditRuns,
   auditFindings,
 } from "@/lib/db/schema";
@@ -31,14 +26,82 @@ import type { leadStatusValues } from "@/lib/validation";
 
 export type LeadStatus = (typeof leadStatusValues)[number];
 
+export const DASHBOARD_SECONDARY_SUMMARY_SQL = `
+  WITH latest_decisions AS (
+    SELECT DISTINCT ON (lead_id) lead_id, status
+    FROM audit_eligibility_decisions
+    ORDER BY lead_id, decided_at DESC
+  ),
+  latest_ready_runs AS (
+    SELECT DISTINCT ON (lead_id) id, lead_id
+    FROM audit_runs
+    WHERE phase_five_ready = true
+    ORDER BY lead_id, review_completed_at DESC NULLS LAST, created_at DESC
+  )
+  SELECT
+    (SELECT count(*)::int FROM import_batches
+      WHERE status IN ('draft', 'validating', 'ready', 'completed_with_errors'))
+      AS pending_batches,
+    (SELECT count(*)::int FROM import_candidates
+      WHERE status = 'needs_review') AS review_rows,
+    (SELECT count(*)::int FROM import_candidates
+      WHERE status = 'suppressed') AS suppressed_candidates,
+    (SELECT count(*)::int FROM leads
+      WHERE import_batch_id IS NOT NULL
+        AND created_at >= NOW() - INTERVAL '30 days') AS newly_imported,
+    (SELECT count(*)::int FROM preflight_jobs
+      WHERE status IN ('failed','blocked')) AS preflight_attention,
+    (SELECT count(*)::int FROM latest_decisions
+      WHERE status = 'needs_manual_review') AS preflight_review,
+    (SELECT count(*)::int FROM latest_decisions
+      WHERE status = 'eligible') AS preflight_eligible,
+    (SELECT count(*)::int FROM audit_jobs
+      WHERE status IN ('failed','blocked')) AS audit_attention,
+    (SELECT count(*)::int FROM audit_runs
+      WHERE status IN ('completed','completed_with_warnings')
+        AND review_completed_at IS NULL) AS audit_verification,
+    (SELECT count(*)::int FROM latest_ready_runs ar
+      WHERE NOT EXISTS (SELECT 1 FROM outreach_drafts od
+        WHERE od.audit_run_id = ar.id
+          AND od.status = 'approved')) AS ready_for_brief,
+    (SELECT count(*)::int FROM latest_decisions d
+      WHERE d.status = 'eligible'
+        AND NOT EXISTS (SELECT 1 FROM audit_jobs j
+          WHERE j.lead_id = d.lead_id
+            AND j.status IN ('queued','running','retry_scheduled'))) AS eligible_waiting
+`;
+
+async function dashboardQuery<T>(name: string, query: Promise<T>) {
+  const startedAt = Date.now();
+  try {
+    const result = await query;
+    console.log(JSON.stringify({
+      level: "info",
+      message: "admin dashboard query completed",
+      query: name,
+      durationMs: Date.now() - startedAt,
+    }));
+    return result;
+  } catch (error) {
+    console.error(JSON.stringify({
+      level: "error",
+      message: "admin dashboard query failed",
+      query: name,
+      durationMs: Date.now() - startedAt,
+      errorName: error instanceof Error ? error.name : "UnknownError",
+    }));
+    throw error;
+  }
+}
+
 export async function getOverviewData() {
   const db = getDb();
-  const [counts, due, inbound, importSummary, preflightSummary, auditSummary] = await Promise.all([
-    db
+  const [counts, due, inbound] = await Promise.all([
+    dashboardQuery("lead_counts", db
       .select({ status: leads.status, count: sql<number>`count(*)::int` })
       .from(leads)
-      .groupBy(leads.status),
-    db
+      .groupBy(leads.status)),
+    dashboardQuery("follow_ups_due", db
       .select({
         id: leads.id,
         businessName: leads.businessName,
@@ -48,8 +111,8 @@ export async function getOverviewData() {
       .from(leads)
       .where(lte(leads.followUpAt, new Date()))
       .orderBy(asc(leads.followUpAt))
-      .limit(8),
-    db
+      .limit(8)),
+    dashboardQuery("recent_inbound", db
       .select({
         id: leads.id,
         businessName: leads.businessName,
@@ -59,62 +122,69 @@ export async function getOverviewData() {
       .from(leads)
       .where(eq(leads.status, "new_inbound"))
       .orderBy(desc(leads.priority), desc(leads.createdAt))
-      .limit(8),
-    db.execute<{
+      .limit(8)),
+  ]);
+
+  const fallbackSummary = {
+    pending_batches: 0,
+    review_rows: 0,
+    suppressed_candidates: 0,
+    newly_imported: 0,
+    preflight_attention: 0,
+    preflight_review: 0,
+    preflight_eligible: 0,
+    audit_attention: 0,
+    audit_verification: 0,
+    eligible_waiting: 0,
+    ready_for_brief: 0,
+  };
+  let summary = fallbackSummary;
+  let secondarySummaryAvailable = true;
+
+  try {
+    const rows = await dashboardQuery("secondary_summaries", db.transaction(async (tx) => {
+      await tx.execute(sql`SET LOCAL statement_timeout = '3000ms'`);
+      return tx.execute<{
       pending_batches: number;
       review_rows: number;
       suppressed_candidates: number;
       newly_imported: number;
-    }>(sql`
-      SELECT
-        (SELECT count(*)::int FROM ${importBatches}
-          WHERE status IN ('draft', 'validating', 'ready', 'completed_with_errors'))
-          AS pending_batches,
-        (SELECT count(*)::int FROM ${importCandidates}
-          WHERE status = 'needs_review') AS review_rows,
-        (SELECT count(*)::int FROM ${importCandidates}
-          WHERE status = 'suppressed') AS suppressed_candidates,
-        (SELECT count(*)::int FROM ${leads}
-          WHERE import_batch_id IS NOT NULL
-            AND created_at >= NOW() - INTERVAL '30 days') AS newly_imported
-    `),
-    db.execute<{ attention: number; review: number; eligible: number }>(sql`
-      SELECT
-        (SELECT count(*)::int FROM ${preflightJobs} WHERE status IN ('failed','blocked')) AS attention,
-        (SELECT count(*)::int FROM ${auditEligibilityDecisions} d WHERE status='needs_manual_review' AND decided_at=(SELECT max(d2.decided_at) FROM ${auditEligibilityDecisions} d2 WHERE d2.lead_id=d.lead_id)) AS review,
-        (SELECT count(*)::int FROM ${auditEligibilityDecisions} d WHERE status='eligible' AND decided_at=(SELECT max(d2.decided_at) FROM ${auditEligibilityDecisions} d2 WHERE d2.lead_id=d.lead_id)) AS eligible
-    `),
-    db.execute<{ attention: number; verification: number; eligible_waiting: number; ready_for_brief: number }>(sql`
-      SELECT
-        (SELECT count(*)::int FROM ${auditJobs} WHERE status IN ('failed','blocked')) AS attention,
-        (SELECT count(*)::int FROM ${auditRuns} WHERE status IN ('completed','completed_with_warnings') AND review_completed_at IS NULL) AS verification,
-        (SELECT count(*)::int FROM ${auditRuns} ar
-          WHERE ar.phase_five_ready=true
-            AND ar.id=(SELECT ar2.id FROM ${auditRuns} ar2
-              WHERE ar2.lead_id=ar.lead_id AND ar2.phase_five_ready=true
-              ORDER BY ar2.review_completed_at DESC NULLS LAST, ar2.created_at DESC
-              LIMIT 1)
-            AND NOT EXISTS (SELECT 1 FROM ${outreachDrafts} od
-              WHERE od.audit_run_id=ar.id AND od.status='approved')) AS ready_for_brief,
-        (SELECT count(*)::int FROM ${auditEligibilityDecisions} d
-          WHERE status='eligible'
-            AND decided_at=(SELECT max(d2.decided_at) FROM ${auditEligibilityDecisions} d2 WHERE d2.lead_id=d.lead_id)
-            AND NOT EXISTS (SELECT 1 FROM ${auditJobs} j WHERE j.lead_id=d.lead_id AND j.status IN ('queued','running','retry_scheduled'))) AS eligible_waiting
-    `),
-  ]);
+        preflight_attention: number;
+        preflight_review: number;
+        preflight_eligible: number;
+        audit_attention: number;
+        audit_verification: number;
+        eligible_waiting: number;
+        ready_for_brief: number;
+      }>(sql.raw(DASHBOARD_SECONDARY_SUMMARY_SQL));
+    }));
+    summary = rows[0] ?? fallbackSummary;
+  } catch {
+    secondarySummaryAvailable = false;
+  }
 
   return {
     counts,
     due,
     inbound,
-    importSummary: importSummary[0] ?? {
-      pending_batches: 0,
-      review_rows: 0,
-      suppressed_candidates: 0,
-      newly_imported: 0,
+    secondarySummaryAvailable,
+    importSummary: {
+      pending_batches: summary.pending_batches,
+      review_rows: summary.review_rows,
+      suppressed_candidates: summary.suppressed_candidates,
+      newly_imported: summary.newly_imported,
     },
-    preflightSummary: preflightSummary[0] ?? { attention: 0, review: 0, eligible: 0 },
-    auditSummary: auditSummary[0] ?? { attention: 0, verification: 0, eligible_waiting: 0, ready_for_brief: 0 },
+    preflightSummary: {
+      attention: summary.preflight_attention,
+      review: summary.preflight_review,
+      eligible: summary.preflight_eligible,
+    },
+    auditSummary: {
+      attention: summary.audit_attention,
+      verification: summary.audit_verification,
+      eligible_waiting: summary.eligible_waiting,
+      ready_for_brief: summary.ready_for_brief,
+    },
   };
 }
 
