@@ -5,7 +5,6 @@ import { requireAdmin } from "@/lib/auth";
 import { getLeadFilterOptions, getLeads, type LeadStatus } from "@/lib/data/admin";
 import { getImportSettings } from "@/lib/imports/service";
 import { leadStatusValues } from "@/lib/validation";
-import { queuePreflightsAction } from "@/app/admin-portal/preflight/actions";
 
 const labels: Record<LeadStatus, string> = {
   new_inbound: "New inbound", manually_added: "Manually added",
@@ -20,7 +19,7 @@ export default async function LeadsPage({
 }: {
   searchParams: Promise<{
     status?: string; q?: string; page?: string; source?: string;
-    industry?: string; location?: string; websiteState?: string; view?: string;
+    location?: string; view?: string;
   }>;
 }) {
   const admin = await requireAdmin();
@@ -35,9 +34,7 @@ export default async function LeadsPage({
   try {
     result = await getLeads({
       status, query: params.q, page: Number(params.page) || 1,
-      source: params.source, industry: params.industry, location: params.location,
-      websiteState: ["unknown", "provided", "not_listed"].includes(params.websiteState || "")
-        ? params.websiteState as "unknown" | "provided" | "not_listed" : undefined,
+      source: params.source, location: params.location,
       view: params.view,
       pageSize: settings.defaultPageSize,
     });
@@ -59,32 +56,27 @@ export default async function LeadsPage({
           <Link href="/admin-portal/leads?status=new_inbound">New inbound</Link>
           <Link href="/admin-portal/leads?status=manually_added">Manually added</Link>
           <Link href="/admin-portal/leads?view=newly_imported">Newly imported</Link>
-          <Link href="/admin-portal/leads?view=no_website">No website listed</Link>
           <Link href="/admin-portal/imports/review">Possible duplicates</Link>
           <Link href="/admin-portal/leads?status=needs_review">Needs review</Link>
           <Link href="/admin-portal/leads?view=follow_up_due">Follow-up due</Link>
-          <Link href="/admin-portal/preflight?status=queued">Preflight queued</Link>
-          <Link href="/admin-portal/preflight?status=running">Preflight running</Link>
-          <Link href="/admin-portal/preflight?status=passed">Preflight passed</Link>
-          <Link href="/admin-portal/preflight?status=failed">Preflight failed</Link>
-          <Link href="/admin-portal/preflight?status=blocked">Preflight blocked</Link>
-          <Link href="/admin-portal/leads?view=phase_five_ready">Ready for outreach</Link>
+          <Link href="/admin-portal/leads?status=contact_planned">Calls planned</Link>
+          <Link href="/admin-portal/leads?status=consultation">Workflow reviews</Link>
+          <Link href="/admin-portal/leads?status=proposal_sent">Pilot proposals</Link>
+          <Link href="/admin-portal/leads?status=won">Clients</Link>
           <Link href="/admin-portal/leads?status=suppressed">Suppressed</Link>
         </nav>
         <form className="filter-row">
           <label><span>Search</span><input name="q" defaultValue={params.q} placeholder="Business, contact, or email" /></label>
           <label><span>Status</span><select name="status" defaultValue={status ?? ""}><option value="">All statuses</option>{leadStatusValues.map((value) => <option key={value} value={value}>{labels[value]}</option>)}</select></label>
           <label><span>Source</span><select name="source" defaultValue={params.source ?? ""}><option value="">All sources</option>{filterOptions.sources.map((value) => <option key={value}>{value}</option>)}</select></label>
-          <label><span>Industry</span><select name="industry" defaultValue={params.industry ?? ""}><option value="">All industries</option>{filterOptions.industries.map((value) => <option key={value}>{value}</option>)}</select></label>
-          <label><span>Location</span><input name="location" defaultValue={params.location} placeholder="Chicago" /></label>
-          <label><span>Website state</span><select name="websiteState" defaultValue={params.websiteState ?? ""}><option value="">Any website state</option><option value="provided">Website provided</option><option value="not_listed">No website listed</option><option value="unknown">Unknown</option></select></label>
+          <label><span>Territory</span><input name="location" defaultValue={params.location} placeholder="Western suburbs, Illinois…" /></label>
           <button className="button button-secondary" type="submit">Filter</button>
         </form>
         {!result ? <p className="muted">Connect the database to manage leads.</p> :
           result.items.length ? (
-            <form action={queuePreflightsAction}><div className="table-wrap"><table><thead><tr><th>Select</th><th>Business</th><th>Status</th><th>Source</th><th>Follow-up</th></tr></thead><tbody>
-              {result.items.map((lead) => <tr key={lead.id}><td><input type="checkbox" name="leadId" value={lead.id} aria-label={`Select ${lead.businessName}`} disabled={lead.status === "suppressed"}/></td><td><Link href={`/admin-portal/leads/${lead.id}`}><strong>{lead.businessName}</strong></Link><span>{lead.contactName || lead.email || "No contact yet"}</span></td><td><span className="status-pill">{labels[lead.status]}</span></td><td>{lead.sourceName}</td><td>{lead.followUpAt?.toLocaleDateString() ?? "—"}</td></tr>)}
-            </tbody></table></div><button className="button button-secondary" type="submit">Queue selected for preflight</button></form>
+            <div className="table-wrap"><table><thead><tr><th>Business</th><th>Prospect</th><th>Status</th><th>Territory</th><th>Follow-up</th></tr></thead><tbody>
+              {result.items.map((lead) => <tr key={lead.id}><td><Link href={`/admin-portal/leads/${lead.id}`}><strong>{lead.businessName}</strong></Link><span>{lead.contactName || lead.email || "No contact yet"}</span></td><td>{lead.prospectType.replaceAll("_", " ")}</td><td><span className="status-pill">{labels[lead.status]}</span></td><td>{lead.serviceTerritory || lead.location || lead.city || "—"}</td><td>{lead.followUpAt?.toLocaleDateString() ?? "—"}</td></tr>)}
+            </tbody></table></div>
           ) : <div className="empty-state"><h2>No leads match this view</h2><p>Adjust the filter or add a permitted lead manually.</p></div>}
         {result && result.total > result.pageSize && (
           <nav className="pagination" aria-label="Lead pages">
@@ -101,15 +93,18 @@ export default async function LeadsPage({
           <label>Business name<input name="businessName" required maxLength={160} /></label>
           <label>Contact name<input name="contactName" maxLength={100} /></label>
           <label>Email<input name="email" type="email" maxLength={254} /></label>
-          <label>Website URL<input name="websiteUrl" type="url" placeholder="https://" /></label>
-          <label>Category<input name="category" /></label>
-          <label>Industry<input name="industry" /></label>
+          <label>Prospect type<select name="prospectType" required defaultValue="grease_hauler"><option value="grease_hauler">Grease hauler</option><option value="restaurant_operator">Restaurant operator</option><option value="facility_team">Facility team</option><option value="other">Other</option></select></label>
+          <label>Service territory<input name="serviceTerritory" placeholder="Cities, counties, or states served" /></label>
+          <label>Approximate restaurant accounts<input name="accountCountEstimate" placeholder="For example, 300" /></label>
+          <label>Current record process<select name="currentRecordProcess" defaultValue=""><option value="">Unknown</option><option>Mostly paper tickets</option><option>Email and PDF files</option><option>Spreadsheets and shared folders</option><option>Existing field-service software</option><option>Several disconnected systems</option></select></label>
+          <label>Pilot interest<select name="pilotInterest" defaultValue=""><option value="">Unknown</option><option>Ready to discuss a small pilot</option><option>Interested, but need more information</option><option>Researching options for later</option></select></label>
+          <label className="span-two">Primary records challenge<textarea name="primaryChallenge" rows={3} placeholder="Old-ticket requests, missing evidence, customer reporting…" /></label>
           <label>Street address<input name="address" /></label>
           <label>City<input name="city" /></label>
           <label>State<input name="state" /></label>
           <label>Postal code<input name="postalCode" /></label>
           <label>Public business phone<input name="phone" type="tel" /></label>
-          <label>Location<input name="location" placeholder="Chicago, IL" /></label>
+          <label>Headquarters location<input name="location" placeholder="Addison, IL" /></label>
           <label>Source name<input name="sourceName" required placeholder="Manual research" /></label>
           <label>Source URL<input name="sourceUrl" type="url" placeholder="https://" /></label>
           <label>Source identifier<input name="sourceIdentifier" /></label>

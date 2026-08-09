@@ -18,6 +18,16 @@ import { sql } from "drizzle-orm";
 export const submissionType = pgEnum("submission_type", [
   "homepage_review",
   "project_request",
+  "hauler_request",
+  "restaurant_request",
+  "general_request",
+]);
+
+export const prospectType = pgEnum("prospect_type", [
+  "grease_hauler",
+  "restaurant_operator",
+  "facility_team",
+  "other",
 ]);
 
 export const leadStatus = pgEnum("lead_status", [
@@ -128,14 +138,14 @@ export const appSettings = pgTable("app_settings", {
   targetIndustries: jsonb("target_industries")
     .$type<string[]>()
     .default([
-      "Local construction companies",
-      "Independent insurance agencies",
-      "Boutique marketing firms",
+      "Grease haulers",
+      "Multi-location restaurant operators",
+      "Commercial kitchen facility teams",
     ])
     .notNull(),
   targetLocations: jsonb("target_locations")
     .$type<string[]>()
-    .default(["Chicago, Illinois", "Chicago metropolitan area"])
+    .default(["United States"])
     .notNull(),
   maxCsvBytes: integer("max_csv_bytes").default(1_000_000).notNull(),
   maxRowsPerBatch: integer("max_rows_per_batch").default(500).notNull(),
@@ -256,6 +266,14 @@ export const contactSubmissions = pgTable(
     businessName: varchar("business_name", { length: 160 }).notNull(),
     email: varchar("email", { length: 254 }).notNull(),
     websiteUrl: text("website_url"),
+    phone: varchar("phone", { length: 40 }),
+    role: varchar("role", { length: 100 }),
+    audience: varchar("audience", { length: 40 }),
+    serviceArea: varchar("service_area", { length: 200 }),
+    locationCount: varchar("location_count", { length: 40 }),
+    currentRecordProcess: varchar("current_record_process", { length: 160 }),
+    primaryChallenge: text("primary_challenge"),
+    pilotInterest: varchar("pilot_interest", { length: 120 }),
     primaryGoal: varchar("primary_goal", { length: 200 }),
     websiteConcern: text("website_concern"),
     serviceNeeded: varchar("service_needed", { length: 120 }),
@@ -286,6 +304,12 @@ export const leads = pgTable(
     email: varchar("email", { length: 254 }),
     websiteUrl: text("website_url"),
     category: varchar("category", { length: 120 }),
+    prospectType: prospectType("prospect_type").default("other").notNull(),
+    serviceTerritory: varchar("service_territory", { length: 200 }),
+    accountCountEstimate: varchar("account_count_estimate", { length: 40 }),
+    currentRecordProcess: varchar("current_record_process", { length: 160 }),
+    primaryChallenge: text("primary_challenge"),
+    pilotInterest: varchar("pilot_interest", { length: 120 }),
     location: varchar("location", { length: 160 }),
     sourceName: varchar("source_name", { length: 120 }).notNull(),
     sourceUrl: text("source_url"),

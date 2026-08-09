@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BarChart3, FileSearch, FileUp, LayoutDashboard, ScanSearch, Settings, ShieldBan, UsersRound } from "lucide-react";
+import { BarChart3, FileUp, LayoutDashboard, ShieldBan, UsersRound } from "lucide-react";
 import { LogoutButton } from "@/components/admin/logout-button";
 import { OrbisyLogo } from "@/components/orbisy-logo";
 
@@ -7,11 +7,8 @@ const links = [
   ["/admin-portal/dashboard", LayoutDashboard, "Overview"],
   ["/admin-portal/leads", UsersRound, "Leads"],
   ["/admin-portal/imports", FileUp, "Imports"],
-  ["/admin-portal/preflight", FileSearch, "Preflight"],
-  ["/admin-portal/audits", ScanSearch, "Audits"],
   ["/admin-portal/suppressions", ShieldBan, "Suppressions"],
   ["/admin-portal/analytics", BarChart3, "Analytics"],
-  ["/admin-portal/settings", Settings, "Settings"],
 ] as const;
 
 export function AdminShell({

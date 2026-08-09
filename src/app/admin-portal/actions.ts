@@ -57,6 +57,12 @@ export async function createLeadAction(formData: FormData) {
     email: string(formData, "email"),
     websiteUrl: string(formData, "websiteUrl"),
     category: string(formData, "category"),
+    prospectType: string(formData, "prospectType"),
+    serviceTerritory: string(formData, "serviceTerritory"),
+    accountCountEstimate: string(formData, "accountCountEstimate"),
+    currentRecordProcess: string(formData, "currentRecordProcess"),
+    primaryChallenge: string(formData, "primaryChallenge"),
+    pilotInterest: string(formData, "pilotInterest"),
     industry: string(formData, "industry"),
     address: string(formData, "address"),
     city: string(formData, "city"),
@@ -128,7 +134,6 @@ export async function updateLeadAction(id: string, formData: FormData) {
         leadId: id,
         fromStatus: current.status,
         toStatus: parsed.status,
-        note: parsed.note,
       });
     }
     if (parsed.note) {

@@ -24,6 +24,8 @@ describe("administrator dashboard summaries", () => {
       "0005_nifty_vindicator.sql",
       "0006_rich_shadow_king.sql",
       "0007_pale_madelyne_pryor.sql",
+      "0008_orbisy_records_pivot.sql",
+      "0009_grease_market_defaults.sql",
     ]) {
       await db.exec(await migration(name));
     }
@@ -35,10 +37,9 @@ describe("administrator dashboard summaries", () => {
     expect(result.rows[0]).toMatchObject({
       pending_batches: 0,
       review_rows: 0,
-      preflight_attention: 0,
-      audit_attention: 0,
-      ready_for_brief: 0,
-      eligible_waiting: 0,
+      hauler_prospects: 0,
+      active_opportunities: 0,
+      active_clients: 0,
     });
     await db.close();
   }, 30_000);

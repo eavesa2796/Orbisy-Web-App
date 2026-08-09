@@ -11,8 +11,8 @@ describe("Phase 1 public messaging", () => {
   it("presents the managed records service without unsupported promises", () => {
     const html = renderToStaticMarkup(<Home />);
 
-    expect(html).toContain("Know what was serviced.");
-    expect(html).toContain("Request a Grease-Record Review");
+    expect(html).toContain("Make every service record");
+    expect(html).toContain("Request a Hauler Workflow Review");
     expect(html).toContain("Current pilots are delivered as a managed service");
     expect(html).toContain("Planned software direction");
     expect(html).toContain("Grease Haulers");
@@ -29,7 +29,7 @@ describe("Phase 1 public messaging", () => {
     expect(restaurantHtml).toContain("Independent history across haulers");
     expect(restaurantHtml).toContain("not a working customer portal");
     expect(restaurantHtml).toContain("restaurant-portal-location-concept.webp");
-    expect(haulerHtml).toContain("possible ten-account, 30-day pilot");
+    expect(haulerHtml).toContain("Start with ten accounts for 30 days");
     expect(haulerHtml).toContain("not a working customer portal");
     expect(haulerHtml).toContain("hauler-portal-overview-concept.webp");
     expect(restaurantMetadata.alternates).toEqual({ canonical: "/restaurants" });
