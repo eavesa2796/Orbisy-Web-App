@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 export default function TermsPage() {
   return (
-    <LegalLayout kicker="Last updated: August 5, 2026 · Draft—legal review required" title="Terms of Use">
+    <LegalLayout kicker="Last updated: August 8, 2026 · Draft—legal review required" title="Terms of Use">
       <p>
         These draft terms govern use of the public Orbisy website. They require
         owner and legal review before publication.
@@ -79,7 +79,7 @@ export default function TermsPage() {
       </p>
 
       <h2>Contact</h2>
-      <p>Questions about these terms may be sent to info@orbisy.com.</p>
+      <p>Questions about these terms may be sent to info@orbisy.com or directed to (224) 323-6231.</p>
     </LegalLayout>
   );
 }

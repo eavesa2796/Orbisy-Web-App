@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { OrbisyLogo } from "@/components/orbisy-logo";
+import { PublicFooter } from "@/components/public-site-shell";
 
 export function LegalLayout({
   kicker,
@@ -12,7 +13,7 @@ export function LegalLayout({
   children: ReactNode;
 }) {
   return (
-    <main className="legal-page" id="main-content">
+    <><main className="legal-page" id="main-content">
       <div className="legal-shell">
         <Link className="public-brand legal-brand" href="/" aria-label="Orbisy home">
           <OrbisyLogo className="legal-brand-logo" priority />
@@ -33,6 +34,6 @@ export function LegalLayout({
           </a>
         </div>
       </div>
-    </main>
+    </main><PublicFooter /></>
   );
 }

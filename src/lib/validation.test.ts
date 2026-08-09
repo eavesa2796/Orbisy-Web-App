@@ -1,8 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  homepageReviewSchema,
-  projectRequestSchema,
-} from "@/lib/validation";
+import { recordsRequestSchema } from "@/lib/validation";
 
 const base = {
   name: "Anthony",
@@ -11,47 +8,45 @@ const base = {
   websiteUrl: "https://orbisy.com",
   consent: "on",
   company: "",
+  phone: "224-323-6231",
+  role: "Owner",
+  serviceArea: "DuPage County, Illinois",
+  locationCount: "151–300",
+  currentRecordProcess: "Email and PDF files",
+  primaryChallenge: "Customers frequently request old tickets.",
+  pilotInterest: "Ready to discuss a small pilot",
 };
 
 describe("public form validation", () => {
-  it("accepts a valid homepage review", () => {
-    const result = homepageReviewSchema.safeParse({
-      ...base,
-      primaryGoal: "Generate qualified inquiries",
-      websiteConcern: "The contact path is unclear.",
-    });
+  it("accepts a valid hauler workflow request", () => {
+    const result = recordsRequestSchema.safeParse({ ...base, audience: "hauler" });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts a records request without a website URL", () => {
+    const withoutWebsite: Partial<typeof base> = { ...base };
+    delete withoutWebsite.websiteUrl;
+    const result = recordsRequestSchema.safeParse({ ...withoutWebsite, audience: "hauler" });
     expect(result.success).toBe(true);
   });
 
   it("rejects missing consent and invalid URLs", () => {
-    const result = homepageReviewSchema.safeParse({
+    const result = recordsRequestSchema.safeParse({
       ...base,
       websiteUrl: "orbisy",
       consent: undefined,
-      primaryGoal: "Grow",
-      websiteConcern: "Unclear",
+      audience: "hauler",
     });
     expect(result.success).toBe(false);
   });
 
-  it("rejects unexpected budget values", () => {
-    const result = projectRequestSchema.safeParse({
-      ...base,
-      serviceNeeded: "Website refresh",
-      projectDescription: "A focused website refresh.",
-      budgetRange: "Unlimited",
-    });
+  it("rejects unexpected account ranges", () => {
+    const result = recordsRequestSchema.safeParse({ ...base, audience: "hauler", locationCount: "Millions" });
     expect(result.success).toBe(false);
   });
 
-  it("accepts the Phase 1 managed-records project request", () => {
-    const result = projectRequestSchema.safeParse({
-      ...base,
-      serviceNeeded: "Restaurant records cleanup pilot",
-      projectDescription: "Records are split between email and location folders.",
-      timeline: "Within 30 days",
-      budgetRange: "Not sure yet",
-    });
+  it("accepts a restaurant records request", () => {
+    const result = recordsRequestSchema.safeParse({ ...base, audience: "restaurant", locationCount: "11–50" });
     expect(result.success).toBe(true);
   });
 });

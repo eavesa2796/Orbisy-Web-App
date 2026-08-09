@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 
 export default function PrivacyPage() {
   return (
-    <LegalLayout kicker="Last updated: August 5, 2026 · Draft—legal review required" title="Privacy Policy">
+    <LegalLayout kicker="Last updated: August 8, 2026 · Draft—legal review required" title="Privacy Policy">
       <p>
         This draft explains the information Orbisy expects to process through
         its public website and private lead-management tools.
@@ -19,9 +19,10 @@ export default function PrivacyPage() {
       <h2>Information you provide</h2>
       <p>
         When you request a records-workflow review or submit another project
-        request, Orbisy may collect your name, business name, email address,
-        website URL, requested service, project description, timeline, budget
-        range, and acknowledgment of this policy. The public forms are not
+        request, Orbisy may collect your name, business name, business email,
+        phone number, role, service territory, approximate account or location
+        count, current record process, primary records challenge, pilot interest,
+        website URL, and acknowledgment of this policy. The public forms are not
         intended for grease-interceptor tickets, manifests, photographs, or
         other service documents. Do not submit those records through this site.
       </p>
@@ -100,7 +101,7 @@ export default function PrivacyPage() {
       <h2>Your choices</h2>
       <p>
         You may ask to access, correct, delete, or suppress information by
-        contacting info@orbisy.com. Requests may require reasonable
+        contacting info@orbisy.com or (224) 323-6231. Requests may require reasonable
         verification.
       </p>
 

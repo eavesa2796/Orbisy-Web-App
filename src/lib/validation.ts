@@ -8,11 +8,15 @@ const cleanText = (max: number) =>
     .max(max, `Keep this under ${max} characters.`);
 
 const optionalUrl = z
-  .string()
-  .trim()
-  .max(500)
-  .transform((value) => value || undefined)
-  .pipe(z.url("Enter a complete URL, including https://").optional());
+  .preprocess(
+    (value) => (typeof value === "string" ? value.trim() : value),
+    z.union([
+      z.url("Enter a complete URL, including https://").max(500),
+      z.literal(""),
+      z.undefined(),
+    ]),
+  )
+  .transform((value) => value || undefined);
 
 const baseSubmissionSchema = z.object({
   name: cleanText(100),
@@ -27,25 +31,15 @@ const baseSubmissionSchema = z.object({
   turnstileToken: z.string().max(2048).optional(),
 });
 
-export const homepageReviewSchema = baseSubmissionSchema.extend({
-  primaryGoal: cleanText(200),
-  websiteConcern: cleanText(1500),
-});
-
-export const projectRequestSchema = baseSubmissionSchema.extend({
-  serviceNeeded: cleanText(120),
-  projectDescription: cleanText(3000),
-  timeline: z.string().trim().max(80).optional(),
-  budgetRange: z
-    .enum([
-      "Under $1,500",
-      "$1,500–$3,000",
-      "$3,000–$5,000",
-      "$5,000–$10,000",
-      "$10,000+",
-      "Not sure yet",
-    ])
-    .optional(),
+export const recordsRequestSchema = baseSubmissionSchema.extend({
+  phone: cleanText(40),
+  role: cleanText(100),
+  audience: z.enum(["hauler", "restaurant", "general"]),
+  serviceArea: cleanText(200),
+  locationCount: z.enum(["1–10", "11–50", "51–150", "151–300", "301–1,000", "1,000+", "Not sure"]),
+  currentRecordProcess: z.enum(["Mostly paper tickets", "Email and PDF files", "Spreadsheets and shared folders", "Existing field-service software", "Several disconnected systems", "Not sure"]),
+  primaryChallenge: cleanText(3000),
+  pilotInterest: z.enum(["Ready to discuss a small pilot", "Interested, but need more information", "Researching options for later"]),
 });
 
 export const leadSchema = z.object({
@@ -54,6 +48,12 @@ export const leadSchema = z.object({
   email: z.union([z.literal(""), z.email()]).optional(),
   websiteUrl: optionalUrl,
   category: z.string().trim().max(120).optional(),
+  prospectType: z.enum(["grease_hauler", "restaurant_operator", "facility_team", "other"]),
+  serviceTerritory: z.string().trim().max(200).optional(),
+  accountCountEstimate: z.string().trim().max(40).optional(),
+  currentRecordProcess: z.string().trim().max(160).optional(),
+  primaryChallenge: z.string().trim().max(3000).optional(),
+  pilotInterest: z.string().trim().max(120).optional(),
   industry: z.string().trim().max(120).optional(),
   address: z.string().trim().max(255).optional(),
   city: z.string().trim().max(120).optional(),

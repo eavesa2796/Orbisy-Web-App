@@ -37,11 +37,11 @@ export async function getImportSettings() {
     settings ?? {
       id: "default",
       targetIndustries: [
-        "Local construction companies",
-        "Independent insurance agencies",
-        "Boutique marketing firms",
+        "Grease haulers",
+        "Multi-location restaurant operators",
+        "Commercial kitchen facility teams",
       ],
-      targetLocations: ["Chicago, Illinois", "Chicago metropolitan area"],
+      targetLocations: ["United States"],
       maxCsvBytes: 1_000_000,
       maxRowsPerBatch: 500,
       defaultSourceName: "Permitted CSV import",

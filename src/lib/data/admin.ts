@@ -6,7 +6,6 @@ import {
   eq,
   gte,
   ilike,
-  inArray,
   isNotNull,
   lte,
   or,
@@ -20,24 +19,12 @@ import {
   outreachDrafts,
   pipelineEvents,
   auditRuns,
-  auditFindings,
 } from "@/lib/db/schema";
 import type { leadStatusValues } from "@/lib/validation";
 
 export type LeadStatus = (typeof leadStatusValues)[number];
 
 export const DASHBOARD_SECONDARY_SUMMARY_SQL = `
-  WITH latest_decisions AS (
-    SELECT DISTINCT ON (lead_id) lead_id, status
-    FROM audit_eligibility_decisions
-    ORDER BY lead_id, decided_at DESC
-  ),
-  latest_ready_runs AS (
-    SELECT DISTINCT ON (lead_id) id, lead_id
-    FROM audit_runs
-    WHERE phase_five_ready = true
-    ORDER BY lead_id, review_completed_at DESC NULLS LAST, created_at DESC
-  )
   SELECT
     (SELECT count(*)::int FROM import_batches
       WHERE status IN ('draft', 'validating', 'ready', 'completed_with_errors'))
@@ -49,26 +36,9 @@ export const DASHBOARD_SECONDARY_SUMMARY_SQL = `
     (SELECT count(*)::int FROM leads
       WHERE import_batch_id IS NOT NULL
         AND created_at >= NOW() - INTERVAL '30 days') AS newly_imported,
-    (SELECT count(*)::int FROM preflight_jobs
-      WHERE status IN ('failed','blocked')) AS preflight_attention,
-    (SELECT count(*)::int FROM latest_decisions
-      WHERE status = 'needs_manual_review') AS preflight_review,
-    (SELECT count(*)::int FROM latest_decisions
-      WHERE status = 'eligible') AS preflight_eligible,
-    (SELECT count(*)::int FROM audit_jobs
-      WHERE status IN ('failed','blocked')) AS audit_attention,
-    (SELECT count(*)::int FROM audit_runs
-      WHERE status IN ('completed','completed_with_warnings')
-        AND review_completed_at IS NULL) AS audit_verification,
-    (SELECT count(*)::int FROM latest_ready_runs ar
-      WHERE NOT EXISTS (SELECT 1 FROM outreach_drafts od
-        WHERE od.audit_run_id = ar.id
-          AND od.status = 'approved')) AS ready_for_brief,
-    (SELECT count(*)::int FROM latest_decisions d
-      WHERE d.status = 'eligible'
-        AND NOT EXISTS (SELECT 1 FROM audit_jobs j
-          WHERE j.lead_id = d.lead_id
-            AND j.status IN ('queued','running','retry_scheduled'))) AS eligible_waiting
+    (SELECT count(*)::int FROM leads WHERE prospect_type = 'grease_hauler') AS hauler_prospects,
+    (SELECT count(*)::int FROM leads WHERE status IN ('consultation','proposal_sent')) AS active_opportunities,
+    (SELECT count(*)::int FROM leads WHERE status = 'won') AS active_clients
 `;
 
 async function dashboardQuery<T>(name: string, query: Promise<T>) {
@@ -130,13 +100,9 @@ export async function getOverviewData() {
     review_rows: 0,
     suppressed_candidates: 0,
     newly_imported: 0,
-    preflight_attention: 0,
-    preflight_review: 0,
-    preflight_eligible: 0,
-    audit_attention: 0,
-    audit_verification: 0,
-    eligible_waiting: 0,
-    ready_for_brief: 0,
+    hauler_prospects: 0,
+    active_opportunities: 0,
+    active_clients: 0,
   };
   let summary = fallbackSummary;
   let secondarySummaryAvailable = true;
@@ -149,13 +115,9 @@ export async function getOverviewData() {
       review_rows: number;
       suppressed_candidates: number;
       newly_imported: number;
-        preflight_attention: number;
-        preflight_review: number;
-        preflight_eligible: number;
-        audit_attention: number;
-        audit_verification: number;
-        eligible_waiting: number;
-        ready_for_brief: number;
+        hauler_prospects: number;
+        active_opportunities: number;
+        active_clients: number;
       }>(sql.raw(DASHBOARD_SECONDARY_SUMMARY_SQL));
     }));
     summary = rows[0] ?? fallbackSummary;
@@ -174,16 +136,10 @@ export async function getOverviewData() {
       suppressed_candidates: summary.suppressed_candidates,
       newly_imported: summary.newly_imported,
     },
-    preflightSummary: {
-      attention: summary.preflight_attention,
-      review: summary.preflight_review,
-      eligible: summary.preflight_eligible,
-    },
-    auditSummary: {
-      attention: summary.audit_attention,
-      verification: summary.audit_verification,
-      eligible_waiting: summary.eligible_waiting,
-      ready_for_brief: summary.ready_for_brief,
+    salesSummary: {
+      haulerProspects: summary.hauler_prospects,
+      activeOpportunities: summary.active_opportunities,
+      activeClients: summary.active_clients,
     },
   };
 }
@@ -223,6 +179,7 @@ export async function getLeads(options: {
       ? or(
           ilike(leads.location, `%${options.location}%`),
           ilike(leads.city, `%${options.location}%`),
+          ilike(leads.serviceTerritory, `%${options.location}%`),
         )
       : undefined,
     options.websiteState
@@ -293,7 +250,7 @@ export async function getLeadFilterOptions() {
 
 export async function getLead(id: string) {
   const db = getDb();
-  const [lead, notes, history, attempts, drafts, readyRuns] = await Promise.all([
+  const [lead, notes, history, attempts] = await Promise.all([
     db.select().from(leads).where(eq(leads.id, id)).limit(1),
     db
       .select()
@@ -310,40 +267,12 @@ export async function getLead(id: string) {
       .from(manualContactAttempts)
       .where(eq(manualContactAttempts.leadId, id))
       .orderBy(desc(manualContactAttempts.contactedAt)),
-    db
-      .select()
-      .from(outreachDrafts)
-      .where(eq(outreachDrafts.leadId, id))
-      .orderBy(desc(outreachDrafts.updatedAt))
-      .limit(1),
-    db
-      .select()
-      .from(auditRuns)
-      .where(and(eq(auditRuns.leadId, id), eq(auditRuns.phaseFiveReady, true)))
-      .orderBy(desc(auditRuns.reviewCompletedAt), desc(auditRuns.createdAt))
-      .limit(1),
   ]);
-  const phaseFiveRun = readyRuns[0] ?? null;
-  const verifiedFindings = phaseFiveRun
-    ? await db
-        .select()
-        .from(auditFindings)
-        .where(
-          and(
-            eq(auditFindings.runId, phaseFiveRun.id),
-            inArray(auditFindings.verificationStatus, ["verified", "edited"]),
-          ),
-        )
-        .orderBy(desc(auditFindings.severity), auditFindings.createdAt)
-    : [];
   return {
     lead: lead[0] ?? null,
     notes,
     history,
     attempts,
-    draft: drafts[0] ?? null,
-    phaseFiveRun,
-    verifiedFindings,
   };
 }
 

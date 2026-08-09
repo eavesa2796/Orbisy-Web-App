@@ -1,6 +1,6 @@
 import { ArrowRight, Check } from "lucide-react";
 import Image from "next/image";
-import { PublicForm } from "@/components/public-form";
+import { PublicForm, type PublicFormType } from "@/components/public-form";
 import { PublicFooter, PublicHeader } from "@/components/public-site-shell";
 import { TrackLink } from "@/components/track-link";
 
@@ -17,6 +17,8 @@ type LandingPageProps = {
     alt: string;
     orientation: "wide" | "tall";
   }[];
+  formType: PublicFormType;
+  ctaLabel: string;
 };
 
 export function AudienceLandingPage({
@@ -28,6 +30,8 @@ export function AudienceLandingPage({
   pilotText,
   pilotItems,
   conceptImages,
+  formType,
+  ctaLabel,
 }: LandingPageProps) {
   return (
     <>
@@ -40,7 +44,7 @@ export function AudienceLandingPage({
             <h1>{title}</h1>
             <p className="hero-lede">{lede}</p>
             <TrackLink className="button" href="#records-review" eventName="primary_cta_click" componentId="audience_records_review">
-              Request a Records Review <ArrowRight size={18} />
+              {ctaLabel} <ArrowRight size={18} />
             </TrackLink>
           </div>
         </section>
@@ -72,7 +76,7 @@ export function AudienceLandingPage({
 
         <section className="section review-section" id="records-review"><div className="container review-layout">
           <div className="form-intro"><p className="eyebrow"><span />Start with the workflow</p><h2>Request a short records-workflow review.</h2><p>Share the current process and the records challenge your team is trying to solve. Orbisy will determine whether a focused paid pilot may be useful.</p><small>The conversation is not a free cleanup or compliance review. A client relationship and any authorized follow-up begin only through a written agreement.</small></div>
-          <PublicForm type="project-request" />
+          <PublicForm type={formType} />
         </div></section>
       </main>
       <PublicFooter />

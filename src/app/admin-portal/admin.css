@@ -29,3 +29,24 @@
 @media(max-width:900px){.admin-app{grid-template-columns:1fr}.admin-sidebar{position:static;height:auto;border-right:0;border-bottom:1px solid var(--border);padding:18px}.admin-brand-logo{width:110px}.admin-sidebar nav{display:flex;overflow-x:auto}.admin-account{grid-template-columns:1fr auto;align-items:center}.admin-account span{display:none}.admin-account button{margin:0}.admin-main{padding:28px 18px}.metric-grid{grid-template-columns:repeat(2,1fr)}.company-search-card{grid-template-columns:1fr}.company-search-actions{grid-column:auto}.company-search-actions a:last-child{margin-left:0}}
 @media(max-width:900px){.mapping-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.decision-form{grid-template-columns:1fr 1fr}.decision-form button{grid-column:1/-1}}
 @media(max-width:640px){.admin-heading{align-items:start;flex-direction:column}.admin-grid,.admin-form,.filter-row,.mapping-grid,.decision-form{grid-template-columns:1fr}.span-two{grid-column:auto}.metric-grid{grid-template-columns:1fr 1fr}.metric-card{padding:17px}.detail-list div{grid-template-columns:1fr;gap:4px}.card-heading{flex-direction:column}.admin-sidebar nav a{font-size:.78rem}.action-queue li{grid-template-columns:auto 1fr}.action-queue span{grid-column:2}.company-search-card form{grid-template-columns:auto 1fr}.company-search-card form .button{grid-column:1/-1;width:100%}.company-search-actions{align-items:flex-start;flex-direction:column}}
+
+/* Phase 2 responsive navigation and control polish */
+.admin-logout{display:inline-flex;min-height:40px;align-items:center;justify-content:center;gap:8px;padding:0 14px;border:1px solid #34415f;border-radius:10px;color:#dce4f8;background:#182138;cursor:pointer;font-weight:750;transition:border-color .2s,background .2s}
+.admin-logout:hover{border-color:var(--accent);background:#202d49}
+.admin-form select,.filter-row select{appearance:none;padding-right:40px;background-image:linear-gradient(45deg,transparent 50%,var(--accent) 50%),linear-gradient(135deg,var(--accent) 50%,transparent 50%);background-position:calc(100% - 17px) 50%,calc(100% - 12px) 50%;background-repeat:no-repeat;background-size:5px 5px}
+.admin-form select option,.filter-row select option{color:#eef1ff;background:#11182b}
+
+@media(max-width:900px){
+  .admin-sidebar{gap:18px}
+  .admin-sidebar nav{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;overflow:visible}
+  .admin-sidebar nav a{justify-content:center;min-width:0;text-align:center}
+  .admin-account{grid-template-columns:minmax(0,1fr) auto;padding-top:4px;border-top:1px solid var(--border)}
+}
+
+@media(max-width:640px){
+  .admin-sidebar nav{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .admin-sidebar nav a{justify-content:flex-start}
+  .admin-account{grid-template-columns:1fr}
+  .admin-account strong{font-size:.72rem}
+  .admin-logout{width:100%}
+}
