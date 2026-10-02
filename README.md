@@ -1,4 +1,25 @@
-# Orbisy — Phase Five
+# Orbisy — Agency Website & Private Lead Workspace
+
+The public site now presents Orbisy LLC’s web design, Google Ads/PPC, local SEO,
+and custom development services. Towing and roadside assistance have a dedicated
+landing page at `/towing-marketing`; the homepage also welcomes other service
+businesses. Public inquiries reuse the existing project-request API and private
+lead workspace. This change does not require a database migration.
+
+The previous records-service homepage, restaurant/hauler pages, supporting
+components, metadata, policies, and concept images are preserved in
+`archive/records-service-2026-10-02/`. See that folder’s README for restoration.
+
+Google Ads conversion tags are not configured by this brand update. Before an
+Orbisy advertising launch, supply the account’s tag/conversion identifiers,
+configure the applicable privacy choices and security-policy permissions, and
+verify that a successful saved inquiry records one conversion. Existing
+first-party analytics continue to measure the new page and service identifiers.
+
+The architecture and operational notes below describe the existing private
+workspace; public-facing product messaging has been superseded by the agency site.
+
+## Phase Five
 
 Orbisy is Anthony Eaves’s Chicago-based software-development business. This
 MVP combines a public service website, secure inbound forms, a

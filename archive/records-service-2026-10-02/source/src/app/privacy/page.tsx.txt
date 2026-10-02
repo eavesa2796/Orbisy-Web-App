@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 
 export default function PrivacyPage() {
   return (
-    <LegalLayout kicker="Last updated: October 2, 2026 · Draft—legal review required" title="Privacy Policy">
+    <LegalLayout kicker="Last updated: August 5, 2026 · Draft—legal review required" title="Privacy Policy">
       <p>
         This draft explains the information Orbisy expects to process through
         its public website and private lead-management tools.
@@ -18,12 +18,12 @@ export default function PrivacyPage() {
 
       <h2>Information you provide</h2>
       <p>
-        When you request a website review or submit a project
+        When you request a records-workflow review or submit another project
         request, Orbisy may collect your name, business name, email address,
         website URL, requested service, project description, timeline, budget
-        range, and acknowledgment of this policy. Do not submit passwords,
-        advertising-account credentials, payment details, or confidential
-        customer records through these public forms.
+        range, and acknowledgment of this policy. The public forms are not
+        intended for grease-interceptor tickets, manifests, photographs, or
+        other service documents. Do not submit those records through this site.
       </p>
 
       <h2>Business lead information</h2>
@@ -59,13 +59,13 @@ export default function PrivacyPage() {
         <li>Maintain suppression records to avoid unwanted contact.</li>
       </ul>
 
-      <h2>Client project information</h2>
+      <h2>Managed-service records</h2>
       <p>
         If a written client agreement is later established, the parties will
-        separately confirm the approved transfer method, permitted uses,
-        retention, deletion, access, and service providers for project materials
-        and any website or advertising-account access. The public application
-        does not provide a customer document portal or public file-upload feature.
+        separately confirm the approved record-transfer method, permitted uses,
+        retention, deletion, access, and service providers. The current public
+        application does not provide a customer document portal or public
+        grease-record upload feature.
       </p>
 
       <h2>Service providers</h2>

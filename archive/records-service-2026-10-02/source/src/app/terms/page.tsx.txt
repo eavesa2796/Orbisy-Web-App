@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 export default function TermsPage() {
   return (
-    <LegalLayout kicker="Last updated: October 2, 2026 · Draft—legal review required" title="Terms of Use">
+    <LegalLayout kicker="Last updated: August 5, 2026 · Draft—legal review required" title="Terms of Use">
       <p>
         These draft terms govern use of the public Orbisy website. They require
         owner and legal review before publication.
@@ -17,7 +17,7 @@ export default function TermsPage() {
 
       <h2>Informational purpose</h2>
       <p>
-        Website content and preliminary project discussions are
+        Website content and preliminary records-workflow discussions are
         provided for general informational purposes. They are not legal,
         regulatory, security, accounting, or compliance advice or certification.
       </p>
@@ -28,24 +28,24 @@ export default function TermsPage() {
         response does not create a client, fiduciary, confidential, or other
         professional relationship. A project begins only through a separately
         accepted written agreement. Customer confirmation and authorization are
-        required before Orbisy accesses client accounts or contacts another party.
+        required before Orbisy performs records work or contacts another party.
       </p>
 
       <h2>No guaranteed outcomes</h2>
       <p>
-        Orbisy does not guarantee search rankings, advertising placement, a
-        number of leads, sales, revenue, savings, or other business results.
-        Website reviews and recommendations are based on available information
-        and may be incomplete.
+        Orbisy does not certify compliance or guarantee inspection results,
+        municipal acceptance, service quality, record completeness, savings,
+        fine avoidance, or any other business or regulatory result. Any review
+        is limited to available customer-supplied information and may be incomplete.
       </p>
 
       <h2>Service boundaries</h2>
       <p>
-        Orbisy provides web design, paid-search management, SEO, and custom
-        development under separately agreed scopes. Advertising spend,
-        subscriptions, hosting, and other third-party costs are included only
-        when explicitly stated in a written agreement. Orbisy does not provide
-        legal or regulatory advice. The public website is not a customer portal.
+        Orbisy organizes grease-interceptor service records as a managed
+        records service. Orbisy does not pump or clean interceptors, perform
+        physical inspections, replace a grease hauler, certify a hauler&apos;s work,
+        or provide legal or regulatory advice. The public website is not a
+        customer portal and does not accept grease-service document uploads.
       </p>
 
       <h2>Acceptable use</h2>
