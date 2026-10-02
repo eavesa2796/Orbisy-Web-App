@@ -36,16 +36,19 @@ export const projectRequestSchema = baseSubmissionSchema.extend({
   serviceNeeded: cleanText(120),
   projectDescription: cleanText(3000),
   timeline: z.string().trim().max(80).optional(),
-  budgetRange: z
-    .enum([
-      "Under $1,500",
-      "$1,500–$3,000",
-      "$3,000–$5,000",
-      "$5,000–$10,000",
-      "$10,000+",
-      "Not sure yet",
-    ])
-    .optional(),
+  budgetRange: z.preprocess(
+    (value) => (value === "" ? undefined : value),
+    z
+      .enum([
+        "Under $1,500",
+        "$1,500–$3,000",
+        "$3,000–$5,000",
+        "$5,000–$10,000",
+        "$10,000+",
+        "Not sure yet",
+      ])
+      .optional(),
+  ),
 });
 
 export const leadSchema = z.object({

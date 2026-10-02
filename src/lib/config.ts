@@ -3,7 +3,7 @@ export const siteConfig = {
   owner: "Anthony Eaves",
   email: "info@orbisy.com",
   location: "Chicago, Illinois",
-  url: process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
+  url: process.env.NEXT_PUBLIC_SITE_URL || "https://orbisy.com",
   description:
     "Orbisy provides web design, Google Ads management, local SEO, and custom development for towing, roadside assistance, and other service businesses. Based in Chicago.",
 } as const;
