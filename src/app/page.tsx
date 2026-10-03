@@ -1,109 +1,300 @@
-import {
-  ArrowRight,
-  CalendarClock,
-  Check,
-  Files,
-  MapPin,
-  SearchCheck,
-  Store,
-} from "lucide-react";
+import { MapPin } from "lucide-react";
 import Image from "next/image";
-import { PublicForm } from "@/components/public-form";
+import Link from "next/link";
+import { AgencyContact } from "@/components/agency-contact";
 import { PublicFooter, PublicHeader } from "@/components/public-site-shell";
 import { TrackLink } from "@/components/track-link";
-
-const services = [
-  ["service_record_cleanup", Files, "01", "Record cleanup", "We organize existing grease-interceptor tickets, photographs, manifests, and service history by location and asset."],
-  ["service_missing_review", SearchCheck, "02", "Missing-record review", "We compare expected service events with the evidence available and identify incomplete, unmatched, or missing records."],
-  ["service_upcoming_monitoring", CalendarClock, "03", "Upcoming-service monitoring", "We maintain an agreed calendar and notify your team when service or supporting documentation is approaching or outstanding."],
-  ["service_multi_location", Store, "04", "Multi-location visibility", "Restaurant groups receive one organized view of locations, interceptors, service history, gaps, and upcoming work."],
-] as const;
-
-const audiences = [
-  ["audience_restaurants", "Restaurant operators", "Owners, franchisees, operations teams, and facilities managers responsible for multiple commercial kitchens.", "/restaurants", "For restaurant operators"],
-  ["audience_haulers", "Grease haulers", "Service companies that want to provide customers with organized, professional service histories.", "/haulers", "For grease haulers"],
-  ["audience_facilities", "Property and facility teams", "Managers overseeing food-service tenants, hotel kitchens, senior-living dining, grocery prepared-food operations, or commissary kitchens.", "#records-review", "Discuss your workflow"],
-] as const;
+import { engagements } from "@/lib/engagements";
+import { Portfolio } from "@/components/portfolio";
 
 const process = [
-  ["Upload", "Send the records currently available."],
-  ["Confirm", "Verify locations, known interceptors, haulers, and service schedules."],
-  ["Reconcile", "Compare expected service with the available records."],
-  ["Resolve", "Identify missing items and perform authorized follow-up."],
-  ["Deliver", "Receive an organized history, gap report, and upcoming calendar."],
+  [
+    "Understand",
+    "Talk through your business, customers, service area, and what you want to improve.",
+  ],
+  [
+    "Plan",
+    "Agree on the work, deliverables, budget, and a practical way to measure progress.",
+  ],
+  [
+    "Build & launch",
+    "Design, develop, and check the website or campaign before it goes live.",
+  ],
+  [
+    "Measure & improve",
+    "Review inquiries and performance, then make informed improvements.",
+  ],
 ] as const;
-
 const faqs = [
-  ["Does Orbisy replace our grease hauler?", "No. Orbisy organizes records and maintains an independent history across vendors. Your team keeps its current hauler and remains responsible for choosing and managing service providers."],
-  ["Does Orbisy guarantee compliance?", "No. Orbisy does not provide legal or regulatory advice, certify compliance, guarantee an inspection result, or guarantee that a municipality will accept a record. Reviews are based on customer-supplied information."],
-  ["What records can Orbisy organize?", "Available service tickets, manifests, photographs, invoices, asset details, service schedules, and related supporting evidence can be reconciled when your team is authorized to provide them."],
-  ["Is this currently software or a managed service?", "Current pilots are delivered as a managed service through secure folders, spreadsheets, scheduled follow-ups, and polished reports. A customer portal is not part of the current service."],
-  ["Can Orbisy support multiple locations?", "Yes. The service is designed to organize locations, known interceptors, vendors, service history, apparent gaps, and upcoming dates in one consistent view."],
-  ["What happens during the initial pilot?", "After confirming scope and authorization, Orbisy organizes a defined set of customer-supplied records, reviews apparent gaps, and delivers an agreed history and upcoming calendar. Cleanup work is paid; a client relationship begins only through a written agreement."],
-  ["Can grease haulers participate?", "Yes. Haulers can work with Orbisy to improve ticket completeness and deliver organized customer histories without replacing dispatch, routing, billing, or accounting systems. Customer confirmation and authorization are required."],
+  [
+    "Do you only work with towing companies?",
+    "Towing and roadside assistance are a starting focus. Orbisy also works with other local service businesses and companies needing websites or custom development.",
+  ],
+  [
+    "Can we start with just a website?",
+    "Yes. A website or landing page can be a standalone project. Advertising and ongoing SEO can be scoped separately when they fit your goals.",
+  ],
+  [
+    "Is advertising spend included in your fee?",
+    "Google Ads spend is separate from Orbisy’s setup and management fees. Your proposal will explain the work, fees, and recommended advertising budget.",
+  ],
+  [
+    "Can you work with our existing website?",
+    "The first conversation will help determine whether targeted improvements, a new landing page, or a rebuild makes the most sense.",
+  ],
+  [
+    "Do you guarantee rankings or a certain number of leads?",
+    "No. Results depend on your market, budget, offer, competition, and how inquiries are handled. We agree on the scope and measurement before work begins.",
+  ],
+  [
+    "What does a project cost?",
+    "Pricing depends on the work involved. Share your goals, timeline, and budget, and Orbisy will respond with a suitable next step and a written scope before paid work begins.",
+  ],
 ] as const;
 
 export default function Home() {
   return (
     <>
       <PublicHeader />
-      <main id="main-content">
-        <section className="hero" id="top">
+      <main id="main-content" className="agency-home">
+        <section className="hero agency-hero" id="top">
           <div className="hero-grid" aria-hidden="true" />
           <div className="container hero-layout">
             <div className="hero-copy">
-              <p className="eyebrow"><span />Service-record management for commercial kitchens</p>
-              <h1>Know what was serviced.<br /><span>Know what is missing.</span></h1>
-              <p className="hero-lede">Orbisy organizes grease-interceptor service tickets, supporting evidence, and upcoming dates for restaurant operators—without replacing their current grease hauler.</p>
+              <p className="eyebrow">
+                <span />
+                Web design & digital marketing
+              </p>
+              <h1>
+                Websites and Google Ads
+                <br />
+                <span>for local service businesses.</span>
+              </h1>
+              <p className="hero-lede">
+                Web design, paid search, local SEO, and custom development with
+                Anthony Eaves. A specialty in towing and roadside assistance,
+                with room for the other businesses that keep your community
+                moving.
+              </p>
               <div className="hero-actions">
-                <TrackLink className="button" href="#records-review" eventName="primary_cta_click" componentId="hero_records_review">
-                  Request a Records Review <ArrowRight size={18} />
+                <TrackLink
+                  className="button"
+                  href="#contact"
+                  eventName="primary_cta_click"
+                  componentId="hero_project_request"
+                >
+                  Request a consultation
                 </TrackLink>
-                <TrackLink className="text-link" href="/haulers" eventName="secondary_cta_click" componentId="hero_haulers">
-                  For Grease Haulers <span aria-hidden="true">↘</span>
+                <TrackLink
+                  className="text-link"
+                  href="/towing-marketing"
+                  eventName="secondary_cta_click"
+                  componentId="hero_towing"
+                >
+                  For towing businesses
                 </TrackLink>
               </div>
-              <ul className="hero-points" aria-label="Orbisy service benefits">
-                <li><Check size={15} /> Independent service history</li>
-                <li><Check size={15} /> Missing-record detection</li>
-                <li><Check size={15} /> Upcoming-date monitoring</li>
+              <ul className="hero-points" aria-label="How Orbisy works">
+                <li>Clear project scopes</li>
+                <li>Direct communication</li>
+                <li>Chicago-based</li>
               </ul>
             </div>
-            <div className="hero-visual hero-portal-preview">
-              <div className="visual-glow" />
-              <figure className="hero-concept-frame">
-                <div className="hero-concept-image"><Image alt="Planned restaurant portal concept showing locations, record status, open items, and upcoming service" fill priority sizes="(max-width: 980px) 92vw, 46vw" src="/restaurant-portal-overview-concept.webp" /></div>
-                <figcaption><strong>Planned software direction</strong><span>Concept preview—not a currently available portal. Current pilots are delivered as a managed service.</span></figcaption>
-              </figure>
+            <aside className="hero-project">
+              <p className="eyebrow">
+                <span />
+                From Anthony’s portfolio
+              </p>
+              <Link
+                href="/work#rescue-battery-shop"
+                className="hero-project-image"
+              >
+                <Image
+                  src="/work/rescue-battery-shop.jpg"
+                  alt="Rescue Battery Shop website by Anthony Eaves"
+                  width={1348}
+                  height={926}
+                  priority
+                  sizes="(max-width: 980px) 100vw, 45vw"
+                />
+              </Link>
+              <div>
+                <h2>Rescue Battery Shop</h2>
+                <p>
+                  Mobile battery service, clear coverage information, and a
+                  direct path to requesting help.
+                </p>
+                <Link className="text-link" href="/work">
+                  Explore the work →
+                </Link>
+              </div>
+            </aside>
+          </div>
+        </section>
+
+        <section className="section services-section" id="services">
+          <div className="container">
+            <div className="section-heading split-heading">
+              <div>
+                <p className="eyebrow">
+                  <span />
+                  Ways to work together
+                </p>
+                <h2>
+                  Start with the work
+                  <br />
+                  your business needs.
+                </h2>
+              </div>
+              <p>
+                A defined project or ongoing support. Agree on the deliverables,
+                responsibilities, and fees before work begins.
+              </p>
+            </div>
+            <div className="engagement-list">
+              {engagements.map((e, i) => (
+                <Link
+                  className="engagement-row"
+                  href={`/${e.slug}`}
+                  key={e.slug}
+                >
+                  <span className="engagement-number">0{i + 1}</span>
+                  <div>
+                    <h3>{e.shortTitle}</h3>
+                    <p>{e.description}</p>
+                  </div>
+                  <span className="engagement-arrow" aria-hidden="true">
+                    ↗
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+        <Portfolio />
+        <section className="section specialty-section">
+          <div className="container scope-layout">
+            <div>
+              <p className="eyebrow">
+                <span />
+                Towing & roadside assistance
+              </p>
+              <h2>
+                Built around the call
+                <br />
+                and the service area.
+              </h2>
+            </div>
+            <div>
+              <p>
+                Emergency towing, battery service, equipment transport, or
+                another local service: customers need to know what you handle,
+                where you work, and how to reach you. We start with those
+                details.
+              </p>
+              <Link className="text-link" href="/towing-marketing">
+                Explore towing marketing →
+              </Link>
+              <p className="portfolio-note">
+                Also working with trades, home services, and businesses with
+                custom software needs.
+              </p>
+            </div>
+          </div>
+        </section>
+        <section className="section about-section" id="about">
+          <div className="container about-layout">
+            <figure className="about-portrait">
+              <div className="about-image-frame">
+                <Image
+                  src="/anthony-eaves.jpg"
+                  alt="Anthony Eaves, founder of Orbisy"
+                  fill
+                  sizes="(max-width: 680px) 240px, 300px"
+                />
+              </div>
+              <figcaption>Anthony Eaves · Founder</figcaption>
+            </figure>
+            <div className="about-copy">
+              <p className="eyebrow">
+                <span />
+                Meet Orbisy
+              </p>
+              <h2>
+                A direct connection
+                <br />
+                to the person doing the work.
+              </h2>
+              <p>
+                I’m Anthony Eaves, the founder of Orbisy. I build websites and
+                software, and help businesses connect their online presence with
+                their marketing goals.
+              </p>
+              <p>
+                We start with a conversation about your business, agree on a
+                clear scope, and keep you informed as the work moves forward.
+              </p>
+              <div className="about-location">
+                <MapPin size={18} aria-hidden="true" />
+                Chicago, Illinois · Working locally and remotely
+              </div>
             </div>
           </div>
         </section>
 
-        <section className="section services-section" id="services"><div className="container">
-          <div className="section-heading split-heading"><div><p className="eyebrow"><span />What Orbisy manages</p><h2>A clear history from the records you already have.</h2></div><p>Orbisy compares expected service with available evidence, identifies apparent documentation gaps, and maintains the upcoming calendar your team agrees to.</p></div>
-          <div className="service-grid">{services.map(([id, Icon, number, title, text]) => <article className="service-card" key={title} data-analytics-view={id}><div className="service-meta"><span>{number}</span><Icon size={22} /></div><h3>{title}</h3><p>{text}</p></article>)}</div>
-        </div></section>
-
-        <section className="section work-section" id="who-we-help"><div className="container">
-          <div className="section-heading"><p className="eyebrow"><span />Who Orbisy helps</p><h2>Records that stay usable as operations change.</h2><p className="section-note">A focused managed service for teams responsible for commercial-kitchen service history.</p></div>
-          <div className="concept-grid audience-grid">{audiences.map(([id, title, text, href, label]) => <article className="concept-card audience-card" key={title} data-analytics-view={id}><div className="concept-content"><span className="concept-label">Managed records</span><h3>{title}</h3><p>{text}</p><a className="text-link audience-link" href={href}>{label} <span aria-hidden="true">→</span></a></div></article>)}</div>
-        </div></section>
-
-        <section className="section about-section" id="about"><div className="container about-layout about-layout-text">
-          <div className="about-copy"><p className="eyebrow"><span />About Orbisy</p><h2>Careful operations now. Purpose-built software later.</h2><p>Orbisy is a Chicago-based operations and software business developing grease-interceptor record management through real, manually delivered workflows. Current pilots use secure folders, spreadsheets, scheduled follow-ups, and polished reports—not a finished software portal.</p><p>The work starts with customer-supplied information, a focused scope, and clear authorization. Orbisy organizes documentation and reports apparent gaps; it does not pump or inspect interceptors, replace a hauler, or certify compliance.</p><div className="about-location"><MapPin size={18} />Chicago, Illinois · Supporting teams locally and remotely</div></div>
-        </div></section>
-
-        <section className="section process-section" id="process"><div className="container">
-          <div className="section-heading split-heading"><div><p className="eyebrow"><span />How the managed service works</p><h2>From scattered evidence to a retrievable history.</h2></div><p>Scope, schedules, and any follow-up are confirmed with your team before work begins.</p></div>
-          <ol className="process-grid process-grid-five">{process.map(([title, text], index) => <li key={title}><span>0{index + 1}</span><h3>{title}</h3><p>{text}</p></li>)}</ol>
-        </div></section>
-
-        <section className="section review-section" id="records-review"><div className="container review-layout">
-          <div className="form-intro"><p className="eyebrow"><span />A useful first step</p><h2>Request a Grease-Record Review.</h2><p>Tell us how your team currently stores grease-interceptor service records. Orbisy will review the workflow, identify where records may be difficult to retrieve, and determine whether a small paid cleanup pilot would be useful.</p><ul><li><Check size={17} /> Short workflow review or discovery conversation</li><li><Check size={17} /> No free records cleanup</li><li><Check size={17} /> Written agreement before client work begins</li></ul><small>This review is informational and based on the details you provide. It is not legal advice, regulatory certification, or a compliance guarantee.</small></div>
-          <PublicForm type="project-request" />
-        </div></section>
-
-        <section className="section faq-section" id="faq"><div className="container faq-layout"><div className="section-heading"><p className="eyebrow"><span />Questions, answered</p><h2>What to expect.</h2></div><div className="faq-list">{faqs.map(([question, answer], index) => <details key={question} data-faq-index={index}><summary>{question}<span aria-hidden="true">+</span></summary><p>{answer}</p></details>)}</div></div></section>
+        <section className="section process-section" id="process">
+          <div className="container">
+            <div className="section-heading split-heading">
+              <div>
+                <p className="eyebrow">
+                  <span />
+                  How we work
+                </p>
+                <h2>
+                  From first conversation
+                  <br />
+                  to the next improvement.
+                </h2>
+              </div>
+              <p>
+                A defined project, an agreed plan, and a useful way to follow
+                progress.
+              </p>
+            </div>
+            <ol className="process-grid">
+              {process.map(([title, text], index) => (
+                <li key={title}>
+                  <span>0{index + 1}</span>
+                  <h3>{title}</h3>
+                  <p>{text}</p>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </section>
+        <AgencyContact />
+        <section className="section faq-section" id="faq">
+          <div className="container faq-layout">
+            <div className="section-heading">
+              <p className="eyebrow">
+                <span />
+                Before we begin
+              </p>
+              <h2>A few useful answers.</h2>
+            </div>
+            <div className="faq-list">
+              {faqs.map(([question, answer], index) => (
+                <details key={question} data-faq-index={index}>
+                  <summary>
+                    {question}
+                    <span aria-hidden="true">+</span>
+                  </summary>
+                  <p>{answer}</p>
+                </details>
+              ))}
+            </div>
+          </div>
+        </section>
       </main>
       <PublicFooter />
     </>

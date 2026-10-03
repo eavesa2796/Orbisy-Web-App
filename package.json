@@ -12,7 +12,8 @@
     "test:watch": "vitest",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "dotenv -e .env.local -- drizzle-kit migrate",
-    "verify": "npm run lint && npm run typecheck && npm run test && npm run build"
+    "verify": "npm run lint && npm run typecheck && npm run test && npm run build",
+    "db:target": "dotenv -e .env.local -- node scripts/inspect-database-target.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",

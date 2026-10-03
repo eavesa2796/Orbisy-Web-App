@@ -1,5 +1,11 @@
 "use client";
 
+import { usePathname } from "next/navigation";
+import {
+  ATTRIBUTION_KEY,
+  attributionSchema,
+  sanitizeAttribution,
+} from "@/lib/attribution";
 import { useEffect } from "react";
 import type { analyticsEventNames } from "@/lib/analytics";
 
@@ -8,11 +14,18 @@ export type AnalyticsEventName = (typeof analyticsEventNames)[number];
 const SESSION_KEY = "orbisy_analytics_session";
 const OPTOUT_KEY = "orbisy_analytics_opt_out";
 
-function shouldTrack() {
+export function shouldTrack() {
   if (typeof window === "undefined") return false;
-  if (window.localStorage.getItem(OPTOUT_KEY) === "true") return false;
+  try {
+    if (window.localStorage.getItem(OPTOUT_KEY) === "true") return false;
+  } catch {
+    return false;
+  }
   if (navigator.doNotTrack === "1") return false;
-  if ((navigator as Navigator & { globalPrivacyControl?: boolean }).globalPrivacyControl)
+  if (
+    (navigator as Navigator & { globalPrivacyControl?: boolean })
+      .globalPrivacyControl
+  )
     return false;
   return !window.location.pathname.startsWith("/admin-portal");
 }
@@ -36,55 +49,66 @@ function getViewportCategory() {
   return width < 640 ? "small" : width < 1100 ? "medium" : "large";
 }
 
-export function trackEvent(eventName: AnalyticsEventName, componentId?: string) {
-  if (!shouldTrack()) return;
-
-  const url = new URL(window.location.href);
-  let referrerDomain: string | undefined;
+export function trackEvent(
+  eventName: AnalyticsEventName,
+  componentId?: string,
+) {
   try {
-    referrerDomain = document.referrer
-      ? new URL(document.referrer).hostname
-      : undefined;
-  } catch {
-    referrerDomain = undefined;
-  }
+    if (!shouldTrack()) return;
 
-  const body = JSON.stringify({
-    eventName,
-    sessionId: getSessionId(),
-    pagePath: url.pathname,
-    referrerDomain,
-    utmSource: url.searchParams.get("utm_source")?.slice(0, 100) || undefined,
-    utmMedium: url.searchParams.get("utm_medium")?.slice(0, 100) || undefined,
-    utmCampaign: url.searchParams.get("utm_campaign")?.slice(0, 100) || undefined,
-    deviceCategory: getDeviceCategory(),
-    viewportCategory: getViewportCategory(),
-    componentId,
-  });
+    const url = new URL(window.location.href);
+    let referrerDomain: string | undefined;
+    try {
+      referrerDomain = document.referrer
+        ? new URL(document.referrer).hostname
+        : undefined;
+    } catch {
+      referrerDomain = undefined;
+    }
 
-  if (navigator.sendBeacon) {
-    navigator.sendBeacon(
-      "/api/analytics",
-      new Blob([body], { type: "application/json" }),
-    );
-  } else {
-    void fetch("/api/analytics", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body,
-      keepalive: true,
+    const body = JSON.stringify({
+      eventName,
+      sessionId: getSessionId(),
+      pagePath: url.pathname,
+      referrerDomain,
+      utmSource: url.searchParams.get("utm_source")?.slice(0, 100) || undefined,
+      utmMedium: url.searchParams.get("utm_medium")?.slice(0, 100) || undefined,
+      utmCampaign:
+        url.searchParams.get("utm_campaign")?.slice(0, 100) || undefined,
+      deviceCategory: getDeviceCategory(),
+      viewportCategory: getViewportCategory(),
+      componentId,
     });
+
+    if (navigator.sendBeacon) {
+      navigator.sendBeacon(
+        "/api/analytics",
+        new Blob([body], { type: "application/json" }),
+      );
+    } else {
+      void fetch("/api/analytics", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body,
+        keepalive: true,
+      });
+    }
+  } catch {
+    /* Optional analytics never interrupt navigation or saved inquiries. */
   }
 }
 
 export function AnalyticsProvider() {
+  const pathname = usePathname();
   useEffect(() => {
     if (!shouldTrack()) return;
+    captureInquiryAttribution();
     trackEvent("page_view");
 
     const milestones = new Set<number>();
     const onScroll = () => {
-      const available = document.documentElement.scrollHeight - window.innerHeight;
+      const available =
+        document.documentElement.scrollHeight - window.innerHeight;
       if (available <= 0) return;
       const percent = Math.round((window.scrollY / available) * 100);
       ([25, 50, 75, 90] as const).forEach((point) => {
@@ -129,17 +153,22 @@ export function AnalyticsProvider() {
 
     return () => {
       document.removeEventListener("scroll", onScroll);
-      details.forEach((element) => element.removeEventListener("toggle", onToggle));
+      details.forEach((element) =>
+        element.removeEventListener("toggle", onToggle),
+      );
       observer.disconnect();
     };
-  }, []);
+  }, [pathname]);
 
   return null;
 }
 
 export function setAnalyticsOptOut(optOut: boolean) {
   window.localStorage.setItem(OPTOUT_KEY, String(optOut));
-  if (optOut) window.sessionStorage.removeItem(SESSION_KEY);
+  if (optOut) {
+    window.sessionStorage.removeItem(SESSION_KEY);
+    window.sessionStorage.removeItem(ATTRIBUTION_KEY);
+  }
 }
 
 export function getAnalyticsOptOut() {
@@ -147,4 +176,28 @@ export function getAnalyticsOptOut() {
     typeof window !== "undefined" &&
     window.localStorage.getItem(OPTOUT_KEY) === "true"
   );
+}
+
+export function captureInquiryAttribution() {
+  try {
+    if (!shouldTrack()) {
+      window.sessionStorage.removeItem(ATTRIBUTION_KEY);
+      return undefined;
+    }
+    const current = sanitizeAttribution(
+      new URL(window.location.href),
+      document.referrer,
+    );
+    if (!current) return undefined;
+    const stored = attributionSchema.safeParse(
+      JSON.parse(window.sessionStorage.getItem(ATTRIBUTION_KEY) || "null"),
+    );
+    const attribution = stored.success
+      ? { ...stored.data, submissionPath: current.submissionPath }
+      : current;
+    window.sessionStorage.setItem(ATTRIBUTION_KEY, JSON.stringify(attribution));
+    return attribution;
+  } catch {
+    return undefined;
+  }
 }

@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "Orbisy",
     short_name: "Orbisy",
     description:
-      "Organized grease-interceptor service records for restaurant operators and grease haulers.",
+      "Web design, Google Ads, local SEO, and custom development for service businesses.",
     start_url: "/",
     display: "standalone",
     background_color: "#0e1220",

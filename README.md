@@ -1,4 +1,34 @@
-# Orbisy — Phase Five
+# Orbisy — Agency Website & Private Lead Workspace
+
+The public site now presents Orbisy LLC’s web design, Google Ads/PPC, local SEO,
+and custom development services. Towing and roadside assistance have a dedicated
+service page at `/towing-marketing`; the homepage also welcomes other service
+businesses. Public inquiries reuse the existing project-request API and private
+lead workspace. This revision requires the additive migration
+`0008_agency_pricing_notifications.sql` for private pricing, saved notification
+status, and optional inquiry attribution. No connected database has been migrated.
+See [agency refresh operations](docs/agency-refresh-operations.md) for exact target
+inspection, Preview configuration, and migration steps.
+
+The previous records-service homepage, restaurant/hauler pages, supporting
+components, metadata, policies, and concept images are preserved in
+`archive/records-service-2026-10-02/`. See that folder’s README for restoration.
+
+Google Ads conversion tags are not configured by this brand update. Before an
+Orbisy advertising launch, supply the account’s tag/conversion identifiers,
+configure the applicable privacy choices and security-policy permissions, and
+verify that a successful saved inquiry records one conversion. Existing
+first-party analytics continue to measure the new page and service identifiers.
+
+Public service pages now include `/web-design`, `/google-ads`, `/local-seo`, and
+`/custom-development`. `/work` presents real Rescue portfolio screenshots.
+The existing authenticated portal adds Pricing and Notifications without replacing
+its lead, import, audit, suppression, or manual outreach workflows.
+
+The architecture and operational notes below describe the existing private
+workspace; public-facing product messaging has been superseded by the agency site.
+
+## Phase Five
 
 Orbisy is Anthony Eaves’s Chicago-based software-development business. This
 MVP combines a public service website, secure inbound forms, a
@@ -185,7 +215,7 @@ sign-in.
 | `ANALYTICS_RETENTION_DAYS` | No | Retention period; defaults to 90, capped at 365 |
 | `RESEND_API_KEY` | No | Optional notification for new inbound forms only |
 | `RESEND_FROM_EMAIL` | With Resend | Verified sender |
-| `NOTIFICATION_EMAIL` | No | Notification destination; defaults to `info@orbisy.com` |
+| `NOTIFICATION_EMAIL` | No | Required destination when notifications are enabled; no default recipient |
 | `PREFLIGHT_WORKER_SECRET` | For workers | Dedicated secret of at least 24 random characters |
 | `ORBISY_FETCHER_USER_AGENT` | No | Identifiable fetcher user-agent override |
 | `DEEP_AUDIT_WORKER_SECRET` | For Phase 4 workers | Separate secret of at least 24 random characters |

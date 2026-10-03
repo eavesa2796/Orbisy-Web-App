@@ -1,0 +1,23 @@
+{
+  "source_repository": "eavesa2796/Orbisy-Web-App",
+  "source_commit": "f83593bb7f194dfef87f6e34ddebffa3a29f82d4",
+  "archived_at": "2026-10-02",
+  "source_files": [
+    "src/app/page.tsx",
+    "src/app/restaurants/page.tsx",
+    "src/app/haulers/page.tsx",
+    "src/app/globals.css",
+    "src/app/layout.tsx",
+    "src/app/manifest.ts",
+    "src/app/robots.ts",
+    "src/app/sitemap.ts",
+    "src/app/privacy/page.tsx",
+    "src/app/terms/page.tsx",
+    "src/app/public-pivot.test.tsx",
+    "src/components/audience-landing-page.tsx",
+    "src/components/public-site-shell.tsx",
+    "src/components/public-form.tsx",
+    "src/lib/config.ts",
+    "src/lib/analytics.ts"
+  ]
+}
