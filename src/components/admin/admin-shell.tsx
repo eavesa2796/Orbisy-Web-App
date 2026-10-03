@@ -1,11 +1,24 @@
 import Link from "next/link";
-import { BarChart3, FileSearch, FileUp, LayoutDashboard, ScanSearch, Settings, ShieldBan, UsersRound } from "lucide-react";
+import {
+  DollarSign,
+  Bell,
+  BarChart3,
+  FileSearch,
+  FileUp,
+  LayoutDashboard,
+  ScanSearch,
+  Settings,
+  ShieldBan,
+  UsersRound,
+} from "lucide-react";
 import { LogoutButton } from "@/components/admin/logout-button";
 import { OrbisyLogo } from "@/components/orbisy-logo";
 
 const links = [
   ["/admin-portal/dashboard", LayoutDashboard, "Overview"],
   ["/admin-portal/leads", UsersRound, "Leads"],
+  ["/admin-portal/pricing", DollarSign, "Pricing"],
+  ["/admin-portal/notifications", Bell, "Notifications"],
   ["/admin-portal/imports", FileUp, "Imports"],
   ["/admin-portal/preflight", FileSearch, "Preflight"],
   ["/admin-portal/audits", ScanSearch, "Audits"],
@@ -24,12 +37,19 @@ export function AdminShell({
   return (
     <div className="admin-app">
       <aside className="admin-sidebar">
-        <Link className="admin-brand" href="/admin-portal/dashboard" aria-label="Orbisy administrator overview">
+        <Link
+          className="admin-brand"
+          href="/admin-portal/dashboard"
+          aria-label="Orbisy administrator overview"
+        >
           <OrbisyLogo className="admin-brand-logo" priority />
         </Link>
         <nav aria-label="Administrator navigation">
           {links.map(([href, Icon, label]) => (
-            <Link href={href} key={href}><Icon size={17} />{label}</Link>
+            <Link href={href} key={href}>
+              <Icon size={17} />
+              {label}
+            </Link>
           ))}
         </nav>
         <div className="admin-account">
@@ -38,7 +58,9 @@ export function AdminShell({
           <LogoutButton />
         </div>
       </aside>
-      <main className="admin-main" id="main-content">{children}</main>
+      <main className="admin-main" id="main-content">
+        {children}
+      </main>
     </div>
   );
 }

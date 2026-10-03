@@ -14,7 +14,7 @@ export function PublicHeader() {
           <Link href="/#services">Services</Link>
           <Link href="/towing-marketing">Towing</Link>
           <Link href="/#about">About</Link>
-          <Link href="/#process">Our process</Link>
+          <Link href="/work">Our work</Link>
         </nav>
         <TrackLink
           className="button button-small"
@@ -22,7 +22,7 @@ export function PublicHeader() {
           eventName="primary_cta_click"
           componentId="nav_project_request"
         >
-          Let’s talk
+          Request a consultation
         </TrackLink>
       </div>
     </header>
@@ -48,10 +48,14 @@ export function PublicFooter() {
         </div>
         <div>
           <span>Explore</span>
-          <Link href="/#services">Services</Link>
+          <Link href="/web-design">Web design</Link>
+          <Link href="/google-ads">Google Ads</Link>
+          <Link href="/local-seo">Local SEO</Link>
+          <Link href="/custom-development">Custom development</Link>
           <Link href="/towing-marketing">Towing marketing</Link>
+          <Link href="/work">Selected work</Link>
           <Link href="/#about">About Orbisy</Link>
-          <Link href="/#contact">Discuss your project</Link>
+          <Link href="/#contact">Request a consultation</Link>
         </div>
         <div>
           <span>Start a conversation</span>

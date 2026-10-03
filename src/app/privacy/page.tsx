@@ -10,7 +10,10 @@ export const metadata: Metadata = {
 
 export default function PrivacyPage() {
   return (
-    <LegalLayout kicker="Last updated: October 2, 2026 · Draft—legal review required" title="Privacy Policy">
+    <LegalLayout
+      kicker="Last updated: October 3, 2026 · Draft—legal review required"
+      title="Privacy Policy"
+    >
       <p>
         This draft explains the information Orbisy expects to process through
         its public website and private lead-management tools.
@@ -18,10 +21,10 @@ export default function PrivacyPage() {
 
       <h2>Information you provide</h2>
       <p>
-        When you request a website review or submit a project
-        request, Orbisy may collect your name, business name, email address,
-        website URL, requested service, project description, timeline, budget
-        range, and acknowledgment of this policy. Do not submit passwords,
+        When you request a website review or submit a project request, Orbisy
+        may collect your name, business name, email address, website URL,
+        requested service, project description, timeline, budget range, and
+        acknowledgment of this policy. Do not submit passwords,
         advertising-account credentials, payment details, or confidential
         customer records through these public forms.
       </p>
@@ -34,8 +37,8 @@ export default function PrivacyPage() {
         Orbisy records source attribution and may retain the original imported
         value alongside a normalized value used for duplicate and suppression
         checks. Imported information may be incomplete, outdated, or inaccurate.
-        It may also contain notes, follow-up dates, pipeline history, suppression
-        choices, and manually recorded contact attempts.
+        It may also contain notes, follow-up dates, pipeline history,
+        suppression choices, and manually recorded contact attempts.
       </p>
 
       <h2>Anonymous website analytics</h2>
@@ -50,6 +53,16 @@ export default function PrivacyPage() {
       </p>
       <AnalyticsChoice />
 
+      <h2>Inquiry source and campaign attribution</h2>
+      <p>
+        When analytics are permitted by your choices, Orbisy may save the
+        initial landing path, submission page path, referring domain, and
+        bounded campaign labels with an inquiry. Full referring URLs, query
+        strings, advertising click identifiers, and analytics session
+        identifiers are not attached to your inquiry. Analytics opt-out, Do Not
+        Track, and Global Privacy Control prevent this optional capture. Your
+        inquiry is still saved when optional analytics are disabled.
+      </p>
       <h2>How information is used</h2>
       <ul>
         <li>Review and respond to requests.</li>
@@ -65,26 +78,28 @@ export default function PrivacyPage() {
         separately confirm the approved transfer method, permitted uses,
         retention, deletion, access, and service providers for project materials
         and any website or advertising-account access. The public application
-        does not provide a customer document portal or public file-upload feature.
+        does not provide a customer document portal or public file-upload
+        feature.
       </p>
 
       <h2>Service providers</h2>
       <p>
         Orbisy may use providers for hosting, PostgreSQL database services,
         administrator authentication, spam prevention, error monitoring, and
-        optional transactional notifications. <strong>Legal-review placeholder:</strong>{" "}
-        final service providers, processing locations, and contractual terms
-        must be confirmed by the owner and qualified counsel.
+        optional transactional notifications.{" "}
+        <strong>Legal-review placeholder:</strong> final service providers,
+        processing locations, and contractual terms must be confirmed by the
+        owner and qualified counsel.
       </p>
 
       <h2>Retention and deletion</h2>
       <p>
-        Raw anonymous analytics are intended to be retained for approximately
-        90 days. Other business records are retained only while reasonably
-        useful for the stated purposes or required for legitimate operational,
-        legal, security, or accounting needs. Backup deletion may be delayed
-        until the relevant backup expires. A minimal suppression record may be
-        retained without automatic expiration to prevent renewed contact.
+        Raw anonymous analytics are intended to be retained for approximately 90
+        days. Other business records are retained only while reasonably useful
+        for the stated purposes or required for legitimate operational, legal,
+        security, or accounting needs. Backup deletion may be delayed until the
+        relevant backup expires. A minimal suppression record may be retained
+        without automatic expiration to prevent renewed contact.
       </p>
 
       <h2>Security and limitations</h2>
@@ -94,7 +109,8 @@ export default function PrivacyPage() {
         incident-response, vendor, and retention procedures must be confirmed
         before expanded service delivery. Reasonable safeguards do not mean
         perfect security. <strong>Legal-review placeholder:</strong> final
-        incident and security commitments require owner and qualified legal review.
+        incident and security commitments require owner and qualified legal
+        review.
       </p>
 
       <h2>Your choices</h2>

@@ -1,3 +1,4 @@
+import { attributionSchema } from "@/lib/attribution";
 import { z } from "zod";
 
 const cleanText = (max: number) =>
@@ -24,6 +25,7 @@ const baseSubmissionSchema = z.object({
   }),
   company: z.string().max(0, "Spam protection failed.").optional(),
   submissionToken: z.string().uuid().optional(),
+  attribution: attributionSchema.optional(),
   turnstileToken: z.string().max(2048).optional(),
 });
 

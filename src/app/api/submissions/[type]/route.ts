@@ -1,16 +1,11 @@
-import { eq } from "drizzle-orm";
-import { NextResponse } from "next/server";
-import { contactSubmissions, leads } from "@/lib/db/schema";
-import { getDb } from "@/lib/db";
-import { notifySubmission } from "@/lib/notifications";
+import { after, NextResponse } from "next/server";
+import { saveInquiry } from "@/lib/inquiries";
+import { deliverSubmissionNotification } from "@/lib/notifications";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { verifyTurnstile } from "@/lib/spam";
-import {
-  homepageReviewSchema,
-  projectRequestSchema,
-} from "@/lib/validation";
+import { homepageReviewSchema, projectRequestSchema } from "@/lib/validation";
 
-const CONSENT_VERSION = "privacy-2026-10-02";
+export const maxDuration = 30;
 
 export async function POST(
   request: Request,
@@ -25,7 +20,10 @@ export async function POST(
     request.headers.get("content-length") &&
     Number(request.headers.get("content-length")) > 16_000
   ) {
-    return NextResponse.json({ message: "Request is too large." }, { status: 413 });
+    return NextResponse.json(
+      { message: "Request is too large." },
+      { status: 413 },
+    );
   }
 
   let payload: unknown;
@@ -71,67 +69,33 @@ export async function POST(
     }
 
     const data = parsed.data;
-    const review =
-      type === "homepage-review" ? homepageReviewSchema.parse(data) : null;
-    const project =
-      type === "project-request" ? projectRequestSchema.parse(data) : null;
-    const db = getDb();
-    const result = await db.transaction(async (tx) => {
-      const existing = data.submissionToken
-        ? await tx
-            .select({ id: contactSubmissions.id })
-            .from(contactSubmissions)
-            .where(
-              eq(contactSubmissions.idempotencyKey, data.submissionToken),
-            )
-            .limit(1)
-        : [];
-      if (existing[0]) return { duplicate: true };
-
-      const [submission] = await tx
-        .insert(contactSubmissions)
-        .values({
-          type: type === "homepage-review" ? "homepage_review" : "project_request",
-          name: data.name,
-          businessName: data.businessName,
-          email: data.email.toLowerCase(),
-          websiteUrl: data.websiteUrl,
-          primaryGoal: review?.primaryGoal,
-          websiteConcern: review?.websiteConcern,
-          serviceNeeded: project?.serviceNeeded,
-          projectDescription: project?.projectDescription,
-          timeline: project?.timeline,
-          budgetRange: project?.budgetRange,
-          idempotencyKey: data.submissionToken ?? crypto.randomUUID(),
-          consentVersion: CONSENT_VERSION,
-        })
-        .returning({ id: contactSubmissions.id });
-
-      await tx.insert(leads).values({
-        submissionId: submission.id,
-        businessName: data.businessName,
-        contactName: data.name,
-        email: data.email.toLowerCase(),
-        websiteUrl: data.websiteUrl,
-        sourceName:
-          type === "homepage-review"
-            ? "Inbound homepage review"
-            : "Inbound project request",
-        status: "new_inbound",
-        priority: type === "homepage-review" ? 100 : 90,
+    if (
+      process.env.ANALYTICS_ENABLED === "false" ||
+      request.headers.get("dnt") === "1" ||
+      request.headers.get("sec-gpc") === "1"
+    )
+      data.attribution = undefined;
+    const result = await saveInquiry(type, data);
+    if (result.notificationId) {
+      const notificationId = result.notificationId;
+      after(async () => {
+        try {
+          await deliverSubmissionNotification(notificationId);
+        } catch {
+          console.error(
+            "Orbisy notification worker failed; saved notification remains retryable",
+            { notificationId },
+          );
+        }
       });
-
-      return { duplicate: false };
-    });
-
-    if (!result.duplicate) {
-      void notifySubmission(type, data.businessName);
     }
 
     return NextResponse.json({
+      saved: true,
+      duplicate: result.duplicate,
       message: result.duplicate
         ? "This request was already received."
-        : "Thanks — your request was received. Anthony will review it soon.",
+        : "Thanks — your request was received. Anthony will review it and reply by email about the next step.",
     });
   } catch (error) {
     const unavailable =

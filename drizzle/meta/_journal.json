@@ -57,6 +57,13 @@
       "when": 1785807403698,
       "tag": "0007_pale_madelyne_pryor",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1791059742934,
+      "tag": "0008_agency_pricing_notifications",
+      "breakpoints": true
     }
   ]
 }

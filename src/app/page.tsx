@@ -1,19 +1,12 @@
-import {
-  Code2,
-  Globe,
-  MapPin,
-  MousePointerClick,
-  Search,
-  Truck,
-} from "lucide-react";
+import { MapPin } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { AgencyContact } from "@/components/agency-contact";
 import { PublicFooter, PublicHeader } from "@/components/public-site-shell";
 import { TrackLink } from "@/components/track-link";
-import { agencyServices } from "@/lib/agency-content";
+import { engagements } from "@/lib/engagements";
+import { Portfolio } from "@/components/portfolio";
 
-const serviceIcons = [Globe, MousePointerClick, Search, Code2];
 const process = [
   [
     "Understand",
@@ -73,14 +66,15 @@ export default function Home() {
                 Web design & digital marketing
               </p>
               <h1>
-                Your business.
+                Websites and Google Ads
                 <br />
-                <span>A stronger online presence.</span>
+                <span>for local service businesses.</span>
               </h1>
               <p className="hero-lede">
-                Websites, Google Ads, local SEO, and custom development that
-                help service businesses get found and turn interest into
-                inquiries.
+                Web design, paid search, local SEO, and custom development with
+                Anthony Eaves. A specialty in towing and roadside assistance,
+                with room for the other businesses that keep your community
+                moving.
               </p>
               <div className="hero-actions">
                 <TrackLink
@@ -89,7 +83,7 @@ export default function Home() {
                   eventName="primary_cta_click"
                   componentId="hero_project_request"
                 >
-                  Discuss your project
+                  Request a consultation
                 </TrackLink>
                 <TrackLink
                   className="text-link"
@@ -106,39 +100,34 @@ export default function Home() {
                 <li>Chicago-based</li>
               </ul>
             </div>
-            <aside
-              className="agency-service-panel"
-              aria-label="Orbisy services"
-            >
-              <div className="agency-panel-heading">
-                <p className="eyebrow">
-                  <span />
-                  Built around your goals
-                </p>
-                <h2>
-                  Get found.
-                  <br />
-                  Make the next step easy.
-                </h2>
-              </div>
-              <div className="agency-panel-list">
-                {agencyServices.map((service, index) => {
-                  const Icon = serviceIcons[index];
-                  return (
-                    <div className="agency-panel-item" key={service.id}>
-                      <Icon size={23} aria-hidden="true" />
-                      <div>
-                        <h3>{service.title}</h3>
-                        <p>{service.summary}</p>
-                      </div>
-                      <span className="agency-panel-number">0{index + 1}</span>
-                    </div>
-                  );
-                })}
-              </div>
-              <p className="agency-panel-footnote">
-                Start with the service your business needs. Build from there.
+            <aside className="hero-project">
+              <p className="eyebrow">
+                <span />
+                From Anthony’s portfolio
               </p>
+              <Link
+                href="/work#rescue-battery-shop"
+                className="hero-project-image"
+              >
+                <Image
+                  src="/work/rescue-battery-shop.jpg"
+                  alt="Rescue Battery Shop website by Anthony Eaves"
+                  width={1348}
+                  height={926}
+                  priority
+                  sizes="(max-width: 980px) 100vw, 45vw"
+                />
+              </Link>
+              <div>
+                <h2>Rescue Battery Shop</h2>
+                <p>
+                  Mobile battery service, clear coverage information, and a
+                  direct path to requesting help.
+                </p>
+                <Link className="text-link" href="/work">
+                  Explore the work →
+                </Link>
+              </div>
             </aside>
           </div>
         </section>
@@ -149,130 +138,70 @@ export default function Home() {
               <div>
                 <p className="eyebrow">
                   <span />
-                  What we do
+                  Ways to work together
                 </p>
                 <h2>
-                  Practical services.
-                  <br />A clear purpose.
+                  Start with the work
+                  <br />
+                  your business needs.
                 </h2>
               </div>
               <p>
-                Bring your goals. We’ll help you choose the right work and
-                define what a useful result looks like.
+                A defined project or ongoing support. Agree on the deliverables,
+                responsibilities, and fees before work begins.
               </p>
             </div>
-            <div className="service-grid">
-              {agencyServices.map((service, index) => {
-                const Icon = serviceIcons[index];
-                return (
-                  <article
-                    className="service-card"
-                    key={service.id}
-                    data-analytics-view={service.id}
-                  >
-                    <div className="service-meta">
-                      <span>0{index + 1}</span>
-                      <Icon size={22} aria-hidden="true" />
-                    </div>
-                    <h3>{service.title}</h3>
-                    <p>{service.description}</p>
-                    <ul className="agency-deliverables">
-                      {service.deliverables.map((item) => (
-                        <li key={item}>{item}</li>
-                      ))}
-                    </ul>
-                  </article>
-                );
-              })}
+            <div className="engagement-list">
+              {engagements.map((e, i) => (
+                <Link
+                  className="engagement-row"
+                  href={`/${e.slug}`}
+                  key={e.slug}
+                >
+                  <span className="engagement-number">0{i + 1}</span>
+                  <div>
+                    <h3>{e.shortTitle}</h3>
+                    <p>{e.description}</p>
+                  </div>
+                  <span className="engagement-arrow" aria-hidden="true">
+                    ↗
+                  </span>
+                </Link>
+              ))}
             </div>
           </div>
         </section>
-
-        <section className="section work-section" id="who-we-help">
-          <div className="container">
-            <div className="section-heading">
+        <Portfolio />
+        <section className="section specialty-section">
+          <div className="container scope-layout">
+            <div>
               <p className="eyebrow">
                 <span />
-                Who we work with
+                Towing & roadside assistance
               </p>
               <h2>
-                Local businesses.
+                Built around the call
                 <br />
-                Real customer needs.
+                and the service area.
               </h2>
-              <p>
-                From a driver looking for a tow to a customer comparing service
-                providers, make your business easier to find and contact.
-              </p>
             </div>
-            <div className="concept-grid audience-grid">
-              <article
-                className="concept-card audience-card"
-                data-analytics-view="audience_towing"
-              >
-                <div className="concept-content">
-                  <Truck
-                    className="agency-audience-icon"
-                    size={28}
-                    aria-hidden="true"
-                  />
-                  <h3>Towing & roadside assistance</h3>
-                  <p>
-                    Call-focused websites and marketing built around your
-                    services, coverage area, and the jobs you want.
-                  </p>
-                  <Link
-                    className="text-link audience-link"
-                    href="/towing-marketing"
-                  >
-                    Explore towing marketing
-                  </Link>
-                </div>
-              </article>
-              <article
-                className="concept-card audience-card"
-                data-analytics-view="audience_local_services"
-              >
-                <div className="concept-content">
-                  <MapPin
-                    className="agency-audience-icon"
-                    size={28}
-                    aria-hidden="true"
-                  />
-                  <h3>Local service businesses</h3>
-                  <p>
-                    A clear website and local search presence for businesses
-                    that serve customers in their community.
-                  </p>
-                  <a className="text-link audience-link" href="#contact">
-                    Tell us about your business
-                  </a>
-                </div>
-              </article>
-              <article
-                className="concept-card audience-card"
-                data-analytics-view="audience_custom_projects"
-              >
-                <div className="concept-content">
-                  <Code2
-                    className="agency-audience-icon"
-                    size={28}
-                    aria-hidden="true"
-                  />
-                  <h3>Businesses with custom needs</h3>
-                  <p>
-                    Integrations, workflow tools, and web applications scoped
-                    around a specific business problem.
-                  </p>
-                  <a className="text-link audience-link" href="#contact">
-                    Discuss a development project
-                  </a>
-                </div>
-              </article>
+            <div>
+              <p>
+                Emergency towing, battery service, equipment transport, or
+                another local service: customers need to know what you handle,
+                where you work, and how to reach you. We start with those
+                details.
+              </p>
+              <Link className="text-link" href="/towing-marketing">
+                Explore towing marketing →
+              </Link>
+              <p className="portfolio-note">
+                Also working with trades, home services, and businesses with
+                custom software needs.
+              </p>
             </div>
           </div>
         </section>
-
         <section className="section about-section" id="about">
           <div className="container about-layout">
             <figure className="about-portrait">

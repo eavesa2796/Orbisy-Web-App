@@ -13,11 +13,11 @@ describe("Orbisy agency public site", () => {
   it("offers all four services and a project inquiry without presenting the archived product", () => {
     const html = renderToStaticMarkup(<Home />);
     for (const label of [
-      "Web design",
-      "Google Ads / PPC",
+      "Website projects",
+      "Google Ads",
       "Local SEO",
       "Custom development",
-      "Send project request",
+      "Request a consultation",
     ]) {
       expect(html).toContain(label);
     }
@@ -46,12 +46,22 @@ describe("Orbisy agency public site", () => {
 
   it("keeps private and archived pages out of public discovery", () => {
     const paths = sitemap().map((entry) => new URL(entry.url).pathname);
-    expect(paths).toEqual(["/", "/towing-marketing", "/privacy", "/terms"]);
+    expect(paths).toEqual([
+      "/",
+      "/web-design",
+      "/google-ads",
+      "/local-seo",
+      "/custom-development",
+      "/towing-marketing",
+      "/work",
+      "/privacy",
+      "/terms",
+    ]);
     expect(robots().rules).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           allow: expect.arrayContaining(["/towing-marketing"]),
-          disallow: ["/admin-portal", "/api/", "/auth/"],
+          disallow: ["/admin-portal", "/api/", "/auth/", "/campaigns/"],
         }),
       ]),
     );

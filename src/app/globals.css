@@ -418,3 +418,59 @@ h1 > span { color: transparent; background: linear-gradient(100deg, var(--accent
   .agency-panel-item { gap: 12px; }
   .agency-home .about-portrait { width: 240px; }
 }
+
+/* Agency engagements and observed portfolio work. */
+.hero-project { min-width: 0; padding: 24px; border: 1px solid var(--border-bright); border-radius: 22px; background: var(--panel); transform: rotate(1deg); }
+.hero-project-image { display: block; overflow: hidden; border-radius: 12px; margin: 20px -8px; }
+.hero-project img { width: 100%; height: auto; }
+.hero-project h2 { font-size: 1.4rem; }
+.hero-project p:not(.eyebrow) { color: var(--muted); line-height: 1.65; margin: 12px 0; }
+.engagement-list { border-top: 1px solid var(--border); }
+.engagement-row { display: grid; grid-template-columns: 60px 1fr 36px; gap: 24px; padding: 28px 12px; border-bottom: 1px solid var(--border); transition: background .2s; }
+.engagement-row:hover { background: rgba(101,214,255,.04); }
+.engagement-row h3 { font-size: clamp(1.3rem, 2.5vw, 1.8rem); }
+.engagement-row p { max-width: 760px; color: var(--muted); margin-top: 10px; line-height: 1.65; }
+.engagement-number, .engagement-arrow { color: var(--accent); padding-top: 6px; }
+.portfolio-section { background: var(--bg-deep); }
+.portfolio-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+.portfolio-project { min-width: 0; scroll-margin-top: 130px; }
+.project-screen { display: block; overflow: hidden; border: 1px solid var(--border-bright); border-radius: 14px; background: #182033; }
+.browser-strip { display: flex; align-items: center; gap: 6px; padding: 12px; font-size: .7rem; color: #afb9d4; }
+.browser-strip i { display: block; width: 6px; height: 6px; border-radius: 100%; background: #5f6e88; }
+.browser-strip span { margin-left: 12px; }
+.project-screen img { display: block; width: 100%; height: auto; }
+.project-copy { padding: 26px 0; }
+.project-copy h3 { font-size: 1.7rem; margin-top: 10px; }
+.project-copy p:not(.eyebrow), .project-copy li { color: var(--muted); line-height: 1.75; margin-top: 12px; }
+.project-copy .project-summary { color: #e0e8f8; font-size: 1.1rem; }
+.project-copy ul { padding-left: 20px; }
+.project-copy .text-link { display: inline-block; margin: 20px 24px 0 0; }
+.portfolio-note { margin-top: 24px; color: var(--muted); font-size: .85rem; line-height: 1.65; }
+.specialty-section, .scope-section { background: linear-gradient(110deg, rgba(101,214,255,.07), rgba(131,245,199,.025)); border-block: 1px solid var(--border); }
+.scope-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 70px; }
+.scope-layout h2 { font-size: clamp(2rem, 4vw, 3.2rem); }
+.scope-layout p { margin-top: 22px; line-height: 1.8; color: var(--muted); }
+.scope-layout .text-link { display: inline-block; margin-top: 24px; }
+.service-hero h1 { max-width: 960px; font-size: clamp(2.6rem, 5.4vw, 4.8rem); }
+.service-hero .hero-lede { max-width: 810px; }
+.service-hero .button { margin-top: 30px; }
+.service-fit { color: var(--muted); max-width: 760px; margin-top: 30px; line-height: 1.7; }
+.scope-deliverables { list-style: none; }
+.scope-deliverables li { display: flex; gap: 24px; padding: 24px 0; border-bottom: 1px solid var(--border); line-height: 1.7; }
+.scope-deliverables span { color: var(--accent); }
+.engagement-steps { grid-template-columns: repeat(3, 1fr); }
+.scope-notes { display: grid; grid-template-columns: 1fr 1fr; gap: 50px; margin-top: 60px; }
+.scope-notes h3 { font-size: 1.35rem; }
+.scope-notes p { margin-top: 18px; color: var(--muted); line-height: 1.8; }
+.related-services { padding-block: 0 60px; display: flex; flex-wrap: wrap; gap: 22px; }
+.related-services h2 { width: 100%; font-size: 1.2rem; }
+.related-services a { color: var(--accent); }
+.form-options { grid-column: 1 / -1; border-top: 1px solid var(--border); padding-top: 18px; }
+.form-options summary { cursor: pointer; color: var(--muted); }
+.form-options .form-grid { margin-top: 20px; }
+@media(max-width: 980px) { .hero-project { max-width: 700px; transform: none; } }
+@media(max-width: 800px) { .portfolio-grid, .scope-layout, .scope-notes { grid-template-columns: 1fr; gap: 36px; } .engagement-steps { grid-template-columns: 1fr; } }
+@media(max-width: 680px) { .engagement-row { grid-template-columns: 28px 1fr 20px; gap: 12px; padding-inline: 0; } .header-inner .button { font-size: .75rem; padding-inline: 12px; } .hero-project { padding: 18px; } }
+.field-error { display: block; margin-top: 8px; }
+.form-card [aria-invalid="true"] { border-color: #ff9da9; }
+.turnstile-container { margin-top: 20px; min-height: 65px; }

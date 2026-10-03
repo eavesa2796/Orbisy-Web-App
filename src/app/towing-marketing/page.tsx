@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { Metadata } from "next";
 import {
   Check,
@@ -7,6 +8,7 @@ import {
   Phone,
   Truck,
 } from "lucide-react";
+import { Portfolio } from "@/components/portfolio";
 import { AgencyContact } from "@/components/agency-contact";
 import { PublicFooter, PublicHeader } from "@/components/public-site-shell";
 import { TrackLink } from "@/components/track-link";
@@ -92,7 +94,7 @@ export default function TowingMarketingPage() {
                   eventName="primary_cta_click"
                   componentId="towing_project_request"
                 >
-                  Discuss your towing business
+                  Request a consultation
                 </TrackLink>
                 <a className="text-link" href="#towing-services">
                   Explore the services
@@ -219,8 +221,66 @@ export default function TowingMarketingPage() {
             </ul>
           </div>
         </section>
+        <section className="section">
+          <div className="container">
+            <div className="section-heading">
+              <p className="eyebrow">Choose a starting engagement</p>
+              <h2>
+                A website, paid search,
+                <br />
+                or a stronger local foundation.
+              </h2>
+            </div>
+            <div className="scope-notes">
+              <article>
+                <h3>Agree on the work</h3>
+                <p>
+                  Begin with a review of your services, trucks, coverage,
+                  operating hours, and existing accounts. A website project
+                  includes an agreed page plan, responsive build, and contact
+                  flow. Advertising includes campaign setup, a measurement plan,
+                  and separately scoped management. Local SEO begins with a
+                  review and prioritized improvements.
+                </p>
+                <p>
+                  <Link className="text-link" href="/web-design">
+                    Website project details →
+                  </Link>
+                </p>
+                <p>
+                  <Link className="text-link" href="/google-ads">
+                    Google Ads engagement →
+                  </Link>
+                </p>
+                <p>
+                  <Link className="text-link" href="/local-seo">
+                    Local SEO engagement →
+                  </Link>
+                </p>
+              </article>
+              <article>
+                <h3>Your inputs and the pricing</h3>
+                <p>
+                  Provide accurate service details, real coverage areas,
+                  approved photos, account access, and someone who can review
+                  inquiries. We agree on deliverables and approval milestones
+                  before building. Website projects and initial setup are quoted
+                  by scope; ongoing marketing has its own recurring fee. Google
+                  advertising spend and third-party subscriptions remain
+                  separate.
+                </p>
+                <p>
+                  We review the site or campaign with you before launch, then
+                  use the agreed reporting to decide what to improve. No
+                  rankings or job volume are guaranteed.
+                </p>
+              </article>
+            </div>
+          </div>
+        </section>
+        <Portfolio />
         <AgencyContact
-          title="Let’s talk about your towing business."
+          title="Request a consultation for your towing business."
           description="Share your services, coverage area, and what you want to improve. Anthony will review the details and follow up about a suitable next step."
         />
         <section className="section faq-section">

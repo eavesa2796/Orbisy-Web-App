@@ -2,11 +2,13 @@ import { Check } from "lucide-react";
 import { PublicForm } from "@/components/public-form";
 
 export function AgencyContact({
-  title = "Let’s talk about your next step.",
+  title = "Request a consultation.",
+  service,
   description = "Tell us what your business does and what you want to improve. Anthony will review your request and help determine whether Orbisy is a good fit.",
 }: {
   title?: string;
   description?: string;
+  service?: string;
 }) {
   return (
     <section className="section review-section" id="contact">
@@ -21,22 +23,22 @@ export function AgencyContact({
           <ul>
             <li>
               <Check size={17} aria-hidden="true" />
-              Start with your goals and priorities
+              Anthony reviews your business and goals
             </li>
             <li>
               <Check size={17} aria-hidden="true" />
-              Agree on a scope before paid work begins
+              He replies by email to arrange a conversation
             </li>
             <li>
               <Check size={17} aria-hidden="true" />
-              Choose a project or ongoing support
+              You receive a proposed next step; paid work needs an agreed scope
             </li>
           </ul>
           <p className="agency-contact-email">
             Prefer email? <a href="mailto:info@orbisy.com">info@orbisy.com</a>
           </p>
         </div>
-        <PublicForm type="project-request" />
+        <PublicForm type="project-request" service={service} />
       </div>
     </section>
   );
