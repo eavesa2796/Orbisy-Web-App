@@ -215,7 +215,7 @@ sign-in.
 | `ANALYTICS_RETENTION_DAYS` | No | Retention period; defaults to 90, capped at 365 |
 | `RESEND_API_KEY` | No | Optional notification for new inbound forms only |
 | `RESEND_FROM_EMAIL` | With Resend | Verified sender |
-| `NOTIFICATION_EMAIL` | No | Notification destination; defaults to `info@orbisy.com` |
+| `NOTIFICATION_EMAIL` | No | Required destination when notifications are enabled; no default recipient |
 | `PREFLIGHT_WORKER_SECRET` | For workers | Dedicated secret of at least 24 random characters |
 | `ORBISY_FETCHER_USER_AGENT` | No | Identifiable fetcher user-agent override |
 | `DEEP_AUDIT_WORKER_SECRET` | For Phase 4 workers | Separate secret of at least 24 random characters |

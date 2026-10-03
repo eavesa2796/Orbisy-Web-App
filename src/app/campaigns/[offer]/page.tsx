@@ -8,7 +8,9 @@ export function generateStaticParams() {
   return Object.keys(campaigns).map((offer) => ({ offer }));
 }
 function getOffer(offer: string) {
-  return campaigns[offer as keyof typeof campaigns];
+  return Object.hasOwn(campaigns, offer)
+    ? campaigns[offer as keyof typeof campaigns]
+    : undefined;
 }
 export async function generateMetadata({
   params,

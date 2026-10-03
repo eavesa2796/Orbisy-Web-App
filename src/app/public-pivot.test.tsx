@@ -4,12 +4,42 @@ import Home from "@/app/page";
 import TowingPage, {
   metadata as towingMetadata,
 } from "@/app/towing-marketing/page";
+import { engagements } from "@/lib/engagements";
+import { EngagementPage } from "@/components/engagement-page";
+import { generateMetadata as campaignMetadata } from "@/app/campaigns/[offer]/page";
+import WorkPage from "@/app/work/page";
 import manifest from "@/app/manifest";
 import robots from "@/app/robots";
 import sitemap from "@/app/sitemap";
 import { analyticsEventSchema } from "@/lib/analytics";
 
 describe("Orbisy agency public site", () => {
+  it("provides full engagement details and service-prefilled inquiries", () => {
+    for (const engagement of engagements) {
+      const html = renderToStaticMarkup(
+        <EngagementPage engagement={engagement} />,
+      );
+      expect(html).toContain("What we need from you");
+      expect(html).toContain("How pricing works");
+      expect(html).toContain(engagement.service);
+      expect(html).toContain("Know what you’re buying.");
+    }
+    expect(renderToStaticMarkup(<WorkPage />)).toContain("<h1>");
+  });
+  it("limits campaign pages to explicit offers and keeps them noindex", async () => {
+    expect(
+      (
+        await campaignMetadata({
+          params: Promise.resolve({ offer: "towing-websites" }),
+        })
+      ).robots,
+    ).toEqual({ index: false, follow: true });
+    for (const offer of ["unknown", "constructor", "toString"]) {
+      await expect(
+        campaignMetadata({ params: Promise.resolve({ offer }) }),
+      ).rejects.toThrow();
+    }
+  });
   it("offers all four services and a project inquiry without presenting the archived product", () => {
     const html = renderToStaticMarkup(<Home />);
     for (const label of [
