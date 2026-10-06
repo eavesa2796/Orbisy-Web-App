@@ -6,7 +6,8 @@ service page at `/towing-marketing`; the homepage also welcomes other service
 businesses. Public inquiries reuse the existing project-request API and private
 lead workspace. This revision requires the additive migration
 `0008_agency_pricing_notifications.sql` for private pricing, saved notification
-status, and optional inquiry attribution. No connected database has been migrated.
+status, and optional inquiry attribution. The Orbisy production database was
+migrated and verified on October 6, 2026 UTC; the agency website deployment is pending.
 See [agency refresh operations](docs/agency-refresh-operations.md) for exact target
 inspection, Preview configuration, and migration steps.
 

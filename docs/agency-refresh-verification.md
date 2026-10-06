@@ -2,7 +2,7 @@
 
 The complete consultation flow is: public page → validated submission API → atomic submission/lead/notification transaction → saved confirmation → optional success analytics → provider notification → authenticated review/retry. Pricing is: authenticated page → validated administrator action → pricing table and activity log → fresh catalog read.
 
-## Passed
+## Implementation checks before production release
 
 - ESLint and TypeScript.
 - 126 tests across 27 files, including the original import, preflight, audit, suppression, pipeline/outreach, analytics, and migration regressions.
@@ -17,7 +17,7 @@ The complete consultation flow is: public page → validated submission API → 
 
 Desktop evidence: [homepage screenshot](screenshots/agency-desktop.jpg).
 
-## Configuration blockers and verification limits
+## Preview configuration blockers and verification limits
 
 - Hosted Preview inquiry: a labeled QA submission with website, budget, and timing left blank returns “The request form is not configured yet. Please email info@orbisy.com.” DATABASE_URL is absent in Preview. No test lead or email was created by this check.
 - Hosted administrator access: `/admin-portal/pricing` redirects to `/admin-portal`, which displays “Authentication is not configured. Add the documented Supabase environment variables to enable administrator sign-in.” Signed-in catalog editing cannot be verified on this deployment yet.
@@ -27,4 +27,16 @@ Desktop evidence: [homepage screenshot](screenshots/agency-desktop.jpg).
 - CSS includes mobile layouts for navigation, hero, portfolio, engagements, forms, and Pricing. The available browser cannot resize or expose responsive inspection, so actual phone rendering is unverified. Review on a phone before launch.
 - Campaign-specific landing pages are prepared; no Google Ads account IDs or conversion tags were supplied or activated.
 
-Production launch is a separate step. No production environment values, account credentials, database records, or deployment aliases were changed.
+The checks above describe the implementation and Preview before production preparation. The subsequent production work is recorded below.
+
+
+## Production preparation — October 6, 2026 UTC
+
+- Confirmed the production connection to Supabase Orbisy (`xjmoroanmpnipntmadcb`) through the labeled form test’s timestamp-matched rate-limit write. Spam verification rejected the request; no inquiry or lead was saved. Turnstile remains enforced.
+- Applied the guarded release as Supabase migration `20261006031230`; Drizzle now has nine entries through 0008. A final 672-object catalog comparison found no unexpected differences.
+- Preserved seven leads, seven inquiries, and the existing administrator. The release transaction verified all original application row contents and counts before commit.
+- Copied 27 original application tables into a restricted same-database recovery checkpoint. Anonymous/authenticated schema access is denied. This is not an independent disaster-recovery backup.
+- Pricing and Notifications tables are ready, empty, and protected by RLS with no public policies.
+- Release regression checks cover successful preservation, inaccessible checkpoint, duplicate-run rejection, and atomic rejection of schema/history drift. Lint and script syntax checks pass.
+- Resend domain orbisy.com is verified. Production sender and recipient settings are saved for info@orbisy.com; RESEND_API_KEY still requires user-controlled entry. Administrator email remains anthonyeaves33@gmail.com.
+- Latest implementation Vercel check passed before this documentation update. Production merge/deployment, saved inquiry, signed-in pricing persistence, and live notification delivery remain pending.

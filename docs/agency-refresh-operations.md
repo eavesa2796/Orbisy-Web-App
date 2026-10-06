@@ -14,7 +14,7 @@ The review branch is `agency-brand-refresh`, draft PR #11. Production launch is 
 
 Migration `drizzle/0008_agency_pricing_notifications.sql` is additive: it adds nullable inquiry attribution plus private pricing and notification tables. It enables RLS with no anonymous policies on both new tables. It neither alters existing lead statuses nor deletes/backfills existing inquiries. Legacy inquiries remain visible and are labeled as predating notification tracking.
 
-No connected database has been migrated by this implementation. Only an isolated, in-memory PGlite database was migrated for regression tests. No DATABASE_URL is supplied to this local workspace, so the intended Preview database cannot be identified here.
+The Orbisy production target was migrated on October 6, 2026 UTC using the guarded release below. The local workspace has no DATABASE_URL, and Preview remains a separate, unconfigured target. Do not run the one-time production release again.
 
 Before applying migrations:
 
@@ -54,11 +54,11 @@ Google Ads conversion tags and campaign launch require the account IDs, offers, 
 
 ## Production preflight, October 6, 2026 UTC
 
-The user authorized a production launch. The connected Supabase project is **Orbisy**, ref `xjmoroanmpnipntmadcb`, main / Production, in the Orbisy organization. The administrator `anthonyeaves33@gmail.com` exists. Read-only checks found seven leads and seven inquiries. No connected database has been changed during these checks.
+The user authorized a production launch. The connected Supabase project is **Orbisy**, ref `xjmoroanmpnipntmadcb`, main / Production, in the Orbisy organization. The administrator `anthonyeaves33@gmail.com` exists. Preflight found seven leads and seven inquiries. The authorized guarded production migration subsequently completed successfully.
 
-GitHub main still ends at migration 0007 and the agency branch adds 0008. Their existing migration files match the inspected local files byte for byte. The live Drizzle journal contains only 0000–0002, whose hashes and timestamps match GitHub. A 624-object catalog comparison confirms the complete 0007 schema: column types/nullability/defaults, enums, validated constraints, index definitions and validity, tables, RLS and policies. The only accepted difference is stronger existing RLS on 18 tables; all 27 public application tables have RLS enabled and no policies. PostgreSQL-version-specific NOT NULL constraint objects are ignored because column nullability is compared directly.
+GitHub main still ends at migration 0007 and the agency branch adds 0008. Their existing migration files match the inspected local files byte for byte. Before the release, the live Drizzle journal contained only 0000–0002, whose hashes and timestamps match GitHub. A 624-object catalog comparison confirms the complete 0007 schema: column types/nullability/defaults, enums, validated constraints, index definitions and validity, tables, RLS and policies. The only accepted difference is stronger existing RLS on 18 tables; all 27 public application tables have RLS enabled and no policies. PostgreSQL-version-specific NOT NULL constraint objects are ignored because column nullability is compared directly.
 
-**Do not run the ordinary migration command on this state.** It would attempt already-existing migrations 0003–0007. A guarded, one-time release can be prepared with:
+**Historical release preparation:** the ordinary migration command would have attempted already-existing migrations 0003–0007. The following tools prepared and tested the guarded release that has now been applied:
 
 ```bash
 mkdir -p release-check
@@ -66,10 +66,17 @@ node scripts/prepare-agency-production-migration.mjs release-check/production-re
 node scripts/verify-agency-production-migration.mjs release-check/production-release.sql
 ```
 
-The generator never connects to a database. Review the generated SQL and confirm the application's production DATABASE_URL targets the identified project before executing it. The release takes short table locks, rechecks the exact catalog and three existing journal entries, copies the 27 application tables and original journal into a restricted `orbisy_release_20261006` schema, applies the unchanged additive 0008 migration, and records verified migrations 0003–0008 in Drizzle. It checks every copied row and row count before committing. Any mismatch, duplicate run, lock timeout, or SQL failure aborts the transaction. It does not alter administrator credentials or worker settings.
+The generator never connects to a database. The application target was confirmed through its timestamp-matched production rate-limit write before the release was executed. Future releases must independently identify their target. The release takes short table locks, rechecks the exact catalog and three existing journal entries, copies the 27 application tables and original journal into a restricted `orbisy_release_20261006` schema, applies the unchanged additive 0008 migration, and records verified migrations 0003–0008 in Drizzle. It checks every copied row and row count before committing. Any mismatch, duplicate run, lock timeout, or SQL failure aborts the transaction. It does not alter administrator credentials or worker settings.
 
 The private recovery copy is on the same database and depends on its existing types. It is a row-preservation checkpoint for this additive release, **not an independent provider/disaster-recovery backup**. Supabase Free currently provides no scheduled backups. Do not delete this checkpoint as part of release verification. If recovery is needed, retain the exact original schema and inspect the checkpoint with a privileged connection; never automatically reset tables or remove new production inquiries. Local regression checks verify successful preservation, inaccessible recovery copies, repeat rejection, and atomic rejection of unexpected columns and changed migration hashes.
 
 Resend's existing `orbisy.com` domain is verified and ready to send. Production `NOTIFICATION_EMAIL=info@orbisy.com` and `RESEND_FROM_EMAIL=Orbisy <info@orbisy.com>` were added. `RESEND_API_KEY` still needs user-controlled credential entry; the existing Outreach key was not changed. Existing Production configuration remains in place, and Preview is still configured separately.
 
-The current production form rejects a labeled test at spam verification. No test inquiry or lead was saved, so the test did not confirm the production database connection. The widget and Cloudflare script are present; the reason this browser did not obtain verification is unresolved. Do not disable Turnstile or bypass validation to complete a test. The new agency form already handles blank optional budget values, which the legacy form rejected. Merge/deployment and connected database changes remain pending the target/configuration checks.
+The current production form rejected a labeled test at spam verification. No test inquiry or lead was saved. Its timestamp-matched rate-limit write identified the connected production database. The widget and Cloudflare script are present; the reason this browser did not obtain verification is unresolved. Do not disable Turnstile or bypass validation to complete a test. The new agency form already handles blank optional budget values, which the legacy form rejected. Merge/deployment remains pending user-controlled RESEND_API_KEY entry. Saved inquiry, authenticated pricing editing, and live email delivery still require production verification.
+
+
+## Completed production migration
+
+Supabase migration `20261006031230`, `agency_catalog_notifications_with_verified_drizzle_baseline`, succeeded. Drizzle now records all nine migrations 0000–0008. The complete 672-object final catalog comparison found no unexpected differences, allowing the stronger existing RLS. Seven leads, seven inquiries, and the administrator account are preserved. All prior application row contents and counts were checked within the transaction before commit.
+
+The restricted `orbisy_release_20261006` checkpoint contains all 27 original application tables and the original journal. Anonymous and authenticated roles have no schema access. The new Pricing and Notifications tables are empty, have RLS enabled, and expose no public policies. No confirmed prices have been entered. The agency branch has not yet been merged or deployed to production.
