@@ -51,3 +51,25 @@ Optional attribution preserves first landing path and bounded UTM labels across 
 The separate owner-review pricing draft lives in the private page and `src/lib/pricing-draft.ts`. It is a set of proposed starting ranges, not confirmed rates, researched market benchmarks, or a budget-range-derived catalog. No proposal values are automatically copied into the database. Confirm workload, margin, support obligations, and each rate before entering it into the catalog.
 
 Google Ads conversion tags and campaign launch require the account IDs, offers, budget, and consent configuration; this revision adds the landing-page structure and saved-inquiry event but does not activate advertising.
+
+## Production preflight, October 6, 2026 UTC
+
+The user authorized a production launch. The connected Supabase project is **Orbisy**, ref `xjmoroanmpnipntmadcb`, main / Production, in the Orbisy organization. The administrator `anthonyeaves33@gmail.com` exists. Read-only checks found seven leads and seven inquiries. No connected database has been changed during these checks.
+
+GitHub main still ends at migration 0007 and the agency branch adds 0008. Their existing migration files match the inspected local files byte for byte. The live Drizzle journal contains only 0000–0002, whose hashes and timestamps match GitHub. A 624-object catalog comparison confirms the complete 0007 schema: column types/nullability/defaults, enums, validated constraints, index definitions and validity, tables, RLS and policies. The only accepted difference is stronger existing RLS on 18 tables; all 27 public application tables have RLS enabled and no policies. PostgreSQL-version-specific NOT NULL constraint objects are ignored because column nullability is compared directly.
+
+**Do not run the ordinary migration command on this state.** It would attempt already-existing migrations 0003–0007. A guarded, one-time release can be prepared with:
+
+```bash
+mkdir -p release-check
+node scripts/prepare-agency-production-migration.mjs release-check/production-release.sql
+node scripts/verify-agency-production-migration.mjs release-check/production-release.sql
+```
+
+The generator never connects to a database. Review the generated SQL and confirm the application's production DATABASE_URL targets the identified project before executing it. The release takes short table locks, rechecks the exact catalog and three existing journal entries, copies the 27 application tables and original journal into a restricted `orbisy_release_20261006` schema, applies the unchanged additive 0008 migration, and records verified migrations 0003–0008 in Drizzle. It checks every copied row and row count before committing. Any mismatch, duplicate run, lock timeout, or SQL failure aborts the transaction. It does not alter administrator credentials or worker settings.
+
+The private recovery copy is on the same database and depends on its existing types. It is a row-preservation checkpoint for this additive release, **not an independent provider/disaster-recovery backup**. Supabase Free currently provides no scheduled backups. Do not delete this checkpoint as part of release verification. If recovery is needed, retain the exact original schema and inspect the checkpoint with a privileged connection; never automatically reset tables or remove new production inquiries. Local regression checks verify successful preservation, inaccessible recovery copies, repeat rejection, and atomic rejection of unexpected columns and changed migration hashes.
+
+Resend's existing `orbisy.com` domain is verified and ready to send. Production `NOTIFICATION_EMAIL=info@orbisy.com` and `RESEND_FROM_EMAIL=Orbisy <info@orbisy.com>` were added. `RESEND_API_KEY` still needs user-controlled credential entry; the existing Outreach key was not changed. Existing Production configuration remains in place, and Preview is still configured separately.
+
+The current production form rejects a labeled test at spam verification. No test inquiry or lead was saved, so the test did not confirm the production database connection. The widget and Cloudflare script are present; the reason this browser did not obtain verification is unresolved. Do not disable Turnstile or bypass validation to complete a test. The new agency form already handles blank optional budget values, which the legacy form rejected. Merge/deployment and connected database changes remain pending the target/configuration checks.

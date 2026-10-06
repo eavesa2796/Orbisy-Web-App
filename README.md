@@ -274,7 +274,10 @@ Before a production migration:
 4. Run the migration once in a controlled release step.
 5. Verify old row counts and the new import tables.
 
-Recovery guidance: do not manually edit the Drizzle journal. If a migration
+Recovery guidance: do not blindly edit the Drizzle journal. The verified production
+baseline procedure for already-applied migrations is documented in
+`docs/agency-refresh-operations.md`; it guards the complete schema and existing
+hashes before recording missing entries. If a migration
 fails, stop application promotion, preserve the database error, and restore
 from the provider backup when a partial change cannot be safely completed.
 
