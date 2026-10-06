@@ -1,8 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  homepageReviewSchema,
-  projectRequestSchema,
-} from "@/lib/validation";
+import { homepageReviewSchema, projectRequestSchema } from "@/lib/validation";
 
 const base = {
   name: "Anthony",
@@ -44,11 +41,27 @@ describe("public form validation", () => {
     expect(result.success).toBe(false);
   });
 
+  it("accepts a project request with optional fields left blank", () => {
+    const result = projectRequestSchema.safeParse({
+      ...base,
+      websiteUrl: "",
+      serviceNeeded: "Website design or redesign",
+      projectDescription: "A focused website refresh.",
+      timeline: "",
+      budgetRange: "",
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.budgetRange).toBeUndefined();
+    }
+  });
+
   it("accepts the Phase 1 managed-records project request", () => {
     const result = projectRequestSchema.safeParse({
       ...base,
       serviceNeeded: "Restaurant records cleanup pilot",
-      projectDescription: "Records are split between email and location folders.",
+      projectDescription:
+        "Records are split between email and location folders.",
       timeline: "Within 30 days",
       budgetRange: "Not sure yet",
     });

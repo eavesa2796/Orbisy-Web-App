@@ -1,5 +1,6 @@
 import "server-only";
 import {
+  getTableColumns,
   and,
   asc,
   desc,
@@ -14,6 +15,7 @@ import {
 } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import {
+  contactSubmissions,
   leads,
   leadNotes,
   manualContactAttempts,
@@ -75,21 +77,25 @@ async function dashboardQuery<T>(name: string, query: Promise<T>) {
   const startedAt = Date.now();
   try {
     const result = await query;
-    console.log(JSON.stringify({
-      level: "info",
-      message: "admin dashboard query completed",
-      query: name,
-      durationMs: Date.now() - startedAt,
-    }));
+    console.log(
+      JSON.stringify({
+        level: "info",
+        message: "admin dashboard query completed",
+        query: name,
+        durationMs: Date.now() - startedAt,
+      }),
+    );
     return result;
   } catch (error) {
-    console.error(JSON.stringify({
-      level: "error",
-      message: "admin dashboard query failed",
-      query: name,
-      durationMs: Date.now() - startedAt,
-      errorName: error instanceof Error ? error.name : "UnknownError",
-    }));
+    console.error(
+      JSON.stringify({
+        level: "error",
+        message: "admin dashboard query failed",
+        query: name,
+        durationMs: Date.now() - startedAt,
+        errorName: error instanceof Error ? error.name : "UnknownError",
+      }),
+    );
     throw error;
   }
 }
@@ -97,32 +103,41 @@ async function dashboardQuery<T>(name: string, query: Promise<T>) {
 export async function getOverviewData() {
   const db = getDb();
   const [counts, due, inbound] = await Promise.all([
-    dashboardQuery("lead_counts", db
-      .select({ status: leads.status, count: sql<number>`count(*)::int` })
-      .from(leads)
-      .groupBy(leads.status)),
-    dashboardQuery("follow_ups_due", db
-      .select({
-        id: leads.id,
-        businessName: leads.businessName,
-        status: leads.status,
-        followUpAt: leads.followUpAt,
-      })
-      .from(leads)
-      .where(lte(leads.followUpAt, new Date()))
-      .orderBy(asc(leads.followUpAt))
-      .limit(8)),
-    dashboardQuery("recent_inbound", db
-      .select({
-        id: leads.id,
-        businessName: leads.businessName,
-        status: leads.status,
-        createdAt: leads.createdAt,
-      })
-      .from(leads)
-      .where(eq(leads.status, "new_inbound"))
-      .orderBy(desc(leads.priority), desc(leads.createdAt))
-      .limit(8)),
+    dashboardQuery(
+      "lead_counts",
+      db
+        .select({ status: leads.status, count: sql<number>`count(*)::int` })
+        .from(leads)
+        .groupBy(leads.status),
+    ),
+    dashboardQuery(
+      "follow_ups_due",
+      db
+        .select({
+          id: leads.id,
+          businessName: leads.businessName,
+          status: leads.status,
+          followUpAt: leads.followUpAt,
+        })
+        .from(leads)
+        .where(lte(leads.followUpAt, new Date()))
+        .orderBy(asc(leads.followUpAt))
+        .limit(8),
+    ),
+    dashboardQuery(
+      "recent_inbound",
+      db
+        .select({
+          id: leads.id,
+          businessName: leads.businessName,
+          status: leads.status,
+          createdAt: leads.createdAt,
+        })
+        .from(leads)
+        .where(eq(leads.status, "new_inbound"))
+        .orderBy(desc(leads.priority), desc(leads.createdAt))
+        .limit(8),
+    ),
   ]);
 
   const fallbackSummary = {
@@ -142,22 +157,25 @@ export async function getOverviewData() {
   let secondarySummaryAvailable = true;
 
   try {
-    const rows = await dashboardQuery("secondary_summaries", db.transaction(async (tx) => {
-      await tx.execute(sql`SET LOCAL statement_timeout = '3000ms'`);
-      return tx.execute<{
-      pending_batches: number;
-      review_rows: number;
-      suppressed_candidates: number;
-      newly_imported: number;
-        preflight_attention: number;
-        preflight_review: number;
-        preflight_eligible: number;
-        audit_attention: number;
-        audit_verification: number;
-        eligible_waiting: number;
-        ready_for_brief: number;
-      }>(sql.raw(DASHBOARD_SECONDARY_SUMMARY_SQL));
-    }));
+    const rows = await dashboardQuery(
+      "secondary_summaries",
+      db.transaction(async (tx) => {
+        await tx.execute(sql`SET LOCAL statement_timeout = '3000ms'`);
+        return tx.execute<{
+          pending_batches: number;
+          review_rows: number;
+          suppressed_candidates: number;
+          newly_imported: number;
+          preflight_attention: number;
+          preflight_review: number;
+          preflight_eligible: number;
+          audit_attention: number;
+          audit_verification: number;
+          eligible_waiting: number;
+          ready_for_brief: number;
+        }>(sql.raw(DASHBOARD_SECONDARY_SUMMARY_SQL));
+      }),
+    );
     summary = rows[0] ?? fallbackSummary;
   } catch {
     secondarySummaryAvailable = false;
@@ -228,10 +246,18 @@ export async function getLeads(options: {
     options.websiteState
       ? eq(leads.websiteState, options.websiteState)
       : undefined,
-    options.importBatchId ? eq(leads.importBatchId, options.importBatchId) : undefined,
-    options.importedAfter ? gte(leads.createdAt, options.importedAfter) : undefined,
-    options.view === "newly_imported" ? isNotNull(leads.importBatchId) : undefined,
-    options.view === "follow_up_due" ? lte(leads.followUpAt, new Date()) : undefined,
+    options.importBatchId
+      ? eq(leads.importBatchId, options.importBatchId)
+      : undefined,
+    options.importedAfter
+      ? gte(leads.createdAt, options.importedAfter)
+      : undefined,
+    options.view === "newly_imported"
+      ? isNotNull(leads.importBatchId)
+      : undefined,
+    options.view === "follow_up_due"
+      ? lte(leads.followUpAt, new Date())
+      : undefined,
     options.view === "no_website"
       ? eq(leads.websiteState, "not_listed")
       : undefined,
@@ -257,8 +283,15 @@ export async function getLeads(options: {
   const where = filters.length ? and(...filters) : undefined;
   const [items, total] = await Promise.all([
     db
-      .select()
+      .select({
+        ...getTableColumns(leads),
+        serviceNeeded: contactSubmissions.serviceNeeded,
+      })
       .from(leads)
+      .leftJoin(
+        contactSubmissions,
+        eq(leads.submissionId, contactSubmissions.id),
+      )
       .where(where)
       .orderBy(desc(leads.priority), desc(leads.updatedAt))
       .limit(pageSize)
@@ -287,42 +320,48 @@ export async function getLeadFilterOptions() {
   ]);
   return {
     sources: sources.map((item) => item.value),
-    industries: industries.map((item) => item.value).filter(Boolean) as string[],
+    industries: industries
+      .map((item) => item.value)
+      .filter(Boolean) as string[],
   };
 }
 
 export async function getLead(id: string) {
   const db = getDb();
-  const [lead, notes, history, attempts, drafts, readyRuns] = await Promise.all([
-    db.select().from(leads).where(eq(leads.id, id)).limit(1),
-    db
-      .select()
-      .from(leadNotes)
-      .where(eq(leadNotes.leadId, id))
-      .orderBy(desc(leadNotes.createdAt)),
-    db
-      .select()
-      .from(pipelineEvents)
-      .where(eq(pipelineEvents.leadId, id))
-      .orderBy(desc(pipelineEvents.createdAt)),
-    db
-      .select()
-      .from(manualContactAttempts)
-      .where(eq(manualContactAttempts.leadId, id))
-      .orderBy(desc(manualContactAttempts.contactedAt)),
-    db
-      .select()
-      .from(outreachDrafts)
-      .where(eq(outreachDrafts.leadId, id))
-      .orderBy(desc(outreachDrafts.updatedAt))
-      .limit(1),
-    db
-      .select()
-      .from(auditRuns)
-      .where(and(eq(auditRuns.leadId, id), eq(auditRuns.phaseFiveReady, true)))
-      .orderBy(desc(auditRuns.reviewCompletedAt), desc(auditRuns.createdAt))
-      .limit(1),
-  ]);
+  const [lead, notes, history, attempts, drafts, readyRuns] = await Promise.all(
+    [
+      db.select().from(leads).where(eq(leads.id, id)).limit(1),
+      db
+        .select()
+        .from(leadNotes)
+        .where(eq(leadNotes.leadId, id))
+        .orderBy(desc(leadNotes.createdAt)),
+      db
+        .select()
+        .from(pipelineEvents)
+        .where(eq(pipelineEvents.leadId, id))
+        .orderBy(desc(pipelineEvents.createdAt)),
+      db
+        .select()
+        .from(manualContactAttempts)
+        .where(eq(manualContactAttempts.leadId, id))
+        .orderBy(desc(manualContactAttempts.contactedAt)),
+      db
+        .select()
+        .from(outreachDrafts)
+        .where(eq(outreachDrafts.leadId, id))
+        .orderBy(desc(outreachDrafts.updatedAt))
+        .limit(1),
+      db
+        .select()
+        .from(auditRuns)
+        .where(
+          and(eq(auditRuns.leadId, id), eq(auditRuns.phaseFiveReady, true)),
+        )
+        .orderBy(desc(auditRuns.reviewCompletedAt), desc(auditRuns.createdAt))
+        .limit(1),
+    ],
+  );
   const phaseFiveRun = readyRuns[0] ?? null;
   const verifiedFindings = phaseFiveRun
     ? await db

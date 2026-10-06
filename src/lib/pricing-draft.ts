@@ -1,0 +1,172 @@
+import "server-only";
+// Owner-review hypotheses only. Never inserted into pricing_entries automatically.
+export const pricingTemplates = [
+  [
+    "website-project",
+    "Website design & development",
+    "website",
+    "one_time",
+    "Page plan; responsive design; development; launch checks",
+  ],
+  [
+    "ads-setup",
+    "Google Ads setup",
+    "google_ads",
+    "one_time",
+    "Account review; campaign structure; ads; measurement plan",
+  ],
+  [
+    "ads-management",
+    "Google Ads management",
+    "google_ads",
+    "monthly",
+    "Search-term review; negatives; budget review; reporting",
+  ],
+  [
+    "seo-setup",
+    "Local SEO setup",
+    "local_seo",
+    "one_time",
+    "Baseline review; technical priorities; business information cleanup",
+  ],
+  [
+    "seo-recurring",
+    "Ongoing local SEO",
+    "local_seo",
+    "monthly",
+    "Agreed content updates; profile work; progress review",
+  ],
+  [
+    "custom-project",
+    "Custom development project",
+    "development",
+    "custom",
+    "Discovery; milestones; implementation; testing; handover",
+  ],
+  [
+    "integration",
+    "Integration",
+    "development",
+    "custom",
+    "API review; authentication; data mapping; error handling",
+  ],
+  [
+    "automation",
+    "Workflow automation",
+    "development",
+    "custom",
+    "Workflow definition; automation; failure handling; documentation",
+  ],
+  [
+    "maintenance",
+    "Website maintenance",
+    "maintenance",
+    "monthly",
+    "Agreed updates; backups where applicable; routine checks",
+  ],
+  [
+    "support",
+    "Development & support time",
+    "maintenance",
+    "hourly",
+    "Approved task; implementation; verification",
+  ],
+  [
+    "landing-page",
+    "Campaign landing page",
+    "add_on",
+    "one_time",
+    "Offer-specific page; responsive build; inquiry flow",
+  ],
+  [
+    "extra-page",
+    "Additional website page",
+    "add_on",
+    "per_unit",
+    "Approved page content; design; development",
+  ],
+  [
+    "copywriting",
+    "Website copywriting",
+    "add_on",
+    "per_unit",
+    "Discovery; draft copy; agreed revision round",
+  ],
+  [
+    "tracking",
+    "Conversion measurement setup",
+    "add_on",
+    "one_time",
+    "Measurement plan; agreed events; consent-aware implementation; checks",
+  ],
+  [
+    "local-launch",
+    "Local service launch package",
+    "package",
+    "custom",
+    "Website project and separately itemized Ads setup; optional ongoing work",
+  ],
+] as const;
+export const suggestedPricingDraft = [
+  [
+    "Website project",
+    "$2,500–$5,000 one-time",
+    "Assume 4–6 pages, supplied images, one form, two design review rounds; estimate hours before quoting.",
+  ],
+  [
+    "Google Ads setup",
+    "$500–$1,000 one-time",
+    "One local Search account; landing pages and call-tracking tools separate.",
+  ],
+  [
+    "Google Ads management",
+    "$400–$800 / month",
+    "Limited initial campaign scope; advertising spend paid separately to Google.",
+  ],
+  [
+    "Local SEO setup",
+    "$500–$1,000 one-time",
+    "Single business/location baseline and agreed cleanup.",
+  ],
+  [
+    "Ongoing local SEO",
+    "$500–$1,000 / month",
+    "Define monthly content and profile deliverables; no ranking guarantee.",
+  ],
+  [
+    "Custom development / integrations / automation",
+    "$90–$125 / hour or milestone quote",
+    "Use discovery to estimate scope; external API fees separate.",
+  ],
+  [
+    "Maintenance",
+    "$100–$250 / month",
+    "Define included time, backups, platforms, and response window; hosting itemized.",
+  ],
+  [
+    "Support",
+    "$90–$125 / hour",
+    "Minimum task scope and approval process agreed in advance.",
+  ],
+  [
+    "Campaign landing page",
+    "$600–$1,200 one-time",
+    "One offer, approved content, existing brand, simple inquiry form.",
+  ],
+  [
+    "Additional page",
+    "$200–$400 / page",
+    "Existing components and approved content.",
+  ],
+  ["Copywriting", "$150–$300 / page", "One defined page and revision round."],
+  [
+    "Conversion measurement setup",
+    "$250–$500 one-time",
+    "Defined events; third-party tools separate; no account IDs assumed.",
+  ],
+  [
+    "Launch package",
+    "Quote component scopes individually",
+    "Combine only after confirming workload; do not automatically discount or bundle ad spend.",
+  ],
+] as const;

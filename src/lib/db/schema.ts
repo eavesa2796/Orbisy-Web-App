@@ -263,6 +263,7 @@ export const contactSubmissions = pgTable(
     timeline: varchar("timeline", { length: 80 }),
     budgetRange: varchar("budget_range", { length: 80 }),
     idempotencyKey: uuid("idempotency_key").notNull(),
+    attribution: jsonb("attribution").$type<import("@/lib/attribution").InquiryAttribution>(),
     consentVersion: varchar("consent_version", { length: 40 }).notNull(),
     submittedAt: timestamp("submitted_at", { withTimezone: true })
       .defaultNow()
@@ -823,3 +824,84 @@ export const outreachDrafts = pgTable("outreach_drafts", {
   index("outreach_draft_audit_run_idx").on(table.auditRunId),
   check("outreach_draft_status_check", sql`${table.status} in ('draft','approved','stale','blocked')`),
 ]).enableRLS();
+
+export const pricingCategory = pgEnum("pricing_category", [
+  "website",
+  "google_ads",
+  "local_seo",
+  "development",
+  "maintenance",
+  "add_on",
+  "package",
+]);
+export const pricingStatus = pgEnum("pricing_status", [
+  "draft",
+  "active",
+  "archived",
+]);
+export const billingBasis = pgEnum("billing_basis", [
+  "one_time",
+  "monthly",
+  "hourly",
+  "per_unit",
+  "custom",
+]);
+export const pricingEntries = pgTable(
+  "pricing_entries",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    templateKey: varchar("template_key", { length: 80 }).unique(),
+    name: varchar("name", { length: 160 }).notNull(),
+    category: pricingCategory("category").notNull(),
+    description: text("description").notNull().default(""),
+    deliverables: jsonb("deliverables").$type<string[]>().notNull().default([]),
+    billingBasis: billingBasis("billing_basis").notNull().default("one_time"),
+    amountCents: integer("amount_cents"),
+    setupFeeCents: integer("setup_fee_cents"),
+    recurringFeeCents: integer("recurring_fee_cents"),
+    recurringInterval: varchar("recurring_interval", { length: 80 }),
+    currency: varchar("currency", { length: 3 }).notNull().default("USD"),
+    internalNotes: text("internal_notes").notNull().default(""),
+    status: pricingStatus("status").notNull().default("draft"),
+    updatedBy: varchar("updated_by", { length: 254 }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [
+    check("pricing_amount_nonnegative", sql`${t.amountCents} >= 0`),
+    check("pricing_setup_nonnegative", sql`${t.setupFeeCents} >= 0`),
+    check("pricing_recurring_nonnegative", sql`${t.recurringFeeCents} >= 0`),
+    index("pricing_status_category_idx").on(t.status, t.category),
+  ],
+).enableRLS();
+export const submissionNotifications = pgTable(
+  "submission_notifications",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    submissionId: uuid("submission_id")
+      .notNull()
+      .references(() => contactSubmissions.id, { onDelete: "cascade" })
+      .unique(),
+    status: varchar("status", { length: 30 }).notNull().default("pending"),
+    attempts: integer("attempts").notNull().default(0),
+    leaseToken: uuid("lease_token"),
+    lastAttemptAt: timestamp("last_attempt_at", { withTimezone: true }),
+    lastError: varchar("last_error", { length: 120 }),
+    sentAt: timestamp("sent_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [
+    check(
+      "notification_status_valid",
+      sql`${t.status} in ('pending','sending','sent','failed','not_configured')`,
+    ),
+    check("notification_attempts_nonnegative", sql`${t.attempts} >= 0`),
+    index("notification_status_idx").on(t.status),
+  ],
+).enableRLS();

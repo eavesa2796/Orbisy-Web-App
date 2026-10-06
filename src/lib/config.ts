@@ -3,9 +3,9 @@ export const siteConfig = {
   owner: "Anthony Eaves",
   email: "info@orbisy.com",
   location: "Chicago, Illinois",
-  url: process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
+  url: process.env.NEXT_PUBLIC_SITE_URL || "https://orbisy.com",
   description:
-    "Orbisy organizes grease-interceptor service tickets, supporting evidence, missing records, and upcoming service dates for restaurant operators and grease haulers.",
+    "Orbisy provides web design, Google Ads management, local SEO, and custom development for towing, roadside assistance, and other service businesses. Based in Chicago.",
 } as const;
 
 export function hasDatabaseConfig() {
@@ -15,6 +15,6 @@ export function hasDatabaseConfig() {
 export function hasSupabaseConfig() {
   return Boolean(
     process.env.NEXT_PUBLIC_SUPABASE_URL &&
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
   );
 }

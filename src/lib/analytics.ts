@@ -38,6 +38,17 @@ export const analyticsEventSchema = z
     viewportCategory: z.enum(["small", "medium", "large"]).optional(),
     componentId: z
       .enum([
+        "hero_project_request",
+        "hero_towing",
+        "nav_project_request",
+        "towing_project_request",
+        "service_web_design",
+        "service_google_ads",
+        "service_local_seo",
+        "service_development",
+        "audience_towing",
+        "audience_local_services",
+        "audience_custom_projects",
         "hero_records_review",
         "hero_haulers",
         "nav_records_review",
