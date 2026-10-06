@@ -266,6 +266,23 @@ describe("Agency database and inquiry workflow", () => {
       (call) => (call[1] as RequestInit).headers as Record<string, string>,
     );
     expect(keys[0]["Idempotency-Key"]).toBe(keys[1]["Idempotency-Key"]);
+    const emailBodies = fetchMock.mock.calls.map((call) =>
+      JSON.parse((call[1] as RequestInit).body as string),
+    );
+    expect(emailBodies[0]).toMatchObject({ reply_to: data.email });
+    for (const value of [
+      data.name,
+      data.businessName,
+      data.email,
+      data.serviceNeeded,
+      data.projectDescription,
+      "Budget: Not provided",
+      "Timeline: Not provided",
+      "/admin-portal/leads/",
+    ]) {
+      expect(emailBodies[0].text).toContain(value);
+    }
+    expect(emailBodies[1]).toEqual(emailBodies[0]);
   });
 });
 describe("Private pricing catalog", () => {

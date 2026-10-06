@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { PortfolioCarousel } from "@/components/portfolio-carousel";
 export const projects = [
   {
     name: "Rescue Battery Shop",
@@ -30,7 +31,16 @@ export const projects = [
     ],
   },
 ] as const;
-export function Portfolio({ full = false }: { full?: boolean }) {
+export function Portfolio({
+  full = false,
+  carousel = false,
+}: {
+  full?: boolean;
+  carousel?: boolean;
+}) {
+  const cards = projects.map((p, index) => (
+    <PortfolioProject key={p.name} project={p} index={index} full={full} />
+  ));
   return (
     <section className="section portfolio-section" id="work">
       <div className="container">
@@ -38,7 +48,7 @@ export function Portfolio({ full = false }: { full?: boolean }) {
           <div>
             <p className="eyebrow">
               <span />
-              Selected website work
+              Orbisy’s portfolio
             </p>
             <h2>
               Real businesses.
@@ -47,78 +57,93 @@ export function Portfolio({ full = false }: { full?: boolean }) {
             </h2>
           </div>
           <p>
-            Website projects by Anthony Eaves. These examples show the
+            Website projects from Orbisy’s portfolio. These examples show the
             implementation and visitor experience; campaign results are not
             presented here.
           </p>
         </div>
-        <div className="portfolio-grid">
-          {projects.map((p, index) => (
-            <article
-              className="portfolio-project"
-              key={p.name}
-              id={index === 0 ? "rescue-battery-shop" : "rescue-tow-truck"}
-            >
-              <a
-                className="project-screen"
-                href={p.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label={`View ${p.name} website (opens in a new tab)`}
-              >
-                <div className="browser-strip" aria-hidden="true">
-                  <i />
-                  <i />
-                  <i />
-                  <span>{new URL(p.url).hostname}</span>
-                </div>
-                <Image
-                  src={p.image}
-                  alt={`${p.name} homepage screenshot captured October 3, 2026`}
-                  width={1348}
-                  height={926}
-                  sizes="(max-width: 800px) 100vw, 50vw"
-                />
-              </a>
-              <div className="project-copy">
-                <p className="eyebrow">{p.tag}</p>
-                <h3>{p.name}</h3>
-                <p className="project-summary">{p.summary}</p>
-                {full && (
-                  <>
-                    <p>{p.details}</p>
-                    <ul>
-                      {p.points.map((point) => (
-                        <li key={point}>{point}</li>
-                      ))}
-                    </ul>
-                  </>
-                )}
-                <a
-                  className="text-link"
-                  href={p.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Visit live website ↗
-                </a>
-                {!full && (
-                  <Link
-                    className="text-link"
-                    href={`/work#${index === 0 ? "rescue-battery-shop" : "rescue-tow-truck"}`}
-                  >
-                    Project details →
-                  </Link>
-                )}
-              </div>
-            </article>
-          ))}
-        </div>
+        {carousel ? (
+          <PortfolioCarousel names={projects.map((p) => p.name)}>
+            {cards}
+          </PortfolioCarousel>
+        ) : (
+          <div className="portfolio-grid">{cards}</div>
+        )}
         <p className="portfolio-note">
           Live-site screenshots captured October 3, 2026. Website content may
           change after capture.
         </p>
       </div>
     </section>
+  );
+}
+
+export function PortfolioProject({
+  project: p,
+  index,
+  full = false,
+}: {
+  project: (typeof projects)[number];
+  index: number;
+  full?: boolean;
+}) {
+  return (
+    <article
+      className="portfolio-project"
+      id={index === 0 ? "rescue-battery-shop" : "rescue-tow-truck"}
+    >
+      <a
+        className="project-screen"
+        href={p.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label={`View ${p.name} website (opens in a new tab)`}
+      >
+        <div className="browser-strip" aria-hidden="true">
+          <i />
+          <i />
+          <i />
+          <span>{new URL(p.url).hostname}</span>
+        </div>
+        <Image
+          src={p.image}
+          alt={`${p.name} homepage screenshot captured October 3, 2026`}
+          width={1348}
+          height={926}
+          sizes="(max-width: 800px) 100vw, 60vw"
+        />
+      </a>
+      <div className="project-copy">
+        <p className="eyebrow">{p.tag}</p>
+        <h3>{p.name}</h3>
+        <p className="project-summary">{p.summary}</p>
+        {full && (
+          <>
+            <p>{p.details}</p>
+            <ul>
+              {p.points.map((point) => (
+                <li key={point}>{point}</li>
+              ))}
+            </ul>
+          </>
+        )}
+        <a
+          className="text-link"
+          href={p.url}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Visit live website ↗
+        </a>
+        {!full && (
+          <Link
+            className="text-link"
+            href={`/work#${index === 0 ? "rescue-battery-shop" : "rescue-tow-truck"}`}
+          >
+            Project details →
+          </Link>
+        )}
+      </div>
+    </article>
   );
 }

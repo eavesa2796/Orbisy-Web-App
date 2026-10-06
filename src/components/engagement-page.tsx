@@ -32,7 +32,7 @@ export function EngagementPage({ engagement: e }: { engagement: Engagement }) {
                 included.
               </p>
               <Link className="text-link" href="/work">
-                Explore Anthony’s website work →
+                Explore Orbisy’s website work →
               </Link>
             </div>
             <ul className="scope-deliverables">

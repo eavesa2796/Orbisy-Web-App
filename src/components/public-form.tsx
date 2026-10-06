@@ -322,7 +322,7 @@ export function PublicForm({
             : "Request a consultation"}
       </button>
       <p className="form-footnote">
-        Anthony reviews your request and replies by email to arrange the next
+        Orbisy reviews your request and replies by email to arrange the next
         step.
       </p>
     </form>

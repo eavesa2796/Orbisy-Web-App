@@ -2,10 +2,12 @@ import "server-only";
 import { and, eq, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { contactSubmissions, submissionNotifications } from "@/lib/db/schema";
+import { leads } from "@/lib/db/schema";
+import { siteConfig } from "@/lib/config";
 export async function notifySubmission(
-  type: string,
-  businessName: string,
+  submission: typeof contactSubmissions.$inferSelect,
   idempotencyKey: string,
+  leadId?: string,
 ) {
   const apiKey = process.env.RESEND_API_KEY,
     from = process.env.RESEND_FROM_EMAIL,
@@ -26,8 +28,28 @@ export async function notifySubmission(
       body: JSON.stringify({
         from,
         to: [to],
-        subject: `New Orbisy ${type.replaceAll("_", " ")} request`,
-        text: `A new request from ${businessName} was saved. Sign in to the Orbisy administrator portal to review it.`,
+        subject: `New Orbisy inquiry: ${submission.businessName.replace(/[\r\n]+/g, " ")}`,
+        reply_to: submission.email,
+        text: [
+          "A new inquiry was saved in Orbisy.",
+          "",
+          `Name: ${submission.name}`,
+          `Business: ${submission.businessName}`,
+          `Email: ${submission.email}`,
+          `Website: ${submission.websiteUrl || "Not provided"}`,
+          `Service: ${submission.serviceNeeded || submission.type.replaceAll("_", " ")}`,
+          `Budget: ${submission.budgetRange || "Not provided"}`,
+          `Timeline: ${submission.timeline || "Not provided"}`,
+          "",
+          "Inquiry:",
+          submission.projectDescription ||
+            submission.websiteConcern ||
+            submission.primaryGoal ||
+            "No additional message provided.",
+          "",
+          `Review saved inquiry: ${new URL(leadId ? `/admin-portal/leads/${leadId}` : "/admin-portal/leads", siteConfig.url).href}`,
+          "Administrator sign-in is required. Budget ranges are client estimates, not Orbisy service prices.",
+        ].join("\n"),
       }),
       signal: AbortSignal.timeout(5000),
     });
@@ -71,11 +93,12 @@ export async function deliverSubmissionNotification(id: string) {
     .where(eq(contactSubmissions.id, claimed.submissionId))
     .limit(1);
   if (!submission) throw new Error("NOTIFICATION_SUBMISSION_MISSING");
-  const result = await notifySubmission(
-    submission.type,
-    submission.businessName,
-    claimed.id,
-  );
+  const [lead] = await db
+    .select({ id: leads.id })
+    .from(leads)
+    .where(eq(leads.submissionId, submission.id))
+    .limit(1);
+  const result = await notifySubmission(submission, claimed.id, lead?.id);
   await db
     .update(submissionNotifications)
     .set({
