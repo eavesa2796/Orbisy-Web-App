@@ -4,7 +4,7 @@ import { PublicForm } from "@/components/public-form";
 export function AgencyContact({
   title = "Request a consultation.",
   service,
-  description = "Tell us what your business does and what you want to improve. Anthony will review your request and help determine whether Orbisy is a good fit.",
+  description = "Tell us what your business does and what you want to improve. Orbisy will review your request and help determine whether Orbisy is a good fit.",
 }: {
   title?: string;
   description?: string;
@@ -23,11 +23,11 @@ export function AgencyContact({
           <ul>
             <li>
               <Check size={17} aria-hidden="true" />
-              Anthony reviews your business and goals
+              Orbisy reviews your business goals
             </li>
             <li>
               <Check size={17} aria-hidden="true" />
-              He replies by email to arrange a conversation
+              Replies by email to arrange a conversation
             </li>
             <li>
               <Check size={17} aria-hidden="true" />

@@ -53,7 +53,7 @@ describe("Orbisy agency public site", () => {
     }
     expect(html).toContain('id="contact"');
     expect(html).toContain('href="/towing-marketing"');
-    expect(html).toContain("anthony-eaves.jpg");
+    expect(html).toContain("orbisy-about.webp");
     expect(html).not.toContain("Request a Records Review");
     expect(html).not.toContain("grease-interceptor");
     expect(html).not.toContain('href="/restaurants"');

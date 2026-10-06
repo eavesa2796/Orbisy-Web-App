@@ -5,7 +5,8 @@ import { AgencyContact } from "@/components/agency-contact";
 import { PublicFooter, PublicHeader } from "@/components/public-site-shell";
 import { TrackLink } from "@/components/track-link";
 import { engagements } from "@/lib/engagements";
-import { Portfolio } from "@/components/portfolio";
+import { Portfolio, projects } from "@/components/portfolio";
+import { PortfolioCarousel } from "@/components/portfolio-carousel";
 
 const process = [
   [
@@ -72,9 +73,8 @@ export default function Home() {
               </h1>
               <p className="hero-lede">
                 Web design, paid search, local SEO, and custom development with
-                Anthony Eaves. A specialty in towing and roadside assistance,
-                with room for the other businesses that keep your community
-                moving.
+                Orbisy. A specialty in towing and roadside assistance, with room
+                for the other businesses that keep your community moving.
               </p>
               <div className="hero-actions">
                 <TrackLink
@@ -103,31 +103,34 @@ export default function Home() {
             <aside className="hero-project">
               <p className="eyebrow">
                 <span />
-                From Anthony’s portfolio
+                Orbisy’s portfolio
               </p>
-              <Link
-                href="/work#rescue-battery-shop"
-                className="hero-project-image"
-              >
-                <Image
-                  src="/work/rescue-battery-shop.jpg"
-                  alt="Rescue Battery Shop website by Anthony Eaves"
-                  width={1348}
-                  height={926}
-                  priority
-                  sizes="(max-width: 980px) 100vw, 45vw"
-                />
-              </Link>
-              <div>
-                <h2>Rescue Battery Shop</h2>
-                <p>
-                  Mobile battery service, clear coverage information, and a
-                  direct path to requesting help.
-                </p>
-                <Link className="text-link" href="/work">
-                  Explore the work →
-                </Link>
-              </div>
+              <PortfolioCarousel compact names={projects.map((p) => p.name)}>
+                {projects.map((project, index) => (
+                  <div key={project.name}>
+                    <Link
+                      href={`/work#${index === 0 ? "rescue-battery-shop" : "rescue-tow-truck"}`}
+                      className="hero-project-image"
+                    >
+                      <Image
+                        src={project.image}
+                        alt={`${project.name} website from Orbisy’s portfolio`}
+                        width={1348}
+                        height={926}
+                        priority={index === 0}
+                        sizes="(max-width: 980px) 100vw, 45vw"
+                      />
+                    </Link>
+                    <div className="hero-slide-copy">
+                      <h2>{project.name}</h2>
+                      <p>{project.summary}</p>
+                      <Link className="text-link" href="/work">
+                        Explore Orbisy’s website work →
+                      </Link>
+                    </div>
+                  </div>
+                ))}
+              </PortfolioCarousel>
             </aside>
           </div>
         </section>
@@ -171,7 +174,7 @@ export default function Home() {
             </div>
           </div>
         </section>
-        <Portfolio />
+        <Portfolio carousel />
         <section className="section specialty-section">
           <div className="container scope-layout">
             <div>
@@ -204,16 +207,14 @@ export default function Home() {
         </section>
         <section className="section about-section" id="about">
           <div className="container about-layout">
-            <figure className="about-portrait">
-              <div className="about-image-frame">
-                <Image
-                  src="/anthony-eaves.jpg"
-                  alt="Anthony Eaves, founder of Orbisy"
-                  fill
-                  sizes="(max-width: 680px) 240px, 300px"
-                />
-              </div>
-              <figcaption>Anthony Eaves · Founder</figcaption>
+            <figure className="about-collage">
+              <Image
+                src="/orbisy-about.webp"
+                alt="Orbisy branding with its founder and the Chicago skyline"
+                width={1448}
+                height={1086}
+                sizes="(max-width: 980px) 100vw, 55vw"
+              />
             </figure>
             <div className="about-copy">
               <p className="eyebrow">
@@ -221,14 +222,14 @@ export default function Home() {
                 Meet Orbisy
               </p>
               <h2>
-                A direct connection
+                Built in Chicago.
                 <br />
-                to the person doing the work.
+                Built around your business.
               </h2>
               <p>
-                I’m Anthony Eaves, the founder of Orbisy. I build websites and
-                software, and help businesses connect their online presence with
-                their marketing goals.
+                Started in 2026, Orbisy builds websites and software, and helps
+                businesses connect their online presence with their marketing
+                goals.
               </p>
               <p>
                 We start with a conversation about your business, agree on a
