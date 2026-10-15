@@ -209,8 +209,8 @@ export default function Home() {
           <div className="container about-layout">
             <figure className="about-collage">
               <Image
-                src="/orbisy-about-chicago.webp"
-                alt="Orbisy logo over the Chicago skyline with code fading into the background"
+                src="/orbisy-about-battery-portfolio.webp"
+                alt="Orbisy logo, code, and Chicago skyline with a preview of the Rescue Battery Shop website"
                 width={1672}
                 height={941}
                 sizes="(max-width: 980px) 100vw, 55vw"
