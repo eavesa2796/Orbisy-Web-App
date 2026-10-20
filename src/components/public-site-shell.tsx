@@ -15,6 +15,7 @@ export function PublicHeader() {
           <Link href="/towing-marketing">Towing</Link>
           <Link href="/#about">About</Link>
           <Link href="/work">Our work</Link>
+          <Link href="/pricing">Pricing</Link>
         </nav>
         <TrackLink
           className="button button-small"
@@ -54,6 +55,7 @@ export function PublicFooter() {
           <Link href="/custom-development">Custom development</Link>
           <Link href="/towing-marketing">Towing marketing</Link>
           <Link href="/work">Selected work</Link>
+          <Link href="/pricing">Pricing & packages</Link>
           <Link href="/#about">About Orbisy</Link>
           <Link href="/#contact">Request a consultation</Link>
         </div>

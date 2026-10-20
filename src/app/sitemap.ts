@@ -10,6 +10,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/custom-development",
     "/towing-marketing",
     "/work",
+    "/pricing",
     "/privacy",
     "/terms",
   ].map((path, index) => ({
