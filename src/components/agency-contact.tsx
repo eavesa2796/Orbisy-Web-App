@@ -4,11 +4,13 @@ import { PublicForm } from "@/components/public-form";
 export function AgencyContact({
   title = "Request a consultation.",
   service,
+  inquiryContext,
   description = "Tell us what your business does and what you want to improve. Orbisy will review your request and help determine whether Orbisy is a good fit.",
 }: {
   title?: string;
   description?: string;
   service?: string;
+  inquiryContext?: string;
 }) {
   return (
     <section className="section review-section" id="contact">
@@ -38,7 +40,11 @@ export function AgencyContact({
             Prefer email? <a href="mailto:info@orbisy.com">info@orbisy.com</a>
           </p>
         </div>
-        <PublicForm type="project-request" service={service} />
+        <PublicForm
+          type="project-request"
+          service={service}
+          inquiryContext={inquiryContext}
+        />
       </div>
     </section>
   );

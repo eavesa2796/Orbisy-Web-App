@@ -34,6 +34,35 @@ function fill() {
   fireEvent.click(screen.getByRole("checkbox"));
 }
 describe("Consultation confirmation", () => {
+  it("includes the selected public package in the saved-inquiry payload without replacing the visitor message", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(
+        new Response(JSON.stringify({ saved: true, duplicate: false }), {
+          status: 200,
+        }),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+    const context = "Requested package: Business Website ($2,500 one-time).";
+    const { container } = render(
+      <PublicForm
+        type="project-request"
+        service="Website design or redesign"
+        inquiryContext={context}
+      />,
+    );
+    expect(screen.getByLabelText("Service needed")).toHaveValue(
+      "Website design or redesign",
+    );
+    expect(screen.getByText(context)).toBeInTheDocument();
+    fill();
+    fireEvent.submit(container.querySelector("form")!);
+    await screen.findByText("Request received");
+    const payload = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(payload.projectDescription).toBe(`${context}\n\nA consultation`);
+    expect(payload.consent).toBe("on");
+  });
+
   it("retains the submission token on a failed request and tracks success only after a confirmed save", async () => {
     const fetchMock = vi
       .fn()

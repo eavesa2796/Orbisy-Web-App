@@ -84,6 +84,7 @@ describe("Orbisy agency public site", () => {
       "/custom-development",
       "/towing-marketing",
       "/work",
+      "/pricing",
       "/privacy",
       "/terms",
     ]);

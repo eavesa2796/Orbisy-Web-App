@@ -19,9 +19,11 @@ type FormState = {
 export function PublicForm({
   type,
   service,
+  inquiryContext,
 }: {
   type: FormType;
   service?: string;
+  inquiryContext?: string;
 }) {
   const submissionToken = useRef<string | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
@@ -56,8 +58,12 @@ export function PublicForm({
     setState({ status: "submitting" });
 
     submissionToken.current ??= crypto.randomUUID();
+    const values = Object.fromEntries(new FormData(formRef.current));
+    if (type === "project-request" && inquiryContext) {
+      values.projectDescription = `${inquiryContext}\n\n${values.projectDescription ?? ""}`;
+    }
     const data = {
-      ...Object.fromEntries(new FormData(formRef.current)),
+      ...values,
       submissionToken: submissionToken.current,
       attribution: captureInquiryAttribution(),
     };
@@ -139,6 +145,9 @@ export function PublicForm({
       onFocus={markStarted}
       aria-describedby={`${type}-privacy`}
     >
+      {inquiryContext && (
+        <p className="inquiry-package-context">{inquiryContext}</p>
+      )}
       <div className="form-grid">
         <label>
           <span>Name</span>
@@ -232,7 +241,9 @@ export function PublicForm({
               <textarea
                 aria-invalid={Boolean(state.fields?.projectDescription)}
                 name="projectDescription"
-                maxLength={3000}
+                maxLength={
+                  3000 - (inquiryContext ? inquiryContext.length + 2 : 0)
+                }
                 required
                 rows={4}
                 placeholder="Tell us about your business, your goals, and what you want to improve."
