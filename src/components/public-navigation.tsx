@@ -1,8 +1,17 @@
 "use client";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowUpRight, ChevronDown, Compass, Layers3 } from "lucide-react";
+import { ArrowUpRight, ChevronDown, Compass, Layers3, X } from "lucide-react";
+const mobileQuery = "(max-width: 980px)";
+function subscribeToViewport(callback: () => void) {
+  const query = window.matchMedia(mobileQuery);
+  query.addEventListener("change", callback);
+  return () => query.removeEventListener("change", callback);
+}
+const isMobileViewport = () => window.matchMedia(mobileQuery).matches;
+const serverViewport = () => false;
+
 type NavigationItem = { label: string; description: string; href: string };
 
 export function PublicNavigation({
@@ -13,21 +22,39 @@ export function PublicNavigation({
   industries: NavigationItem[];
 }) {
   const root = useRef<HTMLElement>(null);
-  const closeAll = useCallback(
-    () =>
-      root.current
-        ?.querySelectorAll<HTMLDetailsElement>("details[open]")
-        .forEach((detail) => {
-          detail.open = false;
-        }),
-    [],
-  );
+  const dialog = useRef<HTMLDialogElement>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const isMobile = useSyncExternalStore(subscribeToViewport, isMobileViewport, serverViewport);
+  const closeAll = useCallback(() => {
+    root.current?.querySelectorAll<HTMLDetailsElement>("details[open]").forEach((detail) => {
+      detail.open = false;
+    });
+    if (dialog.current?.open) dialog.current.close();
+    setMobileOpen(false);
+  }, []);
+  useEffect(() => {
+    const panel = dialog.current;
+    if (!isMobile || !mobileOpen || !panel) return;
+    panel.showModal();
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      if (panel.open) panel.close();
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isMobile, mobileOpen]);
   useEffect(() => {
     const outside = (event: PointerEvent) => {
-      if (!root.current?.contains(event.target as Node)) closeAll();
+      if (!dialog.current?.open && !root.current?.contains(event.target as Node)) closeAll();
     };
     const escape = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
+      if (dialog.current?.open) {
+        event.preventDefault();
+        closeAll();
+        return;
+      }
       const open =
         root.current?.querySelector<HTMLDetailsElement>("details[open]");
       if (!open) return;
@@ -42,13 +69,14 @@ export function PublicNavigation({
       document.removeEventListener("keydown", escape);
     };
   }, [closeAll]);
-  return (
+  const navigation = (
     <nav
       ref={root}
       className="orbisy-navigation"
       aria-label="Public navigation"
       onBlur={(event) => {
         if (
+          !isMobile &&
           event.relatedTarget &&
           !event.currentTarget.contains(event.relatedTarget)
         )
@@ -169,6 +197,45 @@ export function PublicNavigation({
       <Link href="/#about" onClick={closeAll}>
         About
       </Link>
+      {isMobile && <Link href="/#contact" className="button mobile-consultation" onClick={closeAll}>Request a consultation <ArrowUpRight size={18} aria-hidden="true" /></Link>}
     </nav>
+  );
+  return (
+    <>
+      <button
+        ref={trigger}
+        type="button"
+        className="mobile-menu-trigger"
+        aria-label="Open navigation menu"
+        aria-expanded={mobileOpen}
+        aria-controls="mobile-navigation-drawer"
+        aria-haspopup="dialog"
+        onClick={() => setMobileOpen(true)}
+      >
+        <span className="hamburger-lines" aria-hidden="true"><span /><span /><span /></span>
+      </button>
+      {isMobile ? (
+        <dialog
+          ref={dialog}
+          id="mobile-navigation-drawer"
+          className="mobile-navigation-drawer"
+          aria-labelledby="mobile-navigation-title"
+          onCancel={(event) => { event.preventDefault(); closeAll(); }}
+          onClose={() => { setMobileOpen(false); trigger.current?.focus(); }}
+          onClick={(event) => {
+            if (event.target !== event.currentTarget) return;
+            const bounds = event.currentTarget.getBoundingClientRect();
+            if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) closeAll();
+          }}
+        >
+          <div className="mobile-drawer-heading">
+            <div><p className="eyebrow">Explore Orbisy</p><h2 id="mobile-navigation-title">Your next move.</h2></div>
+            <button type="button" className="mobile-menu-close" aria-label="Close navigation menu" onClick={closeAll}><X size={24} aria-hidden="true" /></button>
+          </div>
+          {navigation}
+          <p className="mobile-drawer-note">Websites. Marketing. Software.<br />Built around your business.</p>
+        </dialog>
+      ) : <div className="desktop-navigation">{navigation}</div>}
+    </>
   );
 }
