@@ -302,3 +302,8 @@
     transition: none !important;
   }
 }
+
+/* Let the carousel measure each slide independently as its content changes. */
+.portfolio-track {
+  align-items: flex-start;
+}

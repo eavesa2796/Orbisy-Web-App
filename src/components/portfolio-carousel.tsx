@@ -24,6 +24,25 @@ export function PortfolioCarousel({
       api.off("select", sync).off("reInit", sync);
     };
   }, [api]);
+  useEffect(() => {
+    if (!api) return;
+    const viewport = api.rootNode();
+    const slides = api.slideNodes();
+    const resize = () => {
+      const slide = slides[api.selectedScrollSnap()];
+      if (slide)
+        viewport.style.height = `${slide.getBoundingClientRect().height}px`;
+    };
+    const observer = new ResizeObserver(resize);
+    slides.forEach((slide) => observer.observe(slide));
+    api.on("select", resize).on("reInit", resize);
+    resize();
+    return () => {
+      observer.disconnect();
+      api.off("select", resize).off("reInit", resize);
+      viewport.style.removeProperty("height");
+    };
+  }, [api]);
   const go = (index: number) =>
     api?.scrollTo(
       index,
