@@ -5,7 +5,7 @@ import { AgencyContact } from "@/components/agency-contact";
 export const metadata: Metadata = {
   title: "Selected website work",
   description:
-    "Explore Orbisy’s website work for Rescue Battery Shop and Rescue Tow Truck.",
+    "Explore Orbisy’s live website work and an illustrative look inside the website design process.",
   alternates: { canonical: "/work" },
   openGraph: { url: "/work" },
 };
@@ -19,8 +19,9 @@ export default function Page() {
             <p className="eyebrow">Orbisy’s portfolio</p>
             <h1>Websites built for real service businesses.</h1>
             <p className="hero-lede">
-              Explore two website projects for towing and mobile battery
-              service, with implementation details and links to the live sites.
+              Explore live website projects for towing and mobile battery
+              service, plus an illustrative look at wireframing, visual design,
+              and refinement.
             </p>
           </div>
         </section>

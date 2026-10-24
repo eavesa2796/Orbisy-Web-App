@@ -10,6 +10,7 @@ import { generateMetadata as campaignMetadata } from "@/app/campaigns/[offer]/pa
 import WorkPage from "@/app/work/page";
 import manifest from "@/app/manifest";
 import robots from "@/app/robots";
+import { industries } from "@/lib/industries";
 import sitemap from "@/app/sitemap";
 import { analyticsEventSchema } from "@/lib/analytics";
 
@@ -82,6 +83,10 @@ describe("Orbisy agency public site", () => {
       "/google-ads",
       "/local-seo",
       "/custom-development",
+      "/automated-follow-up",
+      "/website-maintenance",
+      "/industries",
+      ...industries.map((industry) => `/industries/${industry.slug}`),
       "/towing-marketing",
       "/work",
       "/pricing",

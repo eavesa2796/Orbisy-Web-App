@@ -72,6 +72,9 @@ export function EngagementPage({ engagement: e }: { engagement: Engagement }) {
               <article>
                 <h3>How pricing works</h3>
                 <p>{e.pricing}</p>
+                <Link href="/pricing" className="text-link">
+                  View pricing & packages →
+                </Link>
               </article>
             </div>
           </div>

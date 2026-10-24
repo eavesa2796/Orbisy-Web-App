@@ -123,6 +123,10 @@ export const supportingOffers = [
 
 export const pricingAddOns = [
   [
+    "Automated lead follow-up",
+    "A scoped workflow for inquiry acknowledgment, owner alerts, and appropriate follow-up with human handoff.",
+  ],
+  [
     "Additional website pages",
     "Extra service, location, or campaign pages beyond your package.",
   ],

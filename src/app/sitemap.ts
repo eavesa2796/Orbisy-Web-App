@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { industries } from "@/lib/industries";
 import { siteConfig } from "@/lib/config";
 
 export default function sitemap(): MetadataRoute.Sitemap {
@@ -8,6 +9,10 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/google-ads",
     "/local-seo",
     "/custom-development",
+    "/automated-follow-up",
+    "/website-maintenance",
+    "/industries",
+    ...industries.map((industry) => `/industries/${industry.slug}`),
     "/towing-marketing",
     "/work",
     "/pricing",

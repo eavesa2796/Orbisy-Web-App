@@ -143,5 +143,85 @@ export const engagements = [
     ],
     service: "Custom development or integrations",
   },
+  {
+    slug: "automated-follow-up",
+    title: "Automated lead follow-up",
+    shortTitle: "Automated lead follow-up",
+    eyebrow: "Connect the inquiry to the next conversation",
+    headline: "A clear next step after someone gets in touch.",
+    description:
+      "We scope and implement follow-up workflows around your website inquiries, team, and existing tools. Start with one lead source, appropriate acknowledgments, owner notifications, and a clear human handoff.",
+    fit: "For service businesses that want a consistent process for new inquiries and unanswered estimates, without losing control of customer conversations.",
+    deliverables: [
+      "A map of one agreed lead source, workflow, ownership, and stop conditions",
+      "Approved acknowledgment messages, team alerts, and appropriate follow-up steps",
+      "Integration with supported forms or existing tools, with consent and opt-out handling where relevant",
+      "Testing of replies, duplicate events, failures, handoffs, and agreed monitoring",
+    ],
+    onboarding: [
+      "Walk through how an inquiry is received, answered, quoted, and closed today.",
+      "Confirm platform access, messaging permissions, delivery costs, and the smallest useful workflow.",
+      "Approve message wording, test the workflow with agreed cases, and confirm who monitors it before launch.",
+    ],
+    responsibilities:
+      "Provide access to the agreed systems, approved messages and business rules, a responsible team contact, and appropriate messaging permissions. Your team confirms actual availability, quotes, bookings, and dispatch. Software accounts and usage costs are agreed separately.",
+    pricing:
+      "Custom quote for setup and any agreed ongoing monitoring. Software subscriptions, phone numbers, SMS/email usage, AI usage, and custom integrations are itemized separately. The first engagement defines the lead source and workflow; it is not unlimited messaging or a standalone AI receptionist subscription.",
+    faq: [
+      [
+        "Does this automatically answer phone calls?",
+        "AI voice reception is a separate scope. The initial offer focuses on agreed inquiry and estimate follow-up workflows. Missed-call text-back requires compatible phone routing, suitable messaging permissions, and provider setup.",
+      ],
+      [
+        "When does the sequence stop?",
+        "We agree on stop conditions for customer replies, bookings, closed requests, opt-outs, and human takeover. Those paths and failure handling are tested before activating the workflow.",
+      ],
+      [
+        "Will it promise availability or book work automatically?",
+        "Not unless a supported, tested booking integration is explicitly included. Acknowledgments should say a request was received; they should not invent a price, dispatch decision, or arrival time.",
+      ],
+    ],
+    service: "Automated lead follow-up",
+  },
+  {
+    slug: "website-maintenance",
+    title: "Website maintenance & support",
+    shortTitle: "Website care & support",
+    eyebrow: "Keep the useful details current",
+    headline: "A maintained website. A clear support scope.",
+    description:
+      "Monitoring, applicable updates, and agreed content edits for your existing website. Start with a review of the platform and site condition, then define the work and support process in writing.",
+    fit: "For businesses that need a reliable way to request small changes and keep an existing website maintained.",
+    deliverables: [
+      "An initial compatibility and access review for the website and hosting platform",
+      "Agreed monitoring, applicable software updates, and backups where supported",
+      "A defined allowance for minor content changes and a clear request channel",
+      "Written inclusions, exclusions, escalation process, and ongoing support terms",
+    ],
+    onboarding: [
+      "Review your existing platform, hosting, access, licenses, and site condition.",
+      "Agree on maintenance tasks, edit allowance, third-party costs, and response expectations.",
+      "Confirm the monitoring and update process and how your team requests changes.",
+    ],
+    responsibilities:
+      "Maintain access to your domain, hosting, and paid tools; provide approved replacement content and images you have rights to use. Let Orbisy know about business changes. Emergency response expectations and any recovery work must be separately agreed.",
+    pricing:
+      "Website Care is $125/month for the published scope: monitoring, applicable software updates, supported backups, and up to 30 minutes of minor content edits each month. Existing-site compatibility is reviewed first. Hosting, paid tools, new functionality, larger changes, and additional support are separate.",
+    faq: [
+      [
+        "Does care include hosting or a redesign?",
+        "No. Hosting, domains, licenses, redesigns, and new features are separate unless your written proposal explicitly includes them.",
+      ],
+      [
+        "Can you maintain a site someone else built?",
+        "We review the platform, code or account access, and current condition first. Any required cleanup or unsupported integrations are discussed before agreeing to ongoing care.",
+      ],
+      [
+        "Is emergency or round-the-clock support included?",
+        "Not by default. Your written scope sets response expectations, the request channel, and any separately agreed urgent support.",
+      ],
+    ],
+    service: "Website maintenance and support",
+  },
 ] as const;
 export type Engagement = (typeof engagements)[number];

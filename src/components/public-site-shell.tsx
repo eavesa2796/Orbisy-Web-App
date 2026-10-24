@@ -1,6 +1,10 @@
 import { Mail } from "lucide-react";
 import Link from "next/link";
 import { OrbisyLogo } from "@/components/orbisy-logo";
+import { serviceNavigation, industryNavigation } from "@/lib/public-navigation";
+import { PublicNavigation } from "@/components/public-navigation";
+import "@/components/public-navigation.css";
+import "@/components/industry-page.css";
 import { TrackLink } from "@/components/track-link";
 
 export function PublicHeader() {
@@ -10,13 +14,10 @@ export function PublicHeader() {
         <Link className="public-brand" href="/" aria-label="Orbisy home">
           <OrbisyLogo className="public-brand-logo" priority />
         </Link>
-        <nav aria-label="Public navigation">
-          <Link href="/#services">Services</Link>
-          <Link href="/towing-marketing">Towing</Link>
-          <Link href="/#about">About</Link>
-          <Link href="/work">Our work</Link>
-          <Link href="/pricing">Pricing</Link>
-        </nav>
+        <PublicNavigation
+          services={serviceNavigation}
+          industries={industryNavigation}
+        />
         <TrackLink
           className="button button-small"
           href="/#contact"
@@ -53,6 +54,9 @@ export function PublicFooter() {
           <Link href="/google-ads">Google Ads</Link>
           <Link href="/local-seo">Local SEO</Link>
           <Link href="/custom-development">Custom development</Link>
+          <Link href="/automated-follow-up">Automated follow-up</Link>
+          <Link href="/website-maintenance">Website maintenance</Link>
+          <Link href="/industries">Industries we help</Link>
           <Link href="/towing-marketing">Towing marketing</Link>
           <Link href="/work">Selected work</Link>
           <Link href="/pricing">Pricing & packages</Link>
