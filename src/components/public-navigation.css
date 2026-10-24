@@ -1,0 +1,309 @@
+.site-header {
+  isolation: isolate;
+}
+.site-header nav.orbisy-navigation {
+  align-items: center;
+  gap: 25px;
+}
+.orbisy-navigation > a,
+.nav-disclosure > summary {
+  font-size: 0.84rem;
+}
+.nav-disclosure > summary {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  padding: 12px 0;
+  color: var(--muted);
+  cursor: pointer;
+  list-style: none;
+  transition: color 0.2s;
+}
+.nav-disclosure > summary::-webkit-details-marker {
+  display: none;
+}
+.nav-disclosure > summary:hover,
+.nav-disclosure[open] > summary {
+  color: var(--accent-2);
+}
+.nav-disclosure > summary > svg:first-child {
+  color: var(--accent);
+}
+.nav-chevron {
+  transition: transform 0.2s;
+}
+.nav-disclosure[open] .nav-chevron {
+  transform: rotate(180deg);
+}
+.nav-disclosure > summary:focus-visible,
+.orbisy-navigation a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 5px;
+  border-radius: 5px;
+}
+.orbisy-mega-panel {
+  position: absolute;
+  top: calc(100% - 1px);
+  left: 50%;
+  width: min(1120px, calc(100vw - 48px));
+  transform: translateX(-50%);
+  display: grid;
+  grid-template-columns: 1fr 310px;
+  border: 1px solid rgba(101, 214, 255, 0.4);
+  border-radius: 0 0 24px 24px;
+  background: linear-gradient(135deg, #11182a, #0a1020 65%);
+  box-shadow:
+    0 35px 90px rgba(0, 0, 0, 0.65),
+    0 0 35px rgba(101, 214, 255, 0.08);
+  max-height: calc(100dvh - 145px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.nav-disclosure[open] .orbisy-mega-panel {
+  animation: mega-reveal 0.23s ease-out;
+}
+@keyframes mega-reveal {
+  from {
+    opacity: 0;
+    translate: 0 -10px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+.mega-main {
+  padding: 32px;
+}
+.mega-main h2 {
+  font-size: 1.45rem;
+  margin-top: 14px;
+  margin-bottom: 25px;
+  letter-spacing: -0.03em;
+}
+.mega-link-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.site-header nav .mega-link {
+  display: grid;
+  grid-template-columns: 22px 1fr 16px;
+  align-items: start;
+  gap: 10px;
+  padding: 15px 13px;
+  border: 1px solid rgba(255, 255, 255, 0.065);
+  border-radius: 12px;
+  color: var(--text);
+  white-space: normal;
+  background: rgba(255, 255, 255, 0.015);
+  transition:
+    background 0.2s,
+    border-color 0.2s,
+    translate 0.2s;
+}
+.site-header nav .mega-link:hover {
+  background: rgba(101, 214, 255, 0.075);
+  border-color: rgba(131, 245, 199, 0.45);
+  translate: 0 -2px;
+}
+.mega-link strong {
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1.45;
+  display: block;
+}
+.mega-link small {
+  display: block;
+  color: var(--muted);
+  font-size: 0.71rem;
+  line-height: 1.65;
+  margin-top: 7px;
+}
+.mega-link-index {
+  color: var(--accent);
+  font-size: 0.66rem;
+  margin-top: 4px;
+}
+.mega-link > svg {
+  color: var(--accent-2);
+  margin-top: 3px;
+}
+.site-header nav .mega-footer-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 24px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+  color: var(--accent-2);
+  font-size: 0.8rem;
+}
+.mega-feature {
+  position: relative;
+  overflow: hidden;
+  padding: 32px 24px;
+  border-left: 1px solid rgba(101, 214, 255, 0.18);
+  background: radial-gradient(
+    ellipse at top right,
+    rgba(101, 214, 255, 0.15),
+    transparent 70%
+  );
+}
+.mega-feature .eyebrow {
+  position: relative;
+  font-size: 0.62rem;
+  line-height: 1.7;
+}
+.mega-feature img {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin-top: 25px;
+  border-radius: 10px;
+  border: 1px solid rgba(101, 214, 255, 0.25);
+  position: relative;
+}
+.mega-feature h3 {
+  margin-top: 24px;
+  font-size: 1.6rem;
+  line-height: 1.2;
+  letter-spacing: -0.035em;
+  position: relative;
+}
+.mega-feature > p:not(.eyebrow) {
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.8;
+  margin-top: 18px;
+}
+.site-header nav .mega-feature .text-link {
+  display: inline-block;
+  color: var(--accent-2);
+  font-size: 0.74rem;
+  margin-top: 24px;
+  white-space: normal;
+  line-height: 1.7;
+}
+.mega-orbit {
+  position: absolute;
+  width: 280px;
+  height: 110px;
+  top: -20px;
+  right: -110px;
+  border: 1px solid rgba(131, 245, 199, 0.45);
+  border-radius: 50%;
+  transform: rotate(-30deg);
+  box-shadow: 0 0 35px rgba(101, 214, 255, 0.13);
+  pointer-events: none;
+}
+.portfolio-grid .portfolio-process {
+  grid-column: 1 / -1;
+}
+.portfolio-carousel .portfolio-project.portfolio-process {
+  grid-template-columns: 1fr;
+  gap: 28px;
+}
+.process-artwork {
+  margin: 0;
+}
+.process-artwork img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+}
+.process-artwork figcaption {
+  color: var(--muted);
+  margin-top: 14px;
+  font-size: 0.78rem;
+  line-height: 1.7;
+}
+.portfolio-process .project-copy {
+  max-width: 850px;
+}
+.portfolio-process .project-copy > p:not(.eyebrow) {
+  line-height: 1.85;
+}
+@media (max-width: 980px) {
+  .site-header nav.orbisy-navigation {
+    gap: 24px;
+  }
+  .orbisy-mega-panel {
+    grid-template-columns: 1fr 250px;
+  }
+  .mega-main {
+    padding: 24px;
+  }
+  .mega-feature {
+    padding: 25px 20px;
+  }
+}
+@media (max-width: 760px) {
+  .orbisy-mega-panel {
+    grid-template-columns: 1fr;
+    max-height: calc(100dvh - 155px);
+    width: calc(100vw - 24px);
+  }
+  .mega-feature {
+    display: none;
+  }
+  .mega-main {
+    padding: 24px 18px;
+  }
+  .mega-main h2 {
+    font-size: 1.2rem;
+  }
+  .site-header nav.orbisy-navigation {
+    gap: 18px;
+  }
+  .mega-link-grid {
+    gap: 8px;
+  }
+  .site-header nav .mega-link {
+    grid-template-columns: 1fr 15px;
+    padding: 14px 12px;
+  }
+  .mega-link-index {
+    display: none;
+  }
+  .mega-link strong {
+    font-size: 0.8rem;
+  }
+}
+@media (max-width: 400px) {
+  .site-header nav.orbisy-navigation {
+    gap: 12px;
+  }
+  .orbisy-navigation > a,
+  .nav-disclosure > summary {
+    font-size: 0.74rem;
+  }
+  .nav-disclosure > summary {
+    gap: 4px;
+  }
+  .nav-disclosure > summary > svg:first-child {
+    display: none;
+  }
+  .mega-link-grid {
+    grid-template-columns: 1fr;
+  }
+  .site-header nav .mega-link {
+    padding: 13px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nav-disclosure[open] .orbisy-mega-panel {
+    animation: none;
+  }
+  .mega-link,
+  .nav-chevron {
+    transition: none !important;
+  }
+}
+
+/* Let the carousel measure each slide independently as its content changes. */
+.portfolio-track {
+  align-items: flex-start;
+}

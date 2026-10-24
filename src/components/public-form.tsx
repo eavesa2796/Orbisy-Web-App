@@ -232,6 +232,8 @@ export function PublicForm({
                 <option>Google Ads / PPC management</option>
                 <option>Local SEO</option>
                 <option>Custom development or integrations</option>
+                <option>Automated lead follow-up</option>
+                <option>Website maintenance and support</option>
                 <option>Website and marketing package</option>
                 <option>Not sure yet</option>
               </select>

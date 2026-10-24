@@ -87,11 +87,11 @@ export default function Home() {
                 </TrackLink>
                 <TrackLink
                   className="text-link"
-                  href="/towing-marketing"
+                  href="/industries"
                   eventName="secondary_cta_click"
-                  componentId="hero_towing"
+                  componentId="hero_industries"
                 >
-                  For towing businesses
+                  Explore industries
                 </TrackLink>
               </div>
               <ul className="hero-points" aria-label="How Orbisy works">
@@ -109,14 +109,14 @@ export default function Home() {
                 {projects.map((project, index) => (
                   <div key={project.name}>
                     <Link
-                      href={`/work#${index === 0 ? "rescue-battery-shop" : "rescue-tow-truck"}`}
+                      href={`/work#${project.id}`}
                       className="hero-project-image"
                     >
                       <Image
                         src={project.image}
-                        alt={`${project.name} website from Orbisy’s portfolio`}
-                        width={1348}
-                        height={926}
+                        alt={project.alt}
+                        width={project.width}
+                        height={project.height}
                         priority={index === 0}
                         sizes="(max-width: 980px) 100vw, 45vw"
                       />

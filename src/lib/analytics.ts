@@ -40,6 +40,7 @@ export const analyticsEventSchema = z
       .enum([
         "hero_project_request",
         "hero_towing",
+        "hero_industries",
         "nav_project_request",
         "towing_project_request",
         "service_web_design",
