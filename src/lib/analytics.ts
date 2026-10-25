@@ -41,6 +41,7 @@ export const analyticsEventSchema = z
         "hero_project_request",
         "hero_towing",
         "hero_industries",
+        "hero_plans",
         "nav_project_request",
         "towing_project_request",
         "service_web_design",

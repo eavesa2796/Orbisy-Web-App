@@ -13,9 +13,9 @@ import sitemap from "@/app/sitemap";
 describe("Industry pages and honest portfolio evidence", () => {
   it("generates every linked industry with its own metadata, useful content, and inquiry context", async () => {
     const paths = sitemap().map((item) => new URL(item.url).pathname);
-    expect(industryNavigation).toHaveLength(8);
+    expect(industryNavigation).toHaveLength(9);
     expect(serviceNavigation).toHaveLength(6);
-    expect(generateStaticParams()).toHaveLength(7);
+    expect(generateStaticParams()).toHaveLength(8);
     for (const industry of industries) {
       const html = renderToStaticMarkup(<IndustryPage industry={industry} />);
       expect(html).toContain(industry.headline.replaceAll("&", "&amp;"));

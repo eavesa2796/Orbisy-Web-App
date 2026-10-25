@@ -44,8 +44,8 @@ export function PublicFooter() {
             <OrbisyLogo className="footer-brand-logo" />
           </Link>
           <p>
-            Web design, Google Ads, local SEO, and custom development for
-            service businesses.
+            Websites, Google Ads, local SEO, custom software, and follow-up
+            for restaurants and local businesses.
           </p>
         </div>
         <div>
@@ -57,6 +57,7 @@ export function PublicFooter() {
           <Link href="/automated-follow-up">Automated follow-up</Link>
           <Link href="/website-maintenance">Website maintenance</Link>
           <Link href="/industries">Industries we help</Link>
+          <Link href="/industries/restaurants">Restaurant websites & marketing</Link>
           <Link href="/towing-marketing">Towing marketing</Link>
           <Link href="/work">Selected work</Link>
           <Link href="/pricing">Pricing & packages</Link>

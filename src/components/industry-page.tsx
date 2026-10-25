@@ -139,6 +139,16 @@ export function IndustryPage({ industry: i }: { industry: Industry }) {
                   "Accurate business information and useful local service content.",
                 ],
                 [
+                  "/custom-development",
+                  "Custom software & integrations",
+                  "Booking connections, internal tools, and workflows scoped around your systems.",
+                ],
+                [
+                  "/website-maintenance",
+                  "Website care & updates",
+                  "Keep approved content, hours, menus, and service details current within an agreed allowance.",
+                ],
+                [
                   "/automated-follow-up",
                   "Automated follow-up",
                   "Agreed acknowledgments, owner alerts, and human handoffs.",
