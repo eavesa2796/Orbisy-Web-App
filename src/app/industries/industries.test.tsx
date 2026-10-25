@@ -42,12 +42,16 @@ describe("Industry pages and honest portfolio evidence", () => {
       ).rejects.toThrow();
   });
   it("adds the supplied concept as a third portfolio slide with a unique anchor and explanation", () => {
-    expect(projects).toHaveLength(3);
+    expect(projects).toHaveLength(4);
     const html = renderToStaticMarkup(<Portfolio carousel />);
     expect(html).toContain('id="orbisy-design-process"');
     expect(html).toContain("orbisy-design-process.webp");
     expect(html).toContain("not a live website or completed client project");
     expect(html).toContain("Wireframe: agree on the page structure");
+    expect(html).toContain('id="orbisy-operations-dashboard"');
+    expect(html).toContain("Work in progress · Visual dashboard concept with sample data");
+    expect(html).toContain("Custom software you didn’t know you needed.");
+    expect(html).toContain('href="/custom-development"');
     expect(new Set(projects.map((project) => project.id)).size).toBe(
       projects.length,
     );

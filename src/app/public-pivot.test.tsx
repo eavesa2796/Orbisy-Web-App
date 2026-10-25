@@ -32,10 +32,10 @@ describe("Orbisy agency public site", () => {
     const heroSlides = [...page.querySelectorAll(".hero-project .portfolio-slide")];
     const workSlides = [...page.querySelectorAll("#work .portfolio-slide")];
     expect(heroSlides.map((slide) => slide.getAttribute("aria-label"))).toEqual([
-      "1 of 3: The Orbisy design process", "2 of 3: Rescue Battery Shop", "3 of 3: Rescue Tow Truck",
+      "1 of 4: The Orbisy design process", "2 of 4: Rescue Battery Shop", "3 of 4: Rescue Tow Truck", "4 of 4: Orbisy operations dashboard",
     ]);
     expect(workSlides.map((slide) => slide.getAttribute("aria-label"))).toEqual([
-      "1 of 3: Rescue Battery Shop", "2 of 3: Rescue Tow Truck", "3 of 3: The Orbisy design process",
+      "1 of 4: Rescue Battery Shop", "2 of 4: Rescue Tow Truck", "3 of 4: The Orbisy design process", "4 of 4: Orbisy operations dashboard",
     ]);
   });
 

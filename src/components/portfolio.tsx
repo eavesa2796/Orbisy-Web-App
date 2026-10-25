@@ -60,6 +60,25 @@ export const projects = [
       "Refine: review the design together and prepare it for implementation",
     ],
   },
+  {
+    id: "orbisy-operations-dashboard",
+    kind: "work-in-progress",
+    width: 1600,
+    height: 1000,
+    name: "Orbisy operations dashboard",
+    image: "/work/orbisy-operations-dashboard.svg",
+    url: "/custom-development",
+    alt: "Work-in-progress Orbisy custom software dashboard concept showing sample inquiries, projects, follow-ups, and workflow activity",
+    tag: "Custom software · Work in progress",
+    summary: "Custom software you didn’t know you needed.",
+    details:
+      "The spreadsheet you keep updating. The inquiry that gets lost between tools. The follow-up you have to remember. Orbisy builds custom software around the overlooked parts of running your business. This work-in-progress dashboard concept explores bringing inquiries, project progress, and next steps into one useful workspace. It is an illustrative direction with sample data; the features shown are not live.",
+    points: [
+      "Start with the friction: repeated tasks, scattered information, and missed handoffs",
+      "Design around your team’s workflow, with only the features you need",
+      "Scope dashboards, client portals, integrations, and automation around the problem",
+    ],
+  },
 ] as const;
 export function Portfolio({
   full = false,
@@ -87,8 +106,8 @@ export function Portfolio({
             </h2>
           </div>
           <p>
-            Live website work and a look inside the Orbisy design process. The
-            process artwork is an illustrative concept; campaign results are not
+            Live website work, the Orbisy design process, and a custom dashboard
+            concept in progress. Concepts are labeled; campaign results are not
             presented here.
           </p>
         </div>
@@ -101,7 +120,7 @@ export function Portfolio({
         )}
         <p className="portfolio-note">
           Live-site screenshots captured October 3, 2026. Website content may
-          change after capture. The design-process artwork is illustrative.
+          change after capture. The design-process artwork and work-in-progress dashboard are illustrative; dashboard data is sample data.
         </p>
       </div>
     </section>
@@ -126,7 +145,7 @@ export function PortfolioProject({
   );
   return (
     <article
-      className={`portfolio-project${p.kind === "concept" ? " portfolio-process" : ""}`}
+      className={`portfolio-project${p.kind !== "website" ? " portfolio-process" : ""}`}
       id={p.id}
     >
       {p.kind === "website" ? (
@@ -149,8 +168,9 @@ export function PortfolioProject({
         <figure className="process-artwork">
           {image}
           <figcaption>
-            Illustrative design concept — not a live website or completed client
-            project.
+            {p.kind === "work-in-progress"
+              ? "Work in progress · Visual dashboard concept with sample data. Not a live application or completed client project."
+              : "Illustrative design concept — not a live website or completed client project."}
           </figcaption>
         </figure>
       )}
@@ -158,7 +178,7 @@ export function PortfolioProject({
         <p className="eyebrow">{p.tag}</p>
         <h3>{p.name}</h3>
         <p className="project-summary">{p.summary}</p>
-        {(full || p.kind === "concept") && (
+        {(full || p.kind !== "website") && (
           <>
             <p>{p.details}</p>
             <ul>
@@ -178,15 +198,15 @@ export function PortfolioProject({
             Visit live website ↗
           </a>
         ) : (
-          <Link className="text-link" href="/web-design">
-            Explore website design →
+          <Link className="text-link" href={p.url}>
+            {p.kind === "work-in-progress" ? "Explore custom software →" : "Explore website design →"}
           </Link>
         )}
         {!full && (
           <Link className="text-link" href={`/work#${p.id}`}>
             {p.kind === "concept"
               ? "Explore our design process"
-              : "Project details"}{" "}
+              : p.kind === "work-in-progress" ? "Explore the dashboard concept" : "Project details"}{" "}
             →
           </Link>
         )}
