@@ -128,6 +128,7 @@ export default function Home() {
                       />
                     </Link>
                     <div className="hero-slide-copy">
+                      {project.kind === "work-in-progress" && <p className="eyebrow">Work in progress · Dashboard concept</p>}
                       <h2>{project.name}</h2>
                       <p>{project.summary}</p>
                       <Link className="text-link" href="/work">
