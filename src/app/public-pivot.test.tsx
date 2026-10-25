@@ -27,6 +27,27 @@ describe("Orbisy agency public site", () => {
     }
     expect(renderToStaticMarkup(<WorkPage />)).toContain("<h1>");
   });
+  it("leads with the process artwork only in the hero carousel", () => {
+    const page = new DOMParser().parseFromString(renderToStaticMarkup(<Home />), "text/html");
+    const heroSlides = [...page.querySelectorAll(".hero-project .portfolio-slide")];
+    const workSlides = [...page.querySelectorAll("#work .portfolio-slide")];
+    expect(heroSlides.map((slide) => slide.getAttribute("aria-label"))).toEqual([
+      "1 of 3: The Orbisy design process", "2 of 3: Rescue Battery Shop", "3 of 3: Rescue Tow Truck",
+    ]);
+    expect(workSlides.map((slide) => slide.getAttribute("aria-label"))).toEqual([
+      "1 of 3: Rescue Battery Shop", "2 of 3: Rescue Tow Truck", "3 of 3: The Orbisy design process",
+    ]);
+  });
+
+  it("links each related service as a complete card with its own graphic", () => {
+    for (const current of engagements) {
+      const page = new DOMParser().parseFromString(renderToStaticMarkup(<EngagementPage engagement={current} />), "text/html");
+      const cards = [...page.querySelectorAll(".related-service-card")];
+      expect(cards.map((card) => card.getAttribute("href"))).toEqual(engagements.filter((item) => item.slug !== current.slug).map((item) => `/${item.slug}`));
+      expect(new Set(cards.map((card) => card.querySelector(".service-art-blueprint path")?.getAttribute("d"))).size).toBe(5);
+    }
+  });
+
   it("limits campaign pages to explicit offers and keeps them noindex", async () => {
     expect(
       (
