@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, Check } from "lucide-react";
+import { ArrowRight, Check, Globe2, TrendingUp, Workflow } from "lucide-react";
 import { AgencyContact } from "@/components/agency-contact";
 import { PublicFooter, PublicHeader } from "@/components/public-site-shell";
 import {
@@ -8,30 +8,43 @@ import {
   pricingAddOns,
   publicPackages,
   supportingOffers,
+  subscriptionPlans,
 } from "@/lib/public-pricing";
 import "./pricing.css";
 
 export const metadata: Metadata = {
   title: "Pricing & Packages",
   description:
-    "Explore Orbisy website packages, Google Ads management, local SEO setup, website care, and custom development. Clear scope, fees, and next steps.",
+    "Compare Starter at $299/month, Growth at $999/month, and Complete at $2,499/month, plus one-time website projects and individual services. Onboarding and ad spend separate.",
   alternates: { canonical: "/pricing" },
   openGraph: {
     title: "Pricing & Packages | Orbisy",
     description:
-      "Choose a clear starting point for your website and marketing.",
+      "Monthly website, marketing, and custom software support with defined scope. Starter, Growth, and Complete plans, plus individual projects.",
     url: "/pricing",
   },
 };
 
 const faqs = [
   [
+    "Does a monthly plan include a new website build?",
+    "The monthly prices cover ongoing support for the agreed scope. A new website, initial campaign or workflow setup, major remediation, and onboarding are quoted separately. We review your existing site and tools first and itemize these costs before you commit.",
+  ],
+  [
+    "Does Complete mean unlimited work?",
+    "Complete gives you access to every service category with defined capacity. It includes four hours of custom development each month through one prioritized request queue, alongside the listed Growth services. Additional website, landing-page, SEO, workflow, and integration work needs an agreed monthly scope. Large applications and work beyond that capacity are quoted separately.",
+  ],
+  [
+    "How are monthly hours, scheduling, and cancellation handled?",
+    "Your written proposal confirms the work queue, monthly deliverables, how time is recorded, any unused-time or rollover rules, billing start date, initial term if applicable, cancellation, ownership, and handover. Priority scheduling is not a 24/7 support or guaranteed response-time commitment. We agree on these details before a subscription starts.",
+  ],
+  [
     "Are these prices in US dollars?",
     "Yes. All listed amounts are in USD. The prices cover the scope described here. Your written proposal confirms applicable taxes, payment schedule, deliverables, and any agreed extras before paid work begins.",
   ],
   [
     "Is Google advertising spend included?",
-    "No. Google Ads costs $750 for setup and $500 per month for the management scope listed above. Your advertising budget is additional and paid directly to Google from your own account. Landing pages and third-party tools are separate. Any change to management scope is agreed before additional work.",
+    "No. Your advertising budget is additional and paid directly to Google from your own account. Growth and Complete include the listed Google Ads management scope in their monthly fee; do not add the standalone management fee again. Standalone Google Ads is $750 setup plus $500/month management. Plan onboarding and campaign setup are quoted separately before work begins.",
   ],
   [
     "What do I need to provide for a website?",
@@ -43,7 +56,7 @@ const faqs = [
   ],
   [
     "Are hosting and maintenance included?",
-    "Hosting, domain registration, paid licenses, and third-party subscriptions are separate unless your proposal specifically includes them. Website Care is optional and covers the monthly scope shown above.",
+    "All three monthly plans include the listed website care. Hosting, domain registration, paid licenses, messaging usage, and third-party subscriptions are separate unless your proposal specifically includes them. Standalone Website Care remains available for a smaller support scope.",
   ],
   [
     "How long does the work take?",
@@ -54,8 +67,8 @@ const faqs = [
     "Your proposal sets out the payment schedule, any deposit, billing start date, and terms for ongoing work, cancellation, ownership, and handover. Requesting a consultation does not start a subscription or commit you to paid work.",
   ],
   [
-    "Can you help a towing business or improve an existing site?",
-    "Yes. Towing and roadside assistance are a specialty, and we also work with other local service businesses. We review existing websites before recommending improvements or a rebuild. Neither SEO nor advertising includes a ranking, lead-volume, or revenue guarantee.",
+    "Do the plans work for restaurants and other local businesses?",
+    "Yes. We work with restaurants, home services, towing, and other local businesses. Towing and roadside assistance remain a specialty. We review existing websites before recommending improvements or a rebuild. Neither SEO nor advertising includes a ranking, lead-volume, or revenue guarantee.",
   ],
 ];
 
@@ -80,21 +93,22 @@ export default async function PricingPage({
                 Pricing & packages
               </p>
               <h1>
-                Clear scope.
+                One partner.
                 <br />
-                <span>A practical starting point.</span>
+                <span>A plan that fits your business.</span>
               </h1>
               <p className="hero-lede">
-                Websites, marketing, and software for local service businesses.
-                Choose the work you need now, with room to build on it later.
+                Ongoing website, marketing, and custom software support for
+                restaurants and local businesses. Choose Starter, Growth, or
+                Complete—or begin with a one-time project.
               </p>
               <div className="hero-actions">
-                <a className="button" href="#packages">
-                  Explore packages <ArrowRight size={18} aria-hidden="true" />
+                <a className="button" href="#monthly-plans">
+                  Compare monthly plans <ArrowRight size={18} aria-hidden="true" />
                 </a>
-                <Link className="text-link" href="/work">
-                  See Orbisy’s work →
-                </Link>
+                <a className="text-link" href="#packages">
+                  One-time projects & individual services →
+                </a>
               </div>
             </div>
             <aside
@@ -124,6 +138,45 @@ export default async function PricingPage({
             </aside>
           </div>
         </section>
+        <section className="section pricing-subscriptions" id="monthly-plans" aria-labelledby="monthly-plans-heading">
+          <div className="container">
+            <div className="section-heading split-heading">
+              <div>
+                <p className="eyebrow"><span />Ongoing partnership</p>
+                <h2 id="monthly-plans-heading">Start with the essentials.<br />Build toward a connected business.</h2>
+              </div>
+              <p>Three monthly plans. A clear scope for each. Initial builds and onboarding are quoted separately, and advertising spend is always additional.</p>
+            </div>
+            <div className="pricing-package-grid subscription-plan-grid">
+              {subscriptionPlans.map((plan) => {
+                const Icon = { starter: Globe2, growth: TrendingUp, complete: Workflow }[plan.id];
+                return (
+                  <article key={plan.id} className={`pricing-package subscription-plan${plan.featured ? " pricing-package-featured" : ""}${plan.id === "complete" ? " subscription-complete" : ""}`} aria-labelledby={`${plan.id}-heading`}>
+                    <div className="pricing-package-top">
+                      <span className="subscription-icon"><Icon size={27} strokeWidth={1.5} aria-hidden="true" /></span>
+                      <span className="pricing-recommendation">{plan.id === "starter" ? "The essentials" : plan.id === "growth" ? "For ongoing marketing" : "Every service category"}</span>
+                    </div>
+                    <h3 id={`${plan.id}-heading`}>{plan.name}</h3>
+                    <p className="pricing-fit">{plan.fit}</p>
+                    <div className="pricing-amount"><strong>{plan.price}</strong><span>{plan.billing}</span></div>
+                    <p className="pricing-setup">Onboarding quoted separately · USD</p>
+                    <p className="pricing-description">{plan.description}</p>
+                    <ul className="pricing-features">{plan.features.map((feature) => <li key={feature}><Check size={17} aria-hidden="true" /><span>{feature}</span></li>)}</ul>
+                    <p className="pricing-scope">{plan.scope}</p>
+                    <a className="button pricing-package-cta" href={`/pricing?package=${plan.id}#contact`} aria-label={`Request a consultation about ${plan.name}`}>
+                      Explore {plan.name}<ArrowRight size={17} aria-hidden="true" />
+                    </a>
+                  </article>
+                );
+              })}
+            </div>
+            <div className="subscription-boundaries">
+              <div><h3>Start with the right foundation.</h3><p>We review your site, accounts, tools, and content. New builds, campaign or workflow setup, and onboarding receive a separate written quote.</p></div>
+              <div><h3>Know what the monthly fee covers.</h3><p>One business website; Growth and Complete cover one Ads account, one local market, and one business location. Extra locations, tools, messaging usage, and ad spend are separate unless explicitly included.</p></div>
+              <div><h3>Agree on the work before it starts.</h3><p>Your proposal confirms monthly capacity, priorities, unused-time rules, scheduling, cancellation, and ownership. Requesting a consultation does not start a subscription or charge a payment.</p></div>
+            </div>
+          </div>
+        </section>
         <section
           className="section pricing-packages"
           id="packages"
@@ -133,15 +186,16 @@ export default async function PricingPage({
             <div className="section-heading">
               <p className="eyebrow">
                 <span />
-                Choose your starting point
+                One-time projects & individual services
               </p>
               <h2 id="packages-heading">
                 A focused page.
                 <br />A complete site. A search campaign.
               </h2>
               <p>
-                Each price covers the scope below. We confirm the fit and
-                itemize any additional work in your proposal.
+                Prefer a specific project or a standalone service? These offers
+                remain available alongside the monthly plans. Each price covers
+                the listed scope, with extras itemized in your proposal.
               </p>
             </div>
             <div className="pricing-package-grid">
@@ -180,15 +234,15 @@ export default async function PricingPage({
                     ))}
                   </ul>
                   <p className="pricing-scope">{offer.scope}</p>
-                  <Link
+                  <a
                     className="button pricing-package-cta"
                     href={`/pricing?package=${offer.id}#contact`}
-                    prefetch={false}
+                   
                     aria-label={`Request a consultation about ${offer.name}`}
                   >
                     Request a consultation{" "}
                     <ArrowRight size={17} aria-hidden="true" />
-                  </Link>
+                  </a>
                   <Link
                     className="text-link pricing-details"
                     href={offer.detailHref}
@@ -199,12 +253,13 @@ export default async function PricingPage({
               ))}
             </div>
             <div className="pricing-ad-note">
-              <strong>Planning for Google Ads?</strong>
+              <strong>Standalone Google Ads</strong>
               <p>
-                The first month’s Orbisy fees are $1,250 ($750 setup + $500
+                For the standalone service, the first month’s Orbisy fees are $1,250 ($750 setup + $500
                 management), plus your separate Google advertising budget and
                 any agreed extras. Ongoing management is $500/month for the
-                listed scope.
+                listed scope. Growth and Complete already include their listed
+                management scope; the standalone management fee is not added to those plans.
               </p>
             </div>
           </div>
@@ -255,14 +310,14 @@ export default async function PricingPage({
                   <div className="pricing-support-price">
                     <strong>{offer.price}</strong>
                     <span>{offer.billing}</span>
-                    <Link
+                    <a
                       className="text-link"
                       href={`/pricing?package=${offer.id}#contact`}
-                      prefetch={false}
+                     
                       aria-label={`Request a consultation about ${offer.name}`}
                     >
                       Request a consultation →
-                    </Link>
+                    </a>
                   </div>
                 </article>
               ))}

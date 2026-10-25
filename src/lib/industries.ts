@@ -1,5 +1,29 @@
 export const industries = [
   {
+    slug: "restaurants", name: "Restaurants", shortName: "Restaurants", icon: "utensils",
+    headline: "From finding your restaurant to choosing the next visit.",
+    intro: "Your food brings people back. Your website should make the first visit easier. Orbisy helps restaurants present their menus, hours, location, and dining options clearly, connect customers with the right ordering or reservation provider, and build marketing around the experience you actually offer.",
+    focus: "For restaurants, cafés, takeout businesses, and independent dining groups.",
+    priorities: [
+      ["Make the menu easy to explore", "Use readable, mobile-friendly menus with your approved prices, photos, and dietary information. Keep hours, location, and dine-in, pickup, or delivery options easy to find."],
+      ["Connect ordering and reservations", "Give guests a clear route to your existing ordering or booking provider. Integrations depend on that provider’s capabilities and access; the website must not imply that a table or order is confirmed before the provider confirms it."],
+      ["Support local discovery", "Keep restaurant information consistent across the website and eligible business profiles. Scope local SEO and Google Ads around your location, dining options, and approved offers, with advertising spend separate."],
+    ],
+    workflow: [
+      "Catering or private-event inquiry → acknowledgment and a task for the right team member",
+      "Reservation request → handoff to your booking provider or team for confirmation",
+      "Open catering proposal → an agreed follow-up that stops on reply, closure, or opt-out",
+    ],
+    requirements: "Your current menu and approved prices, accurate hours and address, dining and ordering options, photography you can publish, access to your website and business profiles, and the details of your reservation, ordering, or POS providers. Provider subscriptions and integration fees are separate unless included in the written proposal.",
+    faq: [
+      ["Can you connect online ordering or reservations?", "Yes, where your chosen provider supports a suitable link, embed, or API. We review access, fees, mobile behavior, and confirmation handling before scoping the work. A website inquiry is not a confirmed order or table reservation."],
+      ["Can you keep our menu and seasonal information updated?", "Menu edits, hours, and approved offers can be included in a website project or the agreed monthly edit allowance. New ordering features, photography, and substantial menu restructuring are scoped separately."],
+      ["Can you build tools for catering or restaurant operations?", "We can scope catering inquiry dashboards, internal tools, integrations, and automation around a defined workflow. POS access, data permissions, and provider limitations must be reviewed first. Large custom applications receive their own project scope."],
+    ],
+    evidence: false,
+  },
+
+  {
     slug: "automotive-services",
     name: "Auto Repair & Mobile Mechanics",
     shortName: "Automotive",

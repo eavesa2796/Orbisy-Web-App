@@ -1,4 +1,55 @@
 // Deliberately public offers. Never import the private administrator pricing catalog here.
+// Approved public subscriptions. Initial builds and onboarding are quoted separately.
+export const subscriptionPlans = [
+  {
+    id: "starter", name: "Starter", price: "$299", billing: "per month",
+    fit: "A maintained online presence.",
+    description: "Keep your website current, cared for, and ready for the next inquiry.",
+    service: "Website design or redesign",
+    features: [
+      "Website monitoring, care, and applicable software updates",
+      "Up to one hour of minor website edits each month",
+      "Basic local business-information review during onboarding",
+      "Monthly website and inquiry summary, using available consented data",
+    ],
+    scope: "For one compatible business website. New website construction, major fixes, and initial onboarding are quoted separately. Advertising management and recurring SEO work are not included.",
+    priceSummary: "$299/month; website build, onboarding, and third-party costs separate",
+    featured: false,
+  },
+  {
+    id: "growth", name: "Growth", price: "$999", billing: "per month",
+    fit: "Website support and ongoing marketing.",
+    description: "Connect your website, local visibility, advertising, and the first response to an inquiry.",
+    service: "Website and marketing package",
+    features: [
+      "Everything in Starter, including its monthly website-edit allowance",
+      "Google Ads management: one account, one local market, up to two Search campaigns",
+      "Ongoing local SEO for one business location, with monthly priorities and deliverables agreed in writing",
+      "One basic inquiry acknowledgment and owner-notification workflow",
+      "Monthly performance review and next-step priorities",
+    ],
+    scope: "Campaign and workflow setup are part of separately quoted onboarding. Google Ads management is included in the plan fee; ad spend is additional, paid directly to Google. Paid tools and messaging usage are separate.",
+    priceSummary: "$999/month; onboarding, ad spend, and third-party costs separate",
+    featured: true,
+  },
+  {
+    id: "complete", name: "Complete", price: "$2,499", billing: "per month",
+    fit: "One partner across Orbisy’s services.",
+    description: "One partner for your website, marketing, and the software connecting it all.",
+    service: "Website and marketing package",
+    features: [
+      "Everything in Growth, including its account and location limits",
+      "Four hours of custom development each month, prioritized through one request queue",
+      "A monthly website, landing-page, and SEO improvement plan with agreed capacity",
+      "Expanded follow-up workflows and integrations within the written scope",
+      "Priority scheduling and a monthly planning conversation",
+    ],
+    scope: "Access to every service category with defined monthly capacity. Large software projects, new website builds, extra locations, onboarding, ad spend, and third-party costs are quoted separately. Priority scheduling does not mean 24/7 support or a guaranteed response time.",
+    priceSummary: "$2,499/month; onboarding, ad spend, third-party costs, and larger projects separate",
+    featured: false,
+  },
+] as const;
+
 export const publicPackages = [
   {
     id: "landing-page",
@@ -154,7 +205,7 @@ export const pricingAddOns = [
 
 export function findPublicPackage(value: unknown) {
   if (typeof value !== "string") return undefined;
-  return [...publicPackages, ...supportingOffers].find(
+  return [...subscriptionPlans, ...publicPackages, ...supportingOffers].find(
     (offer) => offer.id === value,
   );
 }

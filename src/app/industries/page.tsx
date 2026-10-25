@@ -7,7 +7,7 @@ import { industryNavigation } from "@/lib/public-navigation";
 export const metadata: Metadata = {
   title: "Industries We Help",
   description:
-    "Websites, Google Ads, local SEO, and follow-up systems for towing, automotive, HVAC, plumbing, electrical, roofing, landscaping, and cleaning businesses.",
+    "Websites, Google Ads, local SEO, and follow-up systems for restaurants, towing, automotive, HVAC, plumbing, electrical, roofing, landscaping, and cleaning businesses.",
   alternates: { canonical: "/industries" },
   openGraph: { url: "/industries" },
 };
@@ -28,8 +28,8 @@ export default function Page() {
               the next step.
             </h1>
             <p className="hero-lede">
-              A roadside call, an installation estimate, and a recurring
-              cleaning request need different paths. Explore how Orbisy can
+              A restaurant visit, a roadside call, an installation estimate,
+              and a recurring cleaning request need different paths. Explore how Orbisy can
               structure the website, marketing, and follow-up around your
               business.
             </p>

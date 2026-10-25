@@ -29,7 +29,7 @@ const process = [
 const faqs = [
   [
     "Which industries does Orbisy work with?",
-    "Orbisy works with towing and roadside assistance, auto repair and mobile mechanics, HVAC, plumbing, electrical, roofing, landscaping and lawn care, and cleaning businesses. These are starting points—we’re also open to other local service businesses and custom software projects.",
+    "Orbisy works with restaurants, towing and roadside assistance, auto repair and mobile mechanics, HVAC, plumbing, electrical, roofing, landscaping and lawn care, and cleaning businesses. These are starting points—we’re also open to other local service businesses and custom software projects.",
   ],
   [
     "Can we start with just a website?",
@@ -70,17 +70,19 @@ export default function Home() {
             <div className="hero-copy">
               <p className="eyebrow">
                 <span />
-                Web design & digital marketing
+                Websites · Marketing · Custom Software
               </p>
               <h1>
-                Websites and Google Ads
+                Your website, marketing,
                 <br />
-                <span>for local service businesses.</span>
+                <span>and business tools—working together.</span>
               </h1>
               <p className="hero-lede">
-                Web design, paid search, local SEO, and custom development with
-                Orbisy. A specialty in towing and roadside assistance, with room
-                for the other businesses that keep your community moving.
+                Orbisy builds websites and custom software, manages Google Ads
+                and local SEO, and connects your inquiries with automated follow-up.
+                We help restaurants, home service companies, towing businesses,
+                and other local businesses get found, stay connected with
+                customers, and simplify everyday work.
               </p>
               <div className="hero-actions">
                 <TrackLink
@@ -93,11 +95,11 @@ export default function Home() {
                 </TrackLink>
                 <TrackLink
                   className="text-link"
-                  href="/industries"
+                  href="/pricing#monthly-plans"
                   eventName="secondary_cta_click"
-                  componentId="hero_industries"
+                  componentId="hero_plans"
                 >
-                  Explore industries
+                  Explore plans
                 </TrackLink>
               </div>
               <ul className="hero-points" aria-label="How Orbisy works">
@@ -187,27 +189,30 @@ export default function Home() {
             <div>
               <p className="eyebrow">
                 <span />
-                Towing & roadside assistance
+                Restaurants, trades & local businesses
               </p>
               <h2>
-                Built around the call
+                Different businesses.
                 <br />
-                and the service area.
+                Better connected tools.
               </h2>
             </div>
             <div>
               <p>
-                Emergency towing, battery service, equipment transport, or
-                another local service: customers need to know what you handle,
-                where you work, and how to reach you. We start with those
-                details.
+                A dinner reservation, a repair request, and a roadside call need
+                different paths. We shape the website, marketing, and software
+                around how your business serves customers—from menus and booking
+                tools to estimate requests and follow-up.
               </p>
+              <Link className="text-link" href="/industries/restaurants">
+                Explore restaurant websites & marketing →
+              </Link>{" "}
               <Link className="text-link" href="/towing-marketing">
                 Explore towing marketing →
               </Link>
               <p className="portfolio-note">
-                Also working with trades, home services, and businesses with
-                custom software needs.
+                Towing and roadside assistance remain a specialty. Explore all
+                our industries to find the approach that fits your business.
               </p>
             </div>
           </div>
