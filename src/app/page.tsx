@@ -28,8 +28,8 @@ const process = [
 ] as const;
 const faqs = [
   [
-    "Do you only work with towing companies?",
-    "Towing and roadside assistance are a starting focus. Orbisy also works with other local service businesses and companies needing websites or custom development.",
+    "Which industries does Orbisy work with?",
+    "Orbisy works with towing and roadside assistance, auto repair and mobile mechanics, HVAC, plumbing, electrical, roofing, landscaping and lawn care, and cleaning businesses. These are starting points—we’re also open to other local service businesses and custom software projects.",
   ],
   [
     "Can we start with just a website?",
@@ -52,6 +52,12 @@ const faqs = [
     "Pricing depends on the work involved. Share your goals, timeline, and budget, and Orbisy will respond with a suitable next step and a written scope before paid work begins.",
   ],
 ] as const;
+
+// Keep the shared portfolio order intact; only the hero leads with the concept.
+const heroProjects = [
+  ...projects.filter((project) => project.id === "orbisy-design-process"),
+  ...projects.filter((project) => project.id !== "orbisy-design-process"),
+];
 
 export default function Home() {
   return (
@@ -105,8 +111,8 @@ export default function Home() {
                 <span />
                 Orbisy’s portfolio
               </p>
-              <PortfolioCarousel compact names={projects.map((p) => p.name)}>
-                {projects.map((project, index) => (
+              <PortfolioCarousel compact names={heroProjects.map((p) => p.name)}>
+                {heroProjects.map((project, index) => (
                   <div key={project.name}>
                     <Link
                       href={`/work#${project.id}`}
@@ -290,7 +296,7 @@ export default function Home() {
                     {question}
                     <span aria-hidden="true">+</span>
                   </summary>
-                  <p>{answer}</p>
+                  <p>{answer}{index === 0 && <> <Link className="text-link" href="/industries">Explore our industries →</Link></>}</p>
                 </details>
               ))}
             </div>

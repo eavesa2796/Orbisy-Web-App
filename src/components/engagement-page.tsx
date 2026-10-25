@@ -1,3 +1,6 @@
+import { ArrowUpRight } from "lucide-react";
+import { ServiceGraphic } from "@/components/service-graphic";
+import "@/components/service-cards.css";
 import Link from "next/link";
 import { AgencyContact } from "@/components/agency-contact";
 import { PublicFooter, PublicHeader } from "@/components/public-site-shell";
@@ -101,13 +104,17 @@ export function EngagementPage({ engagement: e }: { engagement: Engagement }) {
         <AgencyContact service={e.service} />
         <section className="related-services container">
           <h2>Other ways to work with Orbisy</h2>
+          <div className="related-service-grid">
           {engagements
             .filter((other) => other.slug !== e.slug)
             .map((other) => (
-              <Link key={other.slug} href={`/${other.slug}`}>
-                {other.shortTitle} →
+              <Link className="related-service-card" key={other.slug} href={`/${other.slug}`}>
+                <ServiceGraphic slug={other.slug} />
+                <span className="related-service-label"><span>{other.shortTitle}</span><ArrowUpRight size={20} aria-hidden="true" /></span>
+                <span className="related-service-description">{other.description.split(". ")[0]}.</span>
               </Link>
             ))}
+          </div>
         </section>
       </main>
       <PublicFooter />
