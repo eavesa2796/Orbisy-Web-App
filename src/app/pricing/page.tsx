@@ -163,9 +163,9 @@ export default async function PricingPage({
                     <p className="pricing-description">{plan.description}</p>
                     <ul className="pricing-features">{plan.features.map((feature) => <li key={feature}><Check size={17} aria-hidden="true" /><span>{feature}</span></li>)}</ul>
                     <p className="pricing-scope">{plan.scope}</p>
-                    <Link className="button pricing-package-cta" href={`/pricing?package=${plan.id}#contact`} prefetch={false} aria-label={`Request a consultation about ${plan.name}`}>
+                    <a className="button pricing-package-cta" href={`/pricing?package=${plan.id}#contact`} aria-label={`Request a consultation about ${plan.name}`}>
                       Explore {plan.name}<ArrowRight size={17} aria-hidden="true" />
-                    </Link>
+                    </a>
                   </article>
                 );
               })}
@@ -234,15 +234,15 @@ export default async function PricingPage({
                     ))}
                   </ul>
                   <p className="pricing-scope">{offer.scope}</p>
-                  <Link
+                  <a
                     className="button pricing-package-cta"
                     href={`/pricing?package=${offer.id}#contact`}
-                    prefetch={false}
+                   
                     aria-label={`Request a consultation about ${offer.name}`}
                   >
                     Request a consultation{" "}
                     <ArrowRight size={17} aria-hidden="true" />
-                  </Link>
+                  </a>
                   <Link
                     className="text-link pricing-details"
                     href={offer.detailHref}
@@ -310,14 +310,14 @@ export default async function PricingPage({
                   <div className="pricing-support-price">
                     <strong>{offer.price}</strong>
                     <span>{offer.billing}</span>
-                    <Link
+                    <a
                       className="text-link"
                       href={`/pricing?package=${offer.id}#contact`}
-                      prefetch={false}
+                     
                       aria-label={`Request a consultation about ${offer.name}`}
                     >
                       Request a consultation →
-                    </Link>
+                    </a>
                   </div>
                 </article>
               ))}
