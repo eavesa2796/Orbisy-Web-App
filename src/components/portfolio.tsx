@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { rescueTowRedesign } from "@/components/rescue-tow-comparison";
 import { PortfolioCarousel } from "@/components/portfolio-carousel";
 export const projects = [
   {
@@ -119,8 +120,9 @@ export function Portfolio({
           <div className="portfolio-grid">{cards}</div>
         )}
         <p className="portfolio-note">
-          Live-site screenshots captured October 3, 2026. Website content may
-          change after capture. The design-process artwork and work-in-progress dashboard are illustrative; dashboard data is sample data.
+          Original live-site references captured October 3, 2026; the Rescue Tow
+          Truck comparison and redesign preview were captured October 29, 2026.
+          Website content may change after capture. The design-process artwork and work-in-progress dashboard are illustrative; dashboard data is sample data.
         </p>
       </div>
     </section>
@@ -128,12 +130,16 @@ export function Portfolio({
 }
 
 export function PortfolioProject({
-  project: p,
+  project,
   full = false,
 }: {
   project: (typeof projects)[number];
   full?: boolean;
 }) {
+  const isTowRedesign = full && project.id === "rescue-tow-truck";
+  const p = isTowRedesign
+    ? { ...project, ...rescueTowRedesign }
+    : project;
   const image = (
     <Image
       src={p.image}
@@ -154,7 +160,7 @@ export function PortfolioProject({
           href={p.url}
           target="_blank"
           rel="noopener noreferrer"
-          aria-label={`View ${p.name} website (opens in a new tab)`}
+          aria-label={`View ${p.name} ${isTowRedesign ? "redesign preview" : "website"} (opens in a new tab)`}
         >
           <div className="browser-strip" aria-hidden="true">
             <i />
@@ -195,7 +201,7 @@ export function PortfolioProject({
             target="_blank"
             rel="noopener noreferrer"
           >
-            Visit live website ↗
+            {isTowRedesign ? "Explore redesign preview ↗" : "Visit live website ↗"}
           </a>
         ) : (
           <Link className="text-link" href={p.url}>

@@ -1,0 +1,28 @@
+.tow-comparison { background: radial-gradient(ellipse at 85% 15%, #65d6ff0b, transparent 60%); border-block: 1px solid var(--border); scroll-margin-top: 100px; }
+.tow-comparison .split-heading h2 { font-size: clamp(2rem, 3.8vw, 3.25rem); line-height: 1.15; letter-spacing: -0.04em; }
+.tow-comparison-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+.tow-comparison-panel { margin: 0; min-width: 0; padding: 22px; border: 1px solid var(--border); border-radius: 20px; background: linear-gradient(145deg, #131b2c, #0a101e); }
+.tow-comparison-after { border-color: #83f5c766; box-shadow: 0 0 38px #65d6ff09; }
+.tow-comparison-heading { display: flex; align-items: center; justify-content: space-between; gap: 15px; margin-bottom: 20px; }
+.tow-stage { display: block; color: var(--muted); text-transform: uppercase; font-size: 0.68rem; letter-spacing: 0.15em; font-weight: 700; }
+.tow-comparison-after .tow-stage { color: var(--accent-2); }
+.tow-comparison-heading h3 { font-size: 1.02rem; line-height: 1.6; margin-top: 6px; }
+.tow-reference, .tow-preview-status { font-size: 0.65rem; border: 1px solid var(--border); border-radius: 30px; padding: 7px 10px; white-space: nowrap; color: var(--muted); }
+.tow-preview-status { color: var(--accent-2); border-color: #83f5c744; background: #83f5c708; }
+.tow-screenshot-link { display: block; overflow: hidden; border: 1px solid #65d6ff22; border-radius: 10px; background: #070c15; }
+.tow-screenshot-link img { display: block; width: 100%; height: auto; }
+.tow-screenshot-link > span { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; font-size: 0.72rem; color: var(--accent); border-top: 1px solid var(--border); }
+.tow-screenshot-link:hover { border-color: var(--accent-2); }
+.tow-comparison a:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 5px; border-radius: 8px; }
+.tow-image-note { margin-top: 17px; color: var(--muted); font-size: 0.8rem; line-height: 1.7; }
+.tow-comparison-panel > .text-link { margin-top: 12px; font-size: 0.8rem; gap: 7px; }
+.tow-design-notes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 30px; margin-top: 36px; }
+.tow-design-notes > div { border-top: 1px solid var(--border); padding-top: 24px; }
+.tow-design-notes svg { color: var(--accent-2); margin-bottom: 16px; }
+.tow-design-notes h3 { font-size: 0.98rem; line-height: 1.6; }
+.tow-design-notes p, .tow-comparison-footnote { color: var(--muted); font-size: 0.83rem; line-height: 1.85; margin-top: 12px; }
+.tow-comparison-footnote { margin-top: 30px; font-size: 0.75rem; max-width: 1000px; }
+@media (max-width: 800px) { .tow-comparison-grid, .tow-design-notes { grid-template-columns: 1fr; } .tow-design-notes { gap: 22px; } }
+@media (max-width: 420px) { .tow-comparison-panel { padding: 17px; } .tow-comparison-heading { align-items: flex-start; flex-direction: column; gap: 10px; } }
+
+.tow-comparison .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }

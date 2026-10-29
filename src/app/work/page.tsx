@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
+import { RescueTowComparison } from "@/components/rescue-tow-comparison";
 import { Portfolio } from "@/components/portfolio";
 import { PublicHeader, PublicFooter } from "@/components/public-site-shell";
 import { AgencyContact } from "@/components/agency-contact";
 export const metadata: Metadata = {
   title: "Website work & custom software concepts",
   description:
-    "Explore Orbisy’s live website work, design process, and a work-in-progress custom software dashboard concept.",
+    "Explore Orbisy’s Rescue Tow Truck before-and-after redesign comparison, live website work, design process, and a custom software dashboard concept.",
   alternates: { canonical: "/work" },
   openGraph: { url: "/work" },
 };
@@ -26,6 +27,7 @@ export default function Page() {
             </p>
           </div>
         </section>
+        <RescueTowComparison />
         <Portfolio full />
         <AgencyContact />
       </main>
