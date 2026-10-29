@@ -61,6 +61,8 @@ describe("Orbisy agency public site", () => {
     expect(comparison.querySelector('a[href="https://rescue-tow-truck.throbbing-poetry-33b6.workers.dev/"]')).toBeTruthy();
     expect(comparison.querySelectorAll('a[target="_blank"][rel="noopener noreferrer"]').length).toBe(4);
     expect(page.querySelectorAll("#rescue-tow-truck")).toHaveLength(1);
+    expect(page.querySelector("#rescue-tow-truck")?.textContent).toContain("Explore redesign preview");
+    expect(page.querySelector("#rescue-tow-truck")?.textContent).not.toContain("Visit live website");
     expect(page.querySelector("#rescue-tow-truck .browser-strip")?.textContent).toContain("workers.dev");
   });
 

@@ -136,7 +136,8 @@ export function PortfolioProject({
   project: (typeof projects)[number];
   full?: boolean;
 }) {
-  const p = full && project.id === "rescue-tow-truck"
+  const isTowRedesign = full && project.id === "rescue-tow-truck";
+  const p = isTowRedesign
     ? { ...project, ...rescueTowRedesign }
     : project;
   const image = (
@@ -159,7 +160,7 @@ export function PortfolioProject({
           href={p.url}
           target="_blank"
           rel="noopener noreferrer"
-          aria-label={`View ${p.name} website (opens in a new tab)`}
+          aria-label={`View ${p.name} ${isTowRedesign ? "redesign preview" : "website"} (opens in a new tab)`}
         >
           <div className="browser-strip" aria-hidden="true">
             <i />
@@ -200,7 +201,7 @@ export function PortfolioProject({
             target="_blank"
             rel="noopener noreferrer"
           >
-            Visit live website ↗
+            {isTowRedesign ? "Explore redesign preview ↗" : "Visit live website ↗"}
           </a>
         ) : (
           <Link className="text-link" href={p.url}>
