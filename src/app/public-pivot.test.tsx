@@ -48,6 +48,22 @@ describe("Orbisy agency public site", () => {
     }
   });
 
+  it("shows dated before-and-after screenshots with a clearly labeled redesign preview on Our Work", () => {
+    const page = new DOMParser().parseFromString(renderToStaticMarkup(<WorkPage />), "text/html");
+    const comparison = page.querySelector("#rescue-tow-truck-comparison")!;
+    expect(comparison.querySelectorAll("figure")).toHaveLength(2);
+    expect(comparison.querySelectorAll("img")).toHaveLength(2);
+    expect(comparison.textContent).toContain("Before");
+    expect(comparison.textContent).toContain("After");
+    expect(comparison.textContent).toContain("Redesign preview");
+    expect(comparison.textContent).toContain("October 29, 2026");
+    expect(comparison.textContent).toContain("does not claim measured changes");
+    expect(comparison.querySelector('a[href="https://rescue-tow-truck.throbbing-poetry-33b6.workers.dev/"]')).toBeTruthy();
+    expect(comparison.querySelectorAll('a[target="_blank"][rel="noopener noreferrer"]').length).toBe(4);
+    expect(page.querySelectorAll("#rescue-tow-truck")).toHaveLength(1);
+    expect(page.querySelector("#rescue-tow-truck .browser-strip")?.textContent).toContain("workers.dev");
+  });
+
   it("limits campaign pages to explicit offers and keeps them noindex", async () => {
     expect(
       (

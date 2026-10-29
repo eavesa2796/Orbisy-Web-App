@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { rescueTowRedesign } from "@/components/rescue-tow-comparison";
 import { PortfolioCarousel } from "@/components/portfolio-carousel";
 export const projects = [
   {
@@ -119,8 +120,9 @@ export function Portfolio({
           <div className="portfolio-grid">{cards}</div>
         )}
         <p className="portfolio-note">
-          Live-site screenshots captured October 3, 2026. Website content may
-          change after capture. The design-process artwork and work-in-progress dashboard are illustrative; dashboard data is sample data.
+          Original live-site references captured October 3, 2026; the Rescue Tow
+          Truck comparison and redesign preview were captured October 29, 2026.
+          Website content may change after capture. The design-process artwork and work-in-progress dashboard are illustrative; dashboard data is sample data.
         </p>
       </div>
     </section>
@@ -128,12 +130,15 @@ export function Portfolio({
 }
 
 export function PortfolioProject({
-  project: p,
+  project,
   full = false,
 }: {
   project: (typeof projects)[number];
   full?: boolean;
 }) {
+  const p = full && project.id === "rescue-tow-truck"
+    ? { ...project, ...rescueTowRedesign }
+    : project;
   const image = (
     <Image
       src={p.image}
