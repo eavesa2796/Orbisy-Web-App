@@ -107,7 +107,7 @@ export function Portfolio({
             </h2>
           </div>
           <p>
-            Two paying client website projects demonstrate navigation, responsive design, and clear user journeys. They are local-service projects, not association case studies. Concepts are labeled separately.
+            Two client website projects demonstrate navigation, responsive design, and clear user journeys. They are local-service projects, not association case studies. Concepts are labeled separately.
           </p>
         </div>
         {carousel ? (

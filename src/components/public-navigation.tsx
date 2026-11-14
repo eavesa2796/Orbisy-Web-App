@@ -130,9 +130,7 @@ export function PublicNavigation({
                     <span>
                       <strong>{link.label}</strong>
                       <small>
-                        {group.id === "services"
-                          ? link.description.split(". ")[0] + "."
-                          : link.description}
+                        {link.description}
                       </small>
                     </span>
                     <ArrowUpRight size={16} aria-hidden="true" />
