@@ -41,8 +41,8 @@ export default function TermsPage() {
 
       <h2>Service boundaries</h2>
       <p>
-        Orbisy provides web design, paid-search management, SEO, and custom
-        development under separately agreed scopes. Advertising spend,
+        Orbisy provides association websites, member functionality, scoped integrations,
+        and ongoing development and support under separately agreed scopes. Platform
         subscriptions, hosting, and other third-party costs are included only
         when explicitly stated in a written agreement. Orbisy does not provide
         legal or regulatory advice. The public website is not a customer portal.

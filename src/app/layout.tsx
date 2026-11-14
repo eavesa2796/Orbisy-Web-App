@@ -17,7 +17,7 @@ const display = Manrope({
 export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
   title: {
-    default: "Orbisy — Web Design, Google Ads, SEO & Development",
+    default: "Orbisy — Association Websites & Custom Software",
     template: "%s | Orbisy",
   },
   description: siteConfig.description,
@@ -28,12 +28,12 @@ export const metadata: Metadata = {
     locale: "en_US",
     siteName: "Orbisy",
     url: "/",
-    title: "Orbisy — Web Design, Google Ads, SEO & Development",
+    title: "Orbisy — Association Websites & Custom Software",
     description: siteConfig.description,
   },
   twitter: {
     card: "summary_large_image",
-    title: "Orbisy — Web Design, Google Ads, SEO & Development",
+    title: "Orbisy — Association Websites & Custom Software",
     description: siteConfig.description,
   },
 };

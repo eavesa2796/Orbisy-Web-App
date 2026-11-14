@@ -22,11 +22,11 @@ export default function PrivacyPage() {
       <h2>Information you provide</h2>
       <p>
         When you request a website review or submit a project request, Orbisy
-        may collect your name, business name, email address, website URL,
-        requested service, project description, timeline, budget range, and
+        may collect your name, association or organization name, email address, website URL,
+        current platform names, requested service, project description, timeline, budget range, and
         acknowledgment of this policy. Do not submit passwords,
-        advertising-account credentials, payment details, or confidential
-        customer records through these public forms.
+        account credentials, API keys, payment details, or confidential
+        member or customer records through these public forms.
       </p>
 
       <h2>Business lead information</h2>

@@ -29,6 +29,7 @@ export function PublicForm({
   const formRef = useRef<HTMLFormElement>(null);
   const [state, setState] = useState<FormState>({ status: "idle" });
   const [started, setStarted] = useState(false);
+  const [platforms, setPlatforms] = useState("");
   const [challengeVersion, setChallengeVersion] = useState(0);
   const [turnstileToken, setTurnstileToken] = useState("");
   const prefix =
@@ -100,6 +101,7 @@ export function PublicForm({
       submissionToken.current = null;
       setState({ status: "success", message: result.message });
       formRef.current.reset();
+      setPlatforms("");
     } catch {
       setTurnstileToken("");
       setChallengeVersion((v) => v + 1);
@@ -160,7 +162,7 @@ export function PublicForm({
           />
         </label>
         <label>
-          <span>Business name</span>
+          <span>{type === "project-request" ? "Association / organization name" : "Business name"}</span>
           <input
             aria-invalid={Boolean(state.fields?.businessName)}
             name="businessName"
@@ -228,27 +230,29 @@ export function PublicForm({
                 <option value="" disabled>
                   Select a service
                 </option>
-                <option>Website design or redesign</option>
-                <option>Google Ads / PPC management</option>
-                <option>Local SEO</option>
-                <option>Custom development or integrations</option>
-                <option>Automated lead follow-up</option>
-                <option>Website maintenance and support</option>
-                <option>Website and marketing package</option>
+                <option>Association websites</option>
+                <option>Member portals &amp; custom functionality</option>
+                <option>Integrations &amp; connected systems</option>
+                <option>Ongoing development &amp; support</option>
                 <option>Not sure yet</option>
               </select>
             </label>
             <label className="full-field">
-              <span>What would you like help with?</span>
+              <span>Current platforms <em>optional</em></span>
+              <input name="currentPlatforms" maxLength={240} value={platforms} onChange={event => setPlatforms(event.target.value)} aria-invalid={Boolean(state.fields?.currentPlatforms)} aria-describedby="platforms-help" placeholder="For example, your CMS, membership, or event platform" />
+              <small id="platforms-help" className="form-help">Platform names only. Please do not include passwords, API keys, or member records.</small>
+            </label>
+            <label className="full-field">
+              <span>What problem would you like to solve?</span>
               <textarea
                 aria-invalid={Boolean(state.fields?.projectDescription)}
                 name="projectDescription"
                 maxLength={
-                  3000 - (inquiryContext ? inquiryContext.length + 2 : 0)
+                  3000 - (inquiryContext ? inquiryContext.length + 2 : 0) - (platforms.trim() ? `Current platforms: ${platforms.trim()}\n\n`.length : 0)
                 }
                 required
                 rows={4}
-                placeholder="Tell us about your business, your goals, and what you want to improve."
+                placeholder="Tell us who uses the site or system, what is difficult today, and what you want to improve."
               />
             </label>
             <details className="form-options">
@@ -332,7 +336,7 @@ export function PublicForm({
           ? "Sending…"
           : type === "homepage-review"
             ? "Request my review"
-            : "Request a consultation"}
+            : "Discuss your project"}
       </button>
       <p className="form-footnote">
         Orbisy reviews your request and replies by email to arrange the next

@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowUpRight, ChevronDown, Compass, Layers3, X } from "lucide-react";
+import { ArrowUpRight, ChevronDown, Layers3, X } from "lucide-react";
 const mobileQuery = "(max-width: 980px)";
 function subscribeToViewport(callback: () => void) {
   const query = window.matchMedia(mobileQuery);
@@ -16,10 +16,8 @@ type NavigationItem = { label: string; description: string; href: string };
 
 export function PublicNavigation({
   services,
-  industries,
 }: {
   services: NavigationItem[];
-  industries: NavigationItem[];
 }) {
   const root = useRef<HTMLElement>(null);
   const dialog = useRef<HTMLDialogElement>(null);
@@ -87,20 +85,11 @@ export function PublicNavigation({
         {
           id: "services",
           label: "Services",
-          heading: "Choose what moves your business forward.",
+          heading: "Build around your association’s work.",
           links: services,
           footer: "Explore services & engagements",
-          href: "/#services",
+          href: "/services",
           icon: Layers3,
-        },
-        {
-          id: "industries",
-          label: "Industries",
-          heading: "Built around the business you run.",
-          links: industries,
-          footer: "Explore all industries",
-          href: "/industries",
-          icon: Compass,
         },
       ].map((group) => (
         <details
@@ -170,12 +159,11 @@ export function PublicNavigation({
                 sizes="(max-width: 760px) 90vw, 300px"
               />
               <h3>
-                Your business.
+                Your association.
                 <br />A clearer next step.
               </h3>
               <p>
-                Explore live website work and a look inside the Orbisy design
-                process.
+                Explore real website projects and clearly labeled design concepts.
               </p>
               <Link
                 href="/work#orbisy-design-process"
@@ -191,13 +179,10 @@ export function PublicNavigation({
       <Link href="/work" onClick={closeAll}>
         Our Work
       </Link>
-      <Link href="/pricing" onClick={closeAll}>
-        Pricing
-      </Link>
-      <Link href="/#about" onClick={closeAll}>
+      <Link href="/about" onClick={closeAll}>
         About
       </Link>
-      {isMobile && <Link href="/#contact" className="button mobile-consultation" onClick={closeAll}>Request a consultation <ArrowUpRight size={18} aria-hidden="true" /></Link>}
+      {isMobile && <Link href="/#contact" className="button mobile-consultation" onClick={closeAll}>Discuss your project <ArrowUpRight size={18} aria-hidden="true" /></Link>}
     </nav>
   );
   return (
@@ -229,11 +214,11 @@ export function PublicNavigation({
           }}
         >
           <div className="mobile-drawer-heading">
-            <div><p className="eyebrow">Explore Orbisy</p><h2 id="mobile-navigation-title">Your next move.</h2></div>
+            <div><p className="eyebrow">Explore Orbisy</p><h2 id="mobile-navigation-title">Let’s shape the project.</h2></div>
             <button type="button" className="mobile-menu-close" aria-label="Close navigation menu" onClick={closeAll}><X size={24} aria-hidden="true" /></button>
           </div>
           {navigation}
-          <p className="mobile-drawer-note">Websites. Marketing. Software.<br />Built around your business.</p>
+          <p className="mobile-drawer-note">Websites. Member experiences. Software.<br />Built around your association.</p>
         </dialog>
       ) : <div className="desktop-navigation">{navigation}</div>}
     </>

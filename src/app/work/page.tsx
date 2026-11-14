@@ -18,12 +18,10 @@ export default function Page() {
         <section className="section service-hero">
           <div className="container">
             <p className="eyebrow">Orbisy’s portfolio</p>
-            <h1>Websites and software, shaped around your business.</h1>
+            <h1>Real website work. Clearly labeled concepts.</h1>
             <p className="hero-lede">
               Explore live website projects for towing and mobile battery
-              service, an illustrative look at the design process, and a custom
-              software dashboard concept in progress. Orbisy builds tools for the
-              parts of your business you may not have thought software could help.
+              service, an illustrative design process, and a dashboard concept in progress. These projects show design and development capabilities; Orbisy does not yet have association case studies or a finished association software product.
             </p>
           </div>
         </section>

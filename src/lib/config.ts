@@ -5,7 +5,7 @@ export const siteConfig = {
   location: "Chicago, Illinois",
   url: process.env.NEXT_PUBLIC_SITE_URL || "https://orbisy.com",
   description:
-    "Orbisy builds websites and custom software, manages Google Ads and local SEO, and connects inquiries with automated follow-up for restaurants, home services, towing, and other local businesses. Based in Chicago.",
+    "Custom websites, member portals, and scoped software integrations for associations. Independent development based in Chicago.",
 } as const;
 
 export function hasDatabaseConfig() {

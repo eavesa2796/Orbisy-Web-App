@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "Orbisy",
     short_name: "Orbisy",
     description:
-      "Web design, Google Ads, local SEO, custom software, and follow-up for restaurants and local businesses.",
+      "Custom websites, member portals, and scoped software integrations for associations.",
     start_url: "/",
     display: "standalone",
     background_color: "#0e1220",

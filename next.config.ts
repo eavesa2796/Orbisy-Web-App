@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { legacyPublicRedirects } from "./src/lib/public-route-redirects";
 
 const supabaseOrigin = (() => {
   try {
@@ -29,6 +30,7 @@ const nextConfig: NextConfig = {
   experimental: {
     taint: true,
   },
+  async redirects() { return legacyPublicRedirects; },
   async headers() {
     return [
       {
