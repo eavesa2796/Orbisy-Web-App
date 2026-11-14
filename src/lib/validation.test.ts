@@ -68,3 +68,18 @@ describe("public form validation", () => {
     expect(result.success).toBe(true);
   });
 });
+
+
+describe("Platform details in association inquiries", () => {
+ const input = {...base, serviceNeeded: "Integrations & connected systems", projectDescription: "Avoid re-entering registrations."};
+ it("normalizes platform details into the saved description without a database change", () => {
+ const result = projectRequestSchema.parse({...input, currentPlatforms: "  MemberClicks, Whova  "});
+ expect(result.projectDescription).toBe("Current platforms: MemberClicks, Whova\n\nAvoid re-entering registrations.");
+ expect(projectRequestSchema.parse(input).projectDescription).toBe(input.projectDescription);
+ });
+ it("enforces both platform and combined saved-description limits", () => {
+ expect(projectRequestSchema.safeParse({...input,currentPlatforms:"x".repeat(241)}).success).toBe(false);
+ expect(projectRequestSchema.safeParse({...input,currentPlatforms:"Whova",projectDescription:"x".repeat(2990)}).success).toBe(false);
+ expect(projectRequestSchema.safeParse({...input,currentPlatforms:"Whova",projectDescription:"x".repeat(2900)}).success).toBe(true);
+ });
+});

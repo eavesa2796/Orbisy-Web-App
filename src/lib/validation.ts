@@ -37,6 +37,7 @@ export const homepageReviewSchema = baseSubmissionSchema.extend({
 export const projectRequestSchema = baseSubmissionSchema.extend({
   serviceNeeded: cleanText(120),
   projectDescription: cleanText(3000),
+  currentPlatforms: z.string().trim().max(240).optional(),
   timeline: z.string().trim().max(80).optional(),
   budgetRange: z.preprocess(
     (value) => (value === "" ? undefined : value),
@@ -51,7 +52,12 @@ export const projectRequestSchema = baseSubmissionSchema.extend({
       ])
       .optional(),
   ),
-});
+}).superRefine((value, context) => {
+  const prefix = value.currentPlatforms ? `Current platforms: ${value.currentPlatforms}\n\n` : "";
+  if (prefix.length + value.projectDescription.length > 3000) {
+    context.addIssue({code: "custom", path: ["projectDescription"], message: "Keep the project details and platform information under 3000 characters combined."});
+  }
+}).transform(value => ({...value, projectDescription: value.currentPlatforms ? `Current platforms: ${value.currentPlatforms}\n\n${value.projectDescription}` : value.projectDescription}));
 
 export const leadSchema = z.object({
   businessName: cleanText(160),

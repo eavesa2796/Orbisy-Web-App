@@ -1,0 +1,61 @@
+.association-home .hero-layout { grid-template-columns: 1.08fr .92fr; gap: 58px; }
+.association-home .hero-copy h1 { font-size: clamp(3rem, 4.7vw, 4.6rem); line-height: 1.08; letter-spacing: -.05em; }
+.association-home .hero-lede { max-width: 650px; }
+.association-map { position: relative; overflow: hidden; padding: 30px; border: 1px solid #65d6ff44; border-radius: 24px; background: radial-gradient(ellipse at top right,#65d6ff14,transparent 65%),#0d1525; box-shadow: 0 28px 65px #0003; }
+.association-map > .eyebrow { position: relative; line-height: 1.7; }
+.association-map-orbit { position: absolute; top: -70px; right: -130px; width: 410px; height: 210px; transform: rotate(-35deg); border: 1px solid #83f5c73b; border-radius: 50%; box-shadow: 0 0 45px #65d6ff0b; }
+.association-map-core { position: relative; margin-block: 28px; padding: 24px 20px; border: 1px solid #83f5c75c; border-radius: 14px; background: linear-gradient(120deg,#65d6ff09,#83f5c70d); color: var(--muted); font-size: .8rem; line-height: 1.8; }
+.association-map-core strong { display: block; color: var(--text); font-size: 1.2rem; font-weight: 600; margin-top: 5px; }
+.association-status-dot { display: inline-block; width: 6px; height: 6px; background: var(--accent-2); border-radius: 50%; box-shadow: 0 0 12px #83f5c766; margin-right: 9px; }
+.association-map-items { display: grid; gap: 12px; }
+.association-map-items > div { display: flex; gap: 16px; align-items: center; padding: 15px 12px; border-top: 1px solid var(--border); }
+.association-map-items svg { color: var(--accent); flex-shrink: 0; }
+.association-map-items h2 { font-size: .9rem; font-weight: 600; }
+.association-map-items p { color: var(--muted); font-size: .78rem; line-height: 1.7; margin-top: 4px; }
+.association-fineprint { display: block; color: var(--muted); font-size: .76rem; line-height: 1.9; margin-top: 23px; }
+.association-fineprint > svg { vertical-align: middle; margin-right: 8px; color: var(--accent-2); }
+.association-problems { border-block: 1px solid var(--border); background: #65d6ff03; }
+.association-problem-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 34px; }
+.association-problem-grid article { padding-top: 22px; border-top: 1px solid #65d6ff44; }
+.association-problem-grid article > span { color: var(--accent-2); font-size: .75rem; }
+.association-problem-grid h3 { font-size: 1.15rem; line-height: 1.5; margin-top: 15px; letter-spacing: -.02em; }
+.association-problem-grid p { color: var(--muted); font-size: .9rem; line-height: 1.9; margin-top: 13px; }
+.association-service-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 22px; }
+.association-service-card { display: block; overflow: hidden; padding: 28px; background: linear-gradient(140deg,#131e30,#0b1220); border: 1px solid #65d6ff30; border-radius: 18px; transition: border-color .2s,transform .2s; }
+.association-service-card:hover { border-color: var(--accent-2); transform: translateY(-3px); }
+.association-service-card:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 5px; }
+.association-card-art { position: relative; display: flex; align-items: center; justify-content: space-between; height: 82px; overflow: hidden; color: var(--accent); border-bottom: 1px solid var(--border); margin-bottom: 24px; }
+.association-card-art > svg { position: relative; margin-bottom: 14px; }
+.association-orbit { position: absolute; width: 230px; height: 75px; right: 5px; top: -5px; border: 1px solid #83f5c72b; border-radius: 50%; transform: rotate(-18deg); }
+.association-card-index { color: var(--accent-2); font-size: .8rem; }
+.association-service-card h3 { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; font-size: 1.25rem; line-height: 1.5; letter-spacing: -.025em; }
+.association-service-card h3 > svg { flex: 0 0 auto; color: var(--accent-2); margin-top: 6px; }
+.association-service-card > p { color: var(--muted); line-height: 1.85; margin-block: 16px 22px; font-size: .9rem; }
+.association-service-card .text-link { font-size: .8rem; }
+.association-platforms { padding: 42px; border: 1px solid #65d6ff33; border-radius: 20px; background: radial-gradient(ellipse at top right,#65d6ff0d,transparent 65%); }
+.association-platforms h2 { max-width: 760px; margin-top: 18px; font-size: clamp(1.75rem,3vw,2.65rem); letter-spacing: -.035em; line-height: 1.2; }
+.association-platforms > p:not(.eyebrow) { max-width: 850px; line-height: 1.85; margin-top: 22px; color: var(--muted); }
+.association-platforms ul { display: flex; flex-wrap: wrap; gap: 12px; list-style: none; margin-top: 28px; }
+.association-platforms li { border: 1px solid #65d6ff36; border-radius: 30px; padding: 10px 20px; font-size: .9rem; color: var(--accent-2); background: #65d6ff05; }
+.association-platforms > .text-link { margin-top: 24px; }
+.association-steps { grid-template-columns: repeat(5,minmax(0,1fr)); gap: 23px; }
+.association-steps p { font-size: .85rem; line-height: 1.85; }
+.association-page .service-hero > .container > .eyebrow { margin-top: 28px; }
+.association-page .scope-notes h2 { font-size: 1.3rem; }
+.association-page .scope-layout > div > p { margin-top: 20px; line-height: 1.85; color: var(--muted); }
+.association-honesty { background: #65d6ff04; border-block: 1px solid var(--border); }
+.form-help { color: var(--muted); font-size: .75rem; line-height: 1.7; }
+.site-header nav.orbisy-navigation { min-height: 44px; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+@media (max-width: 980px) { .association-home .hero-layout { grid-template-columns: 1fr; } .association-home .hero-copy h1 { font-size: clamp(3rem,7.2vw,4.6rem); } .association-map { max-width: 700px; width: 100%; } .association-steps { grid-template-columns: repeat(3,minmax(0,1fr)); gap: 28px; } }
+@media (max-width: 760px) { .association-problem-grid { grid-template-columns: 1fr; gap: 28px; } .association-service-grid { grid-template-columns: 1fr; } .association-steps { grid-template-columns: repeat(2,minmax(0,1fr)); } .association-platforms { padding: 28px 22px; } .association-service-card { padding: 24px; } }
+@media (max-width: 480px) { .association-home .hero-copy h1 { font-size: clamp(2.55rem,10.5vw,3.3rem); } .association-map { padding: 23px; } .association-map-core strong { font-size: 1.05rem; } .association-steps { grid-template-columns: 1fr; } }
+@media (prefers-reduced-motion: reduce) { .association-service-card { transition: none; } .association-service-card:hover { transform: none; } }
+
+.association-honesty .scope-layout p { margin-top: 0; }
+.association-steps li { padding: 24px 15px; }
+.association-steps h3 { font-size: 1.1rem; line-height: 1.4; margin-top: 38px; }
+.association-page .service-hero .text-link { display: inline-block; margin-bottom: 12px; }
+.association-page .service-hero .eyebrow { line-height: 1.7; }
+.association-map-items h2 { margin: 0; }
+@media (max-width: 480px) { .association-steps li { min-height: auto; border-right: 0; } .association-steps h3 { margin-top: 20px; } }

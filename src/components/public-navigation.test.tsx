@@ -7,7 +7,7 @@ import {
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { PublicNavigation } from "@/components/public-navigation";
-import { serviceNavigation, industryNavigation } from "@/lib/public-navigation";
+import { serviceNavigation } from "@/lib/public-navigation";
 let mobile = false;
 beforeEach(() => {
   mobile = false;
@@ -20,16 +20,15 @@ function setup() {
   return render(
     <PublicNavigation
       services={serviceNavigation}
-      industries={industryNavigation}
     />,
   );
 }
 describe("Public navigation disclosures", () => {
   it("provides all service and industry destinations as normal links", () => {
     const { container } = setup();
-    for (const item of [...serviceNavigation, ...industryNavigation])
+    for (const item of serviceNavigation)
       expect(container.querySelector(`a[href="${item.href}"]`)).toBeTruthy();
-    expect(container.querySelectorAll("summary")).toHaveLength(2);
+    expect(container.querySelectorAll("summary")).toHaveLength(1);
     expect(container.querySelector('[role="menu"]')).toBeNull();
   });
   it("opens one panel at a time and restores focus when Escape dismisses it", async () => {
@@ -37,13 +36,10 @@ describe("Public navigation disclosures", () => {
     const panels = container.querySelectorAll("details");
     panels[0].open = true;
     fireEvent(panels[0], new Event("toggle"));
-    panels[1].open = true;
-    fireEvent(panels[1], new Event("toggle"));
-    await waitFor(() => expect(panels[0].open).toBe(false));
-    panels[1].querySelector("a")!.focus();
+    panels[0].querySelector("a")!.focus();
     fireEvent.keyDown(document, { key: "Escape" });
-    expect(panels[1].open).toBe(false);
-    expect(document.activeElement).toBe(panels[1].querySelector("summary"));
+    await waitFor(() => expect(panels[0].open).toBe(false));
+    expect(document.activeElement).toBe(panels[0].querySelector("summary"));
   });
   it("dismisses panels on outside interaction and on navigation", () => {
     const { container } = setup();
@@ -52,7 +48,7 @@ describe("Public navigation disclosures", () => {
     fireEvent.pointerDown(document.body);
     expect(panel.open).toBe(false);
     panel.open = true;
-    fireEvent.click(screen.getByRole("link", { name: /^Pricing$/ }));
+    fireEvent.click(screen.getByRole("link", { name: /^About$/ }));
     expect(panel.open).toBe(false);
   });
 });
@@ -80,7 +76,7 @@ describe("Mobile navigation drawer", () => {
     const trigger = screen.getByRole("button", { name: "Open navigation menu" });
     const panel = container.querySelector("dialog")!;
     fireEvent.click(trigger);
-    fireEvent.click(screen.getByRole("link", { name: /^Pricing$/ }));
+    fireEvent.click(screen.getByRole("link", { name: /^About$/ }));
     expect(panel.open).toBe(false);
     fireEvent.click(trigger);
     fireEvent.click(screen.getByRole("button", { name: "Close navigation menu" }));

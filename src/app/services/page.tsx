@@ -1,0 +1,6 @@
+import type { Metadata } from "next";
+import { PublicHeader, PublicFooter } from "@/components/public-site-shell";
+import { AssociationServices, AssociationProcess } from "@/components/association-sections";
+import { AgencyContact } from "@/components/agency-contact";
+export const metadata: Metadata = { title: "Association website & development services", description: "Custom association websites, member portals, scoped integrations, and ongoing development with a direct developer relationship.", alternates: { canonical: "/services" }, openGraph: { url: "/services" } };
+export default function Page() { return <><PublicHeader/><main id="main-content" className="association-page"><section className="section service-hero"><div className="container"><p className="eyebrow">Services for associations</p><h1>A clearer website.<br/>Functionality that fits.</h1><p className="hero-lede">Commission a website, a member feature, or a connection between systems. Orbisy starts with the workflow and agrees on the scope before development begins.</p><a href="#contact" className="button">Discuss your project</a></div></section><section className="section"><div className="container"><AssociationServices/></div></section><AssociationProcess/><AgencyContact/></main><PublicFooter/></>; }

@@ -174,6 +174,16 @@ describe("Agency database and inquiry workflow", () => {
     mocked.rateLimit.mockResolvedValueOnce(false);
     expect((await send(payload())).status).toBe(429);
   });
+  it("saves association and platform details in the existing submission and notification flow", async () => {
+    const data = {...payload(), businessName: "Example Association", serviceNeeded: "Integrations & connected systems", currentPlatforms: "MemberClicks, Whova", projectDescription: "Reduce duplicate registration entry."};
+    expect(await (await send(data)).json()).toMatchObject({saved: true});
+    const {sub, notification} = await notificationFor(data.submissionToken);
+    expect(sub.businessName).toBe("Example Association");
+    expect(sub.projectDescription).toBe("Current platforms: MemberClicks, Whova\n\nReduce duplicate registration entry.");
+    expect(notification.status).toBe("pending");
+    const [lead] = await mocked.db.select().from(schema.leads).where(eq(schema.leads.submissionId, sub.id));
+    expect(lead.businessName).toBe("Example Association");
+  });
   it("atomically saves a lead and pending notification before acknowledging success, and deduplicates retries", async () => {
     const data = payload();
     const first = await send(data);

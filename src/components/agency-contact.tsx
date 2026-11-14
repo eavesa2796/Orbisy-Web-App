@@ -2,10 +2,10 @@ import { Check } from "lucide-react";
 import { PublicForm } from "@/components/public-form";
 
 export function AgencyContact({
-  title = "Request a consultation.",
+  title = "Discuss your project.",
   service,
   inquiryContext,
-  description = "Tell us what your business does and what you want to improve. Orbisy will review your request and help determine whether Orbisy is a good fit.",
+  description = "Tell us about your association, the systems you use, and the problem you want to solve. Anthony will review the details and reply by email to arrange a conversation.",
 }: {
   title?: string;
   description?: string;
@@ -25,15 +25,15 @@ export function AgencyContact({
           <ul>
             <li>
               <Check size={17} aria-hidden="true" />
-              Orbisy reviews your business goals
+              Anthony reviews your goals and existing systems
             </li>
             <li>
               <Check size={17} aria-hidden="true" />
-              Replies by email to arrange a conversation
+              You receive an email to arrange a conversation
             </li>
             <li>
               <Check size={17} aria-hidden="true" />
-              You receive a proposed next step; paid work needs an agreed scope
+              A proposed next step and written scope come before paid work
             </li>
           </ul>
           <p className="agency-contact-email">

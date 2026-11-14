@@ -1,10 +1,10 @@
 import { Mail } from "lucide-react";
 import Link from "next/link";
 import { OrbisyLogo } from "@/components/orbisy-logo";
-import { serviceNavigation, industryNavigation } from "@/lib/public-navigation";
+import { serviceNavigation } from "@/lib/public-navigation";
 import { PublicNavigation } from "@/components/public-navigation";
 import "@/components/public-navigation.css";
-import "@/components/industry-page.css";
+import "@/components/association-site.css";
 import { TrackLink } from "@/components/track-link";
 
 export function PublicHeader() {
@@ -16,7 +16,6 @@ export function PublicHeader() {
         </Link>
         <PublicNavigation
           services={serviceNavigation}
-          industries={industryNavigation}
         />
         <TrackLink
           className="button button-small"
@@ -24,7 +23,7 @@ export function PublicHeader() {
           eventName="primary_cta_click"
           componentId="nav_project_request"
         >
-          Request a consultation
+          Discuss your project
         </TrackLink>
       </div>
     </header>
@@ -43,26 +42,16 @@ export function PublicFooter() {
           >
             <OrbisyLogo className="footer-brand-logo" />
           </Link>
-          <p>
-            Websites, Google Ads, local SEO, custom software, and follow-up
-            for restaurants and local businesses.
-          </p>
+          <p>Custom websites, member functionality, and scoped integrations for associations. Work directly with Anthony Eaves.</p>
         </div>
         <div>
           <span>Explore</span>
-          <Link href="/web-design">Web design</Link>
-          <Link href="/google-ads">Google Ads</Link>
-          <Link href="/local-seo">Local SEO</Link>
-          <Link href="/custom-development">Custom development</Link>
-          <Link href="/automated-follow-up">Automated follow-up</Link>
-          <Link href="/website-maintenance">Website maintenance</Link>
-          <Link href="/industries">Industries we help</Link>
-          <Link href="/industries/restaurants">Restaurant websites & marketing</Link>
-          <Link href="/towing-marketing">Towing marketing</Link>
-          <Link href="/work">Selected work</Link>
-          <Link href="/pricing">Pricing & packages</Link>
-          <Link href="/#about">About Orbisy</Link>
-          <Link href="/#contact">Request a consultation</Link>
+          {serviceNavigation.map(service => <Link href={service.href} key={service.href}>{service.label}</Link>)}
+          <Link href="/associations">For associations</Link>
+          <Link href="/work">Our Work</Link>
+          <Link href="/about">About Orbisy</Link>
+          <Link href="/pricing">Project quotes & support</Link>
+          <Link href="/#contact">Discuss your project</Link>
         </div>
         <div>
           <span>Start a conversation</span>

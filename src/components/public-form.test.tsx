@@ -19,16 +19,16 @@ afterEach(() => {
 });
 function fill() {
   fireEvent.change(screen.getByLabelText("Name"), { target: { value: "QA" } });
-  fireEvent.change(screen.getByLabelText("Business name"), {
+  fireEvent.change(screen.getByLabelText("Association / organization name"), {
     target: { value: "QA business" },
   });
   fireEvent.change(screen.getByLabelText("Email"), {
     target: { value: "qa@example.test" },
   });
   fireEvent.change(screen.getByLabelText("Service needed"), {
-    target: { value: "Local SEO" },
+    target: { value: "Association websites" },
   });
-  fireEvent.change(screen.getByLabelText("What would you like help with?"), {
+  fireEvent.change(screen.getByLabelText("What problem would you like to solve?"), {
     target: { value: "A consultation" },
   });
   fireEvent.click(screen.getByRole("checkbox"));
@@ -43,23 +43,25 @@ describe("Consultation confirmation", () => {
         }),
       );
     vi.stubGlobal("fetch", fetchMock);
-    const context = "Requested package: Business Website ($2,500 one-time).";
+    const context = "Requested scope: Association website (project quote).";
     const { container } = render(
       <PublicForm
         type="project-request"
-        service="Website design or redesign"
+        service="Association websites"
         inquiryContext={context}
       />,
     );
     expect(screen.getByLabelText("Service needed")).toHaveValue(
-      "Website design or redesign",
+      "Association websites",
     );
     expect(screen.getByText(context)).toBeInTheDocument();
     fill();
+    fireEvent.change(screen.getByLabelText(/Current platforms/), {target: {value: "MemberClicks, Whova"}});
     fireEvent.submit(container.querySelector("form")!);
     await screen.findByText("Request received");
     const payload = JSON.parse(fetchMock.mock.calls[0][1].body);
     expect(payload.projectDescription).toBe(`${context}\n\nA consultation`);
+    expect(payload.currentPlatforms).toBe("MemberClicks, Whova");
     expect(payload.consent).toBe("on");
   });
 

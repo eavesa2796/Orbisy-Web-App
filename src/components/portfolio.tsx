@@ -48,13 +48,13 @@ export const projects = [
     height: 992,
     name: "The Orbisy design process",
     image: "/work/orbisy-design-process.webp",
-    url: "/web-design",
+    url: "/association-websites",
     alt: "Illustrative Orbisy website design process showing wireframes, visual design, and refinement on desktop and mobile",
     tag: "Orbisy design process · Illustrative concept",
     summary:
       "Your idea, taking shape: wireframe, visual design, then refinement.",
     details:
-      "We start by planning the layout around your services and the next step a customer needs to take. Then we explore a visual direction using your brand, content, and imagery. Your feedback helps refine the desktop and mobile experience before development, testing, and launch.",
+      "We start by planning the layout around your content and the next step a visitor needs to take. Then we explore a visual direction using your brand, content, and imagery. Your feedback helps refine the desktop and mobile experience before development, testing, and launch.",
     points: [
       "Wireframe: agree on the page structure and content priorities",
       "Visual design: explore typography, color, imagery, and the direction",
@@ -68,12 +68,12 @@ export const projects = [
     height: 1000,
     name: "Orbisy operations dashboard",
     image: "/work/orbisy-operations-dashboard.svg",
-    url: "/custom-development",
+    url: "/member-portals",
     alt: "Work-in-progress Orbisy custom software dashboard concept showing sample inquiries, projects, follow-ups, and workflow activity",
     tag: "Custom software · Work in progress",
-    summary: "Custom software you didn’t know you needed.",
+    summary: "A dashboard concept for keeping work in view.",
     details:
-      "The spreadsheet you keep updating. The inquiry that gets lost between tools. The follow-up you have to remember. Orbisy builds custom software around the overlooked parts of running your business. This work-in-progress dashboard concept explores bringing inquiries, project progress, and next steps into one useful workspace. It is an illustrative direction with sample data; the features shown are not live.",
+      "The spreadsheet you keep updating. The inquiry that gets lost between tools. The follow-up you have to remember. Orbisy builds custom software around the overlooked parts of running an organization. This work-in-progress dashboard concept explores bringing inquiries, project progress, and next steps into one useful workspace. It is an illustrative direction with sample data; the features shown are not live.",
     points: [
       "Start with the friction: repeated tasks, scattered information, and missed handoffs",
       "Design around your team’s workflow, with only the features you need",
@@ -101,15 +101,13 @@ export function Portfolio({
               Orbisy’s portfolio
             </p>
             <h2>
-              Real businesses.
+              Real projects.
               <br />
-              Work you can explore.
+              Implementation you can explore.
             </h2>
           </div>
           <p>
-            Live website work, the Orbisy design process, and a custom dashboard
-            concept in progress. Concepts are labeled; campaign results are not
-            presented here.
+            Two client website projects demonstrate navigation, responsive design, and clear user journeys. They are local-service projects, not association case studies. Concepts are labeled separately.
           </p>
         </div>
         {carousel ? (
