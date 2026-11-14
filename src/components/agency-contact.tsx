@@ -5,7 +5,7 @@ export function AgencyContact({
   title = "Discuss your project.",
   service,
   inquiryContext,
-  description = "Tell us about your association, the systems you use, and the problem you want to solve. Anthony will review the details and reply by email to arrange a conversation.",
+  description = "Tell us about your association, the systems you use, and the problem you want to solve. Orbisy will review the details and reply by email to arrange a conversation.",
 }: {
   title?: string;
   description?: string;
@@ -25,7 +25,7 @@ export function AgencyContact({
           <ul>
             <li>
               <Check size={17} aria-hidden="true" />
-              Anthony reviews your goals and existing systems
+              Orbisy reviews your goals and existing systems
             </li>
             <li>
               <Check size={17} aria-hidden="true" />

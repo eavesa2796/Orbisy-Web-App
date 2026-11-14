@@ -1,6 +1,6 @@
 export const siteConfig = {
   name: "Orbisy",
-  owner: "Anthony Eaves",
+  owner: "Orbisy LLC",
   email: "info@orbisy.com",
   location: "Chicago, Illinois",
   url: process.env.NEXT_PUBLIC_SITE_URL || "https://orbisy.com",

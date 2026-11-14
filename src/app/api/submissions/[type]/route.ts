@@ -95,7 +95,7 @@ export async function POST(
       duplicate: result.duplicate,
       message: result.duplicate
         ? "This request was already received."
-        : "Thanks — your request was received. Anthony will review it and reply by email about the next step.",
+        : "Thanks — your request was received. Orbisy will review it and reply by email about the next step.",
     });
   } catch (error) {
     const unavailable =

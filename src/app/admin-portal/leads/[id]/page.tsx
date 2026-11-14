@@ -52,7 +52,7 @@ export default async function LeadPage({
     "Address the verified observation with a focused, maintainable website improvement.";
   const recommendedNextAction =
     "Review the business context, personalize the language, and send only after a final suppression check.";
-  const draftBody = `Hello,\n\nWhile reviewing ${lead.businessName}'s public website, I noticed a verified opportunity that may be worth a closer look.\n\n${suggestedImprovement}\n\nIf it would be useful, I would be happy to discuss a focused next step.\n\nBest,\nAnthony\nOrbisy`;
+  const draftBody = `Hello,\n\nWhile reviewing ${lead.businessName}'s public website, I noticed a verified opportunity that may be worth a closer look.\n\n${suggestedImprovement}\n\nIf it would be useful, I would be happy to discuss a focused next step.\n\nBest,\nOrbisy`;
 
   return (
     <AdminShell email={admin.email}>

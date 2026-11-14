@@ -42,7 +42,7 @@ export function PublicFooter() {
           >
             <OrbisyLogo className="footer-brand-logo" />
           </Link>
-          <p>Custom websites, member functionality, and scoped integrations for associations. Work directly with Anthony Eaves.</p>
+          <p>Custom websites, member functionality, and scoped integrations for associations. Work directly with an Orbisy developer.</p>
         </div>
         <div>
           <span>Explore</span>
