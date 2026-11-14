@@ -55,5 +55,5 @@ export const associationFaqs = [
   ["Do we have to replace our current systems?", "Not necessarily. Discovery starts with the systems you already use. A link, embed, scoped integration, or focused custom feature may be enough; feasibility depends on access and vendor support."],
   ["Do you have association case studies or a ready-made portal?", "Not yet. Anthony has experience working with associations using MemberClicks, Whova, Cadmium, and eShow. Orbisy does not claim association client case studies, certified partnerships, prebuilt connectors, or a finished association software product."],
   ["How is a project priced?", "Websites, portals, and integrations receive project-based quotes after discovery. Ongoing care and development are scoped separately. Deliverables, fees, and responsibilities are agreed before paid work begins."],
-  ["Who will we work with?", "You work directly with Anthony Eaves, the independent developer behind Orbisy. The scope and schedule reflect the capacity available for your project."],
+  ["Who will we work with?", "You work directly with an Orbisy developer. The scope and schedule reflect the capacity available for your project."],
 ] as const;
