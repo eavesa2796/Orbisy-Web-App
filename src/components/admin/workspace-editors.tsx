@@ -126,6 +126,7 @@ export function WorkspaceEditor({
       );
   return (
     <WorkspaceForm
+      key={`workspace-${entry?.id ?? sourceLeadId ?? "new"}`}
       kind="workspace"
       fields={workspaceFields}
       values={values}
@@ -166,6 +167,7 @@ export function DiscoveryEditor({
   ];
   return (
     <WorkspaceForm
+      key={`discovery-${entry?.id ?? `new-${workspaceId}`}`}
       kind="discovery"
       fields={fields}
       values={{
@@ -192,6 +194,7 @@ export function MilestoneEditor({
 }) {
   return (
     <WorkspaceForm
+      key={`milestone-${entry?.id ?? `new-${workspaceId}`}`}
       kind="milestone"
       fields={[
         { name: "title", label: "Milestone", required: true, max: 200 },
@@ -232,6 +235,7 @@ export function MilestoneEditor({
 export function WorkspaceNoteEditor({ workspaceId }: { workspaceId: string }) {
   return (
     <WorkspaceForm
+      key={`note-${workspaceId}`}
       kind="note"
       fields={[
         {
@@ -260,6 +264,7 @@ export function LinkLeadEditor({
 }) {
   return (
     <WorkspaceForm
+      key={`link-${workspaceId}-${leads.map((lead) => lead.id).join(",")}`}
       kind="link"
       fields={[
         {
