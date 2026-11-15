@@ -1,3 +1,4 @@
+import { ToolGuide } from "@/components/admin/tool-guide";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { PricingEditor } from "@/components/admin/pricing-editor";
 import { requireAdmin } from "@/lib/auth";
@@ -33,6 +34,7 @@ export default async function PricingPage({
           </p>
         </div>
       </header>
+<ToolGuide tool="pricing" />
       <p className="notice">
         No actual rates have been assumed. Blank means unset, including in the
         standard templates. Active entries remain private; this page does not

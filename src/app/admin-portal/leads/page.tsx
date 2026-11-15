@@ -1,3 +1,4 @@
+import { ToolGuide } from "@/components/admin/tool-guide";
 import Link from "next/link";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { createLeadAction } from "@/app/admin-portal/actions";
@@ -84,6 +85,7 @@ export default async function LeadsPage({
           <h1>Leads</h1>
         </div>
       </header>
+<ToolGuide tool="leads" />
       <section className="admin-card">
         <nav className="saved-views" aria-label="Saved lead views">
           <Link href="/admin-portal/leads?status=new_inbound">New inbound</Link>
@@ -240,7 +242,7 @@ export default async function LeadsPage({
               </table>
             </div>
             <button className="button button-secondary" type="submit">
-              Queue selected for preflight
+              Queue selected for website checks
             </button>
           </form>
         ) : (

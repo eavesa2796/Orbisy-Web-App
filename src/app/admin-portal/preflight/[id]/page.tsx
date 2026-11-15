@@ -1,6 +1,194 @@
+import { ToolGuide } from "@/components/admin/tool-guide";
 import { notFound } from "next/navigation";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { requireAdmin } from "@/lib/auth";
 import { getPreflightDetail } from "@/lib/preflight/service";
 import { overrideEligibilityAction } from "../actions";
-export default async function Detail({ params }: { params: Promise<{id:string}> }) { const admin=await requireAdmin(); const {id}=await params; let data; try { data=await getPreflightDetail(id); } catch { data=null; } if(!data) notFound(); const latest=data.runs[0]; const factors=(data.score?.factors||[]) as Array<{name:string;weight:number;awarded:number;explanation:string}>; return <AdminShell email={admin.email}><header className="admin-heading"><div><p className="eyebrow">Objective preflight</p><h1>{data.lead.businessName}</h1></div><span className="status-pill">{data.job.status.replaceAll("_"," ")}</span></header><section className="admin-grid"><article className="admin-card"><h2>Imported source data</h2><dl className="detail-list"><div><dt>Original website</dt><dd>{data.lead.websiteUrl||"Not listed by source"}</dd></div><div><dt>Industry</dt><dd>{data.lead.industry||"Unavailable"}</dd></div><div><dt>Location</dt><dd>{data.lead.location||[data.lead.city,data.lead.state].filter(Boolean).join(", ")||"Unavailable"}</dd></div></dl></article><article className="admin-card"><h2>Network result</h2><dl className="detail-list"><div><dt>Final URL</dt><dd>{latest?.finalUrl||"Unavailable"}</dd></div><div><dt>HTTP</dt><dd>{latest?.httpStatus||"Unavailable"}</dd></div><div><dt>Robots</dt><dd>{latest?.robotsResult||"Not checked"}</dd></div><div><dt>Version</dt><dd>{latest?.preflightVersion||data.job.preflightVersion}</dd></div></dl></article></section><section className="admin-card"><h2>Objective checks</h2>{data.checks.length?<ul className="check-list">{data.checks.map(c=><li key={c.id}><div><strong>{c.checkType.replaceAll("_"," ")}</strong><span>{c.explanation}</span></div><b>{c.status}</b></li>)}</ul>:<p className="muted">No completed checks.</p>}</section><section className="admin-grid"><article className="admin-card"><h2>Business Fit Score</h2><p className="metric-value">{data.score?.totalScore??"Not evaluated"}{data.score&&" / 100"}</p><ul className="check-list">{factors.map(f=><li key={f.name}><div><strong>{f.name}</strong><span>{f.explanation}</span></div><b>{f.awarded}/{f.weight}</b></li>)}</ul></article><article className="admin-card"><h2>Audit eligibility</h2><p><span className="status-pill">{data.decision?.status.replaceAll("_"," ")||"not evaluated"}</span></p><p>{data.decision?.explanation}</p>{data.decision&&<form action={overrideEligibilityAction} className="admin-form"><input type="hidden" name="leadId" value={data.lead.id}/><input type="hidden" name="previousId" value={data.decision.id}/><input type="hidden" name="currentlySuppressed" value={String(Boolean(data.lead.suppressedAt||data.lead.status==="suppressed"))}/><label>Override state<select name="status" defaultValue={data.decision.status}><option value="eligible">Eligible</option><option value="needs_manual_review">Needs manual review</option><option value="ineligible">Ineligible</option><option value="blocked">Blocked</option></select></label><label>Reason<textarea name="reason" required minLength={5}/></label><button className="button button-secondary">Record override</button></form>}</article></section><section className="admin-card"><h2>Prior preflight history</h2><ul className="admin-list">{data.runs.map(r=><li key={r.id}><div><strong>{r.status}</strong><span>{r.createdAt.toLocaleString()} · {r.preflightVersion}</span></div></li>)}</ul></section></AdminShell>; }
+export default async function Detail({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const admin = await requireAdmin();
+  const { id } = await params;
+  let data;
+  try {
+    data = await getPreflightDetail(id);
+  } catch {
+    data = null;
+  }
+  if (!data) notFound();
+  const latest = data.runs[0];
+  const factors = (data.score?.factors || []) as Array<{
+    name: string;
+    weight: number;
+    awarded: number;
+    explanation: string;
+  }>;
+  return (
+    <AdminShell email={admin.email}>
+      <header className="admin-heading">
+        <div>
+          <p className="eyebrow">Objective preflight</p>
+          <h1>{data.lead.businessName}</h1>
+        </div>
+        <span className="status-pill">
+          {data.job.status.replaceAll("_", " ")}
+        </span>
+      </header>
+      <ToolGuide tool="preflight" />
+      <section className="admin-grid">
+        <article className="admin-card">
+          <h2>Imported source data</h2>
+          <dl className="detail-list">
+            <div>
+              <dt>Original website</dt>
+              <dd>{data.lead.websiteUrl || "Not listed by source"}</dd>
+            </div>
+            <div>
+              <dt>Industry</dt>
+              <dd>{data.lead.industry || "Unavailable"}</dd>
+            </div>
+            <div>
+              <dt>Location</dt>
+              <dd>
+                {data.lead.location ||
+                  [data.lead.city, data.lead.state]
+                    .filter(Boolean)
+                    .join(", ") ||
+                  "Unavailable"}
+              </dd>
+            </div>
+          </dl>
+        </article>
+        <article className="admin-card">
+          <h2>Network result</h2>
+          <dl className="detail-list">
+            <div>
+              <dt>Final URL</dt>
+              <dd>{latest?.finalUrl || "Unavailable"}</dd>
+            </div>
+            <div>
+              <dt>HTTP</dt>
+              <dd>{latest?.httpStatus || "Unavailable"}</dd>
+            </div>
+            <div>
+              <dt>Robots</dt>
+              <dd>{latest?.robotsResult || "Not checked"}</dd>
+            </div>
+            <div>
+              <dt>Version</dt>
+              <dd>{latest?.preflightVersion || data.job.preflightVersion}</dd>
+            </div>
+          </dl>
+        </article>
+      </section>
+      <section className="admin-card">
+        <h2>Objective checks</h2>
+        {data.checks.length ? (
+          <ul className="check-list">
+            {data.checks.map((c) => (
+              <li key={c.id}>
+                <div>
+                  <strong>{c.checkType.replaceAll("_", " ")}</strong>
+                  <span>{c.explanation}</span>
+                </div>
+                <b>{c.status}</b>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="muted">No completed checks.</p>
+        )}
+      </section>
+      <section className="admin-grid">
+        <article className="admin-card">
+          <h2>Business Fit Score</h2>
+          <p className="field-help">
+            Higher means a closer match to saved prospect rules. This does not
+            estimate whether the organization will buy.
+          </p>
+          <p className="metric-value">
+            {data.score?.totalScore ?? "Not evaluated"}
+            {data.score && " / 100"}
+          </p>
+          <ul className="check-list">
+            {factors.map((f) => (
+              <li key={f.name}>
+                <div>
+                  <strong>{f.name}</strong>
+                  <span>{f.explanation}</span>
+                </div>
+                <b>
+                  {f.awarded}/{f.weight}
+                </b>
+              </li>
+            ))}
+          </ul>
+        </article>
+        <article className="admin-card">
+          <h2>Audit eligibility</h2>
+          <p>
+            <span className="status-pill">
+              {data.decision?.status.replaceAll("_", " ") || "not evaluated"}
+            </span>
+          </p>
+          <p>{data.decision?.explanation}</p>
+          {data.decision && (
+            <form action={overrideEligibilityAction} className="admin-form">
+              <input type="hidden" name="leadId" value={data.lead.id} />
+              <input type="hidden" name="previousId" value={data.decision.id} />
+              <input
+                type="hidden"
+                name="currentlySuppressed"
+                value={String(
+                  Boolean(
+                    data.lead.suppressedAt || data.lead.status === "suppressed",
+                  ),
+                )}
+              />
+              <p className="field-help">
+                Only override an eligibility decision after checking the
+                evidence and saved target rules. State why the original decision
+                should change. Suppression and network safeguards still apply.
+              </p>
+              <label>
+                Override state
+                <select name="status" defaultValue={data.decision.status}>
+                  <option value="eligible">Eligible</option>
+                  <option value="needs_manual_review">
+                    Needs manual review
+                  </option>
+                  <option value="ineligible">Ineligible</option>
+                  <option value="blocked">Blocked</option>
+                </select>
+              </label>
+              <label>
+                Reason
+                <textarea name="reason" required minLength={5} />
+              </label>
+              <button className="button button-secondary">
+                Record override
+              </button>
+            </form>
+          )}
+        </article>
+      </section>
+      <section className="admin-card">
+        <h2>Prior preflight history</h2>
+        <ul className="admin-list">
+          {data.runs.map((r) => (
+            <li key={r.id}>
+              <div>
+                <strong>{r.status}</strong>
+                <span>
+                  {r.createdAt.toLocaleString()} · {r.preflightVersion}
+                </span>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </section>
+    </AdminShell>
+  );
+}

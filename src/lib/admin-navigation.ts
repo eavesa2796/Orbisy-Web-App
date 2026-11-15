@@ -22,24 +22,24 @@ export const adminNavigationGroups = [
     links: [
       {
         href: "/admin-portal/tools",
-        label: "Prospecting overview",
+        label: "Tools & guide",
         icon: "tools",
       },
       { href: "/admin-portal/imports", label: "Imports", icon: "imports" },
       {
         href: "/admin-portal/preflight",
-        label: "Preflight",
+        label: "Website checks",
         icon: "preflight",
       },
-      { href: "/admin-portal/audits", label: "Audits", icon: "audits" },
+      { href: "/admin-portal/audits", label: "Website audits", icon: "audits" },
       {
         href: "/admin-portal/suppressions",
-        label: "Suppressions",
+        label: "Do-not-contact",
         icon: "suppressions",
       },
       {
         href: "/admin-portal/analytics",
-        label: "Analytics",
+        label: "Website analytics",
         icon: "analytics",
       },
       { href: "/admin-portal/settings", label: "Settings", icon: "settings" },
