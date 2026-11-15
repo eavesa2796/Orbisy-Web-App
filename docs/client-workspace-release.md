@@ -74,3 +74,25 @@ On a configured review deployment, sign in with the existing allowed admin accou
 
 Proposal generation, e-signatures, payments, automated client emails, credential
 storage, and detailed time tracking are not part of this first version.
+
+
+## Review deployment status
+
+The additive migration was applied to the confirmed Orbisy target after the
+isolated database tests passed. Verified SHA-256:
+`84a7c1ae24ef0260f7383dba6a9d923bfac1f02ae92bb433dac5bb2a9147761a`.
+The Drizzle history entry matches journal timestamp `1794704101158`. Existing
+lead, inquiry, and pricing counts were unchanged (8 / 8 / 15). All five tables
+have RLS enabled and deny SELECT to anon and authenticated roles. No workspace
+records were seeded.
+
+The Vercel Preview environment currently lacks the Supabase authentication
+configuration. Authenticated hosted UI testing requires branch-scoped Preview
+values for `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
+`ADMIN_EMAIL`, and `DATABASE_URL`, followed by a redeployment. Use the existing
+approved administrator account; do not create a public admin bypass.
+
+`/preview/workspace` provides a clearly labeled visual review with fictional
+examples, no database reads, and disabled sample forms. It is available only
+when `VERCEL_ENV=preview` or in local development; it returns 404 in production.
+It is not a functional substitute for the real authenticated workspace.

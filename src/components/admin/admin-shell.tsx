@@ -34,25 +34,34 @@ const links = [
 export function AdminShell({
   email,
   children,
+  reviewMode = false,
 }: {
   email: string;
   children: React.ReactNode;
+  reviewMode?: boolean;
 }) {
+  const shownLinks = reviewMode
+    ? ([
+        ["/preview/workspace", LayoutDashboard, "Dashboard preview"],
+        ["/preview/workspace?view=client", BriefcaseBusiness, "Client preview"],
+        ["/preview/workspace?view=discovery", FileSearch, "Discovery preview"],
+      ] as const)
+    : links;
   return (
     <div className="admin-app">
       <aside className="admin-sidebar">
         <Link
           className="admin-brand"
-          href="/admin-portal/dashboard"
+          href={reviewMode ? "/preview/workspace" : "/admin-portal/dashboard"}
           aria-label="Orbisy administrator overview"
         >
           <OrbisyLogo className="admin-brand-logo" priority />
         </Link>
         <nav aria-label="Administrator navigation">
           <span className="admin-nav-label">Client work</span>
-          {links.map(([href, Icon, label], index) => (
+          {shownLinks.map(([href, Icon, label], index) => (
             <div key={href} className="admin-nav-item">
-              {index === 5 && (
+              {!reviewMode && index === 5 && (
                 <span className="admin-nav-label">Supporting tools</span>
               )}
               <Link href={href} key={href}>
@@ -63,9 +72,9 @@ export function AdminShell({
           ))}
         </nav>
         <div className="admin-account">
-          <span>Signed in as</span>
-          <strong>{email}</strong>
-          <LogoutButton />
+          <span>{reviewMode ? "Read-only design review" : "Signed in as"}</span>
+          <strong>{reviewMode ? "Fictional example data" : email}</strong>
+          {!reviewMode && <LogoutButton />}
         </div>
       </aside>
       <main className="admin-main" id="main-content">
