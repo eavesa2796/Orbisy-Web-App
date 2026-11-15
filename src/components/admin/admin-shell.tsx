@@ -10,15 +10,19 @@ import {
   Settings,
   ShieldBan,
   UsersRound,
+  BriefcaseBusiness,
+  Wrench,
 } from "lucide-react";
 import { LogoutButton } from "@/components/admin/logout-button";
 import { OrbisyLogo } from "@/components/orbisy-logo";
 
 const links = [
   ["/admin-portal/dashboard", LayoutDashboard, "Overview"],
-  ["/admin-portal/leads", UsersRound, "Leads"],
+  ["/admin-portal/clients", BriefcaseBusiness, "Clients"],
+  ["/admin-portal/leads", UsersRound, "Inquiries & leads"],
   ["/admin-portal/pricing", DollarSign, "Pricing"],
   ["/admin-portal/notifications", Bell, "Notifications"],
+  ["/admin-portal/tools", Wrench, "Prospecting overview"],
   ["/admin-portal/imports", FileUp, "Imports"],
   ["/admin-portal/preflight", FileSearch, "Preflight"],
   ["/admin-portal/audits", ScanSearch, "Audits"],
@@ -45,11 +49,17 @@ export function AdminShell({
           <OrbisyLogo className="admin-brand-logo" priority />
         </Link>
         <nav aria-label="Administrator navigation">
-          {links.map(([href, Icon, label]) => (
-            <Link href={href} key={href}>
-              <Icon size={17} />
-              {label}
-            </Link>
+          <span className="admin-nav-label">Client work</span>
+          {links.map(([href, Icon, label], index) => (
+            <div key={href} className="admin-nav-item">
+              {index === 5 && (
+                <span className="admin-nav-label">Supporting tools</span>
+              )}
+              <Link href={href} key={href}>
+                <Icon size={17} aria-hidden="true" />
+                {label}
+              </Link>
+            </div>
           ))}
         </nav>
         <div className="admin-account">
