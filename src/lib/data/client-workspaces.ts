@@ -79,7 +79,11 @@ export async function getWorkspaceContents(id: string) {
     throw new Error("INVALID_WORKSPACE");
   const [links, notes, briefs, milestones] = await Promise.all([
     getDb()
-      .select({ lead: leads, submission: contactSubmissions })
+      .select({
+        linkId: clientLeadLinks.id,
+        lead: leads,
+        submission: contactSubmissions,
+      })
       .from(clientLeadLinks)
       .innerJoin(leads, eq(clientLeadLinks.leadId, leads.id))
       .leftJoin(
@@ -331,75 +335,106 @@ export async function getAgencyDashboard() {
   try {
     workspaceReady = await workspaceSchemaAvailable();
     if (workspaceReady) {
-      const [actions, milestones, proposals, [active]] = await Promise.all([
-        db
-          .select({
-            id: clientWorkspaces.id,
-            title: clientWorkspaces.name,
-            detail: clientWorkspaces.nextAction,
-            date: clientWorkspaces.nextActionDate,
-            total: sql<number>`count(*) over()::int`,
-          })
-          .from(clientWorkspaces)
-          .where(
-            and(
-              sql`${clientWorkspaces.status} in ('prospect','active','paused')`,
-              sql`${clientWorkspaces.nextActionDate} <= ${today}`,
-            ),
-          )
-          .orderBy(asc(clientWorkspaces.nextActionDate))
-          .limit(8),
-        db
-          .select({
-            id: clientMilestones.id,
-            workspaceId: clientWorkspaces.id,
-            title: clientMilestones.title,
-            name: clientWorkspaces.name,
-            date: clientMilestones.dueDate,
-            status: clientMilestones.status,
-            total: sql<number>`count(*) over()::int`,
-          })
-          .from(clientMilestones)
-          .innerJoin(
-            clientWorkspaces,
-            eq(clientMilestones.workspaceId, clientWorkspaces.id),
-          )
-          .where(
-            and(
-              ne(clientWorkspaces.status, "archived"),
-              ne(clientMilestones.status, "done"),
-              or(
-                eq(clientMilestones.status, "blocked"),
-                sql`${clientMilestones.dueDate} <= (${today}::date + 7)`,
+      const [actions, milestones, proposals, [active], unlinkedProposals] =
+        await Promise.all([
+          db
+            .select({
+              id: clientWorkspaces.id,
+              title: clientWorkspaces.name,
+              detail: clientWorkspaces.nextAction,
+              date: clientWorkspaces.nextActionDate,
+              total: sql<number>`count(*) over()::int`,
+            })
+            .from(clientWorkspaces)
+            .where(
+              and(
+                sql`${clientWorkspaces.status} in ('prospect','active','paused')`,
+                sql`${clientWorkspaces.nextActionDate} <= ${today}`,
               ),
-            ),
-          )
-          .orderBy(
-            sql`case when ${clientMilestones.status}='blocked' then 0 else 1 end`,
-            asc(clientMilestones.dueDate),
-          )
-          .limit(8),
-        db
-          .select({
-            id: clientWorkspaces.id,
-            title: clientWorkspaces.name,
-            total: sql<number>`count(*) over()::int`,
-          })
-          .from(clientWorkspaces)
-          .where(
-            and(
-              ne(clientWorkspaces.status, "archived"),
-              eq(clientWorkspaces.proposalStatus, "sent"),
-            ),
-          )
-          .orderBy(asc(clientWorkspaces.updatedAt))
-          .limit(8),
-        db
-          .select({ total: sql<number>`count(*)::int` })
-          .from(clientWorkspaces)
-          .where(eq(clientWorkspaces.status, "active")),
-      ]);
+            )
+            .orderBy(asc(clientWorkspaces.nextActionDate))
+            .limit(8),
+          db
+            .select({
+              id: clientMilestones.id,
+              workspaceId: clientWorkspaces.id,
+              title: clientMilestones.title,
+              name: clientWorkspaces.name,
+              date: clientMilestones.dueDate,
+              status: clientMilestones.status,
+              total: sql<number>`count(*) over()::int`,
+            })
+            .from(clientMilestones)
+            .innerJoin(
+              clientWorkspaces,
+              eq(clientMilestones.workspaceId, clientWorkspaces.id),
+            )
+            .where(
+              and(
+                ne(clientWorkspaces.status, "archived"),
+                ne(clientMilestones.status, "done"),
+                or(
+                  eq(clientMilestones.status, "blocked"),
+                  sql`${clientMilestones.dueDate} <= (${today}::date + 7)`,
+                ),
+              ),
+            )
+            .orderBy(
+              sql`case when ${clientMilestones.status}='blocked' then 0 else 1 end`,
+              asc(clientMilestones.dueDate),
+            )
+            .limit(8),
+          db
+            .select({
+              id: clientWorkspaces.id,
+              title: clientWorkspaces.name,
+              total: sql<number>`count(*) over()::int`,
+            })
+            .from(clientWorkspaces)
+            .where(
+              and(
+                ne(clientWorkspaces.status, "archived"),
+                eq(clientWorkspaces.proposalStatus, "sent"),
+              ),
+            )
+            .orderBy(asc(clientWorkspaces.updatedAt))
+            .limit(8),
+          db
+            .select({ total: sql<number>`count(*)::int` })
+            .from(clientWorkspaces)
+            .where(eq(clientWorkspaces.status, "active")),
+          db
+            .select({
+              id: leads.id,
+              title: leads.businessName,
+              total: sql<number>`count(*) over()::int`,
+            })
+            .from(leads)
+            .leftJoin(clientLeadLinks, eq(clientLeadLinks.leadId, leads.id))
+            .where(
+              and(
+                eq(leads.status, "proposal_sent"),
+                isNull(clientLeadLinks.id),
+              ),
+            )
+            .orderBy(asc(leads.updatedAt))
+            .limit(8),
+        ]);
       activeClients = active.total;
+      const leadProposalQueue = queues.find(
+        (queue) => queue.key === "proposals",
+      )!;
+      Object.assign(leadProposalQueue, {
+        description:
+          "Unlinked leads marked proposal sent. Linked records are managed in the client workspace.",
+        total: unlinkedProposals[0]?.total ?? 0,
+        items: unlinkedProposals.map((row) => ({
+          id: row.id,
+          title: row.title,
+          detail: "Proposal sent",
+          href: `/admin-portal/leads/${row.id}`,
+        })),
+      });
       queues.splice(2, 0, {
         key: "actions",
         title: "Client next actions",

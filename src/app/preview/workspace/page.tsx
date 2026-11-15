@@ -1,3 +1,4 @@
+import { WorkspaceSummary } from "@/components/admin/workspace-summary";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -28,7 +29,10 @@ export default async function WorkspaceReview({
     process.env.NODE_ENV !== "development"
   )
     notFound();
-  const { view } = await searchParams;
+  const { view: requestedView } = await searchParams;
+  const view = ["client", "edit", "discovery"].includes(requestedView ?? "")
+    ? requestedView
+    : undefined;
   const today = todayInChicago();
   const sampleLink = "/preview/workspace?view=client";
   const data: Awaited<ReturnType<typeof getAgencyDashboard>> = {
@@ -197,7 +201,7 @@ export default async function WorkspaceReview({
     updatedAt: new Date(),
   };
   return (
-    <AdminShell email="review@example.test" reviewMode>
+    <AdminShell email="review@example.test" reviewMode reviewView={view}>
       <aside className="workspace-review-banner" aria-label="Design preview">
         <strong>Design review · Fictional example data</strong>
         <p>
@@ -217,6 +221,12 @@ export default async function WorkspaceReview({
             aria-current={view === "client" ? "page" : undefined}
           >
             Client workspace
+          </Link>
+          <Link
+            href="/preview/workspace?view=edit"
+            aria-current={view === "edit" ? "page" : undefined}
+          >
+            Edit details
           </Link>
           <Link
             href="/preview/workspace?view=discovery"
@@ -253,6 +263,35 @@ export default async function WorkspaceReview({
               </p>
             </article>
           </section>
+          <WorkspaceSummary
+            client={client}
+            editHref="/preview/workspace?view=edit"
+          />
+          <Link
+            className="button button-secondary"
+            href="/preview/workspace?view=edit"
+          >
+            Open the separate edit screen
+          </Link>
+        </>
+      ) : view === "edit" ? (
+        <>
+          <header className="admin-heading">
+            <div>
+              <p className="eyebrow">Example client edit screen</p>
+              <h1>Edit Example Association</h1>
+              <p>
+                Editing is separate from the client overview, with all the same
+                scope and support fields.
+              </p>
+            </div>
+          </header>
+          <Link
+            className="text-link workspace-back"
+            href="/preview/workspace?view=client"
+          >
+            ← Back to client overview
+          </Link>
           <section className="admin-card">
             <fieldset
               disabled

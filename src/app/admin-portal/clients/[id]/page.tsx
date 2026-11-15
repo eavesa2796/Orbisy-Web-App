@@ -1,9 +1,10 @@
+import { WorkspaceSummary } from "@/components/admin/workspace-summary";
+import { WorkspaceForm } from "@/components/admin/workspace-form";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowUpRight, FileText, MessageSquare, Flag } from "lucide-react";
 import { AdminShell } from "@/components/admin/admin-shell";
 import {
-  WorkspaceEditor,
   WorkspaceNoteEditor,
   MilestoneEditor,
   LinkLeadEditor,
@@ -70,10 +71,24 @@ export default async function ClientPage({
             {client.contactRole ? ` · ${client.contactRole}` : ""}
           </p>
         </div>
-        <span className={`workspace-badge status-${client.status}`}>
-          {workspaceStatuses[client.status as keyof typeof workspaceStatuses]}
-        </span>
+        <div className="workspace-actions">
+          <span className={`workspace-badge status-${client.status}`}>
+            {workspaceStatuses[client.status as keyof typeof workspaceStatuses]}
+          </span>
+          <Link
+            className="button button-secondary"
+            href={`/admin-portal/clients/${id}/edit`}
+          >
+            Edit details
+          </Link>
+        </div>
       </header>
+      {client.status === "archived" && (
+        <p className="notice">
+          This workspace is archived. Its records are retained; restore its
+          status in Edit details when work resumes.
+        </p>
+      )}
       <nav className="workspace-tabs" aria-label="Workspace sections">
         {[
           ["overview", "Overview"],
@@ -83,9 +98,16 @@ export default async function ClientPage({
           ["notes", "Notes"],
           ["workspace-details", "Edit workspace"],
         ].map(([target, label]) => (
-          <a href={`#${target}`} key={target}>
+          <Link
+            href={
+              target === "workspace-details"
+                ? `/admin-portal/clients/${id}/edit`
+                : `#${target}`
+            }
+            key={target}
+          >
             {label}
-          </a>
+          </Link>
         ))}
       </nav>
       <section className="workspace-overview" id="overview">
@@ -93,9 +115,9 @@ export default async function ClientPage({
           <p className="eyebrow">Next action</p>
           <h2>{client.nextAction || "Choose the next useful step."}</h2>
           <p>{displayDate(client.nextActionDate)}</p>
-          <a className="text-link" href="#workspace-details">
+          <Link className="text-link" href={`/admin-portal/clients/${id}/edit`}>
             Update next action →
-          </a>
+          </Link>
         </article>
         <article className="admin-card">
           <h2>At a glance</h2>
@@ -153,6 +175,7 @@ export default async function ClientPage({
           </dl>
         </article>
       </section>
+      <WorkspaceSummary client={client} />
       <section className="admin-card workspace-section" id="discovery">
         <div className="card-heading">
           <div>
@@ -259,7 +282,7 @@ export default async function ClientPage({
         </div>
         {data.links.length ? (
           <ul className="workspace-inquiry-list">
-            {data.links.map(({ lead, submission }) => (
+            {data.links.map(({ linkId, lead, submission }) => (
               <li key={lead.id}>
                 <div className="workspace-inline-heading">
                   <Link href={`/admin-portal/leads/${lead.id}`}>
@@ -291,6 +314,21 @@ export default async function ClientPage({
                 >
                   Notes, follow-ups & pipeline history →
                 </Link>
+                <details className="workspace-disclosure">
+                  <summary>Manage this link</summary>
+                  <p className="field-help">
+                    Remove this record’s link to the workspace. The original
+                    lead, inquiry, notes, and pipeline history remain available.
+                    You can link it again through search.
+                  </p>
+                  <WorkspaceForm
+                    kind="unlink"
+                    fields={[]}
+                    values={{}}
+                    hidden={{ workspaceId: id, leadId: lead.id, linkId }}
+                    submitLabel="Remove link"
+                  />
+                </details>
               </li>
             ))}
           </ul>
@@ -368,7 +406,16 @@ export default async function ClientPage({
             <h2>Edit workspace</h2>
           </div>
         </div>
-        <WorkspaceEditor entry={client} />
+        <p className="workspace-empty">
+          Manage contact details, systems, project scope, next actions, and
+          support on the edit page.
+        </p>
+        <Link
+          className="button button-secondary"
+          href={`/admin-portal/clients/${id}/edit`}
+        >
+          Edit workspace details
+        </Link>
       </section>
     </AdminShell>
   );

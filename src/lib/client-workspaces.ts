@@ -235,6 +235,7 @@ export const noteSchema = z.object({
   body: requiredText(5000),
 });
 export const linkLeadSchema = z.object({ workspaceId: id, leadId: id });
+export const unlinkLeadSchema = linkLeadSchema.extend({ linkId: id });
 export const recordIdSchema = id;
 export function todayInChicago(now = new Date()) {
   return new Intl.DateTimeFormat("en-CA", {

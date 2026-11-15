@@ -8,6 +8,7 @@ import {
   BellRing,
   Plus,
   Search,
+  ChevronDown,
 } from "lucide-react";
 import type { getAgencyDashboard } from "@/lib/data/client-workspaces";
 import { displayDate, displayTimestamp } from "@/lib/client-workspaces";
@@ -19,17 +20,25 @@ export function AgencyDashboard({ data }: { data: Data }) {
   const stats = [
     {
       title: "Active clients",
+      href: "/admin-portal/clients?status=active",
       value: data.activeClients,
       Icon: BriefcaseBusiness,
     },
-    { title: "New inquiries", value: count("inquiries"), Icon: Inbox },
+    {
+      title: "New inquiries",
+      value: count("inquiries"),
+      Icon: Inbox,
+      href: "#queue-inquiries",
+    },
     {
       title: "Lead follow-ups due",
+      href: "#queue-followups",
       value: count("followups"),
       Icon: CalendarClock,
     },
     {
       title: "Notification failures",
+      href: "#queue-notifications",
       value: count("notifications"),
       Icon: BellRing,
     },
@@ -65,12 +74,12 @@ export function AgencyDashboard({ data }: { data: Data }) {
         className="metric-grid workspace-metrics"
         aria-label="Agency overview"
       >
-        {stats.map(({ title, value, Icon }) => (
-          <article className="metric-card" key={title}>
+        {stats.map(({ title, value, Icon, href }) => (
+          <Link className="metric-card" key={title} href={href}>
             <Icon size={23} aria-hidden="true" />
             <span>{title}</span>
             <strong>{value ?? "—"}</strong>
-          </article>
+          </Link>
         ))}
       </section>
       {!data.workspaceReady && (
@@ -83,11 +92,13 @@ export function AgencyDashboard({ data }: { data: Data }) {
             <h2>Work that needs a next step.</h2>
           </div>
           {data.queues.map((queue) => (
-            <article
+            <details
               className={`admin-card attention-queue queue-${queue.key}`}
               key={queue.key}
+              id={`queue-${queue.key}`}
+              open={queue.total > 0}
             >
-              <div className="card-heading">
+              <summary className="card-heading">
                 <div>
                   <h3>{queue.title}</h3>
                   <p>{queue.description}</p>
@@ -97,7 +108,12 @@ export function AgencyDashboard({ data }: { data: Data }) {
                 >
                   {queue.total}
                 </span>
-              </div>
+                <ChevronDown
+                  size={18}
+                  className="queue-disclosure-icon"
+                  aria-hidden="true"
+                />
+              </summary>
               {queue.items.length ? (
                 <>
                   <ul>
@@ -134,7 +150,7 @@ export function AgencyDashboard({ data }: { data: Data }) {
               ) : (
                 <p className="workspace-empty">Nothing waiting here.</p>
               )}
-            </article>
+            </details>
           ))}
         </div>
         <aside className="workspace-dashboard-aside">
