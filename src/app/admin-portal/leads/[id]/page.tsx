@@ -1,3 +1,4 @@
+import { LeadWorkspaceLink } from "@/components/admin/lead-workspace-link";
 import { getInquiryForLead } from "@/lib/data/inquiries";
 import { retryNotificationAction } from "@/app/admin-portal/notifications/actions";
 import { notFound } from "next/navigation";
@@ -66,6 +67,7 @@ export default async function LeadPage({
           </p>
         </div>
       </header>
+      <LeadWorkspaceLink leadId={id}/>
       {contactRecorded === "1" && (
         <p className="notice" role="status">
           Manual contact recorded and the lead moved to contacted. Orbisy did

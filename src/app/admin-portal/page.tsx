@@ -13,11 +13,11 @@ export default async function AdminPortalPage() {
         <OrbisyLogo className="login-logo" priority />
         <p className="admin-kicker">Private administrator workspace</p>
         <h1 id="login-intro-title">
-          Turn verified insight into <span>thoughtful action.</span>
+          Your client work, <span>clearly connected.</span>
         </h1>
         <p>
-          Review inbound requests, qualify suitable businesses, verify audit
-          evidence, and manage every follow-up from one focused workspace.
+          Review inquiries, organize client work, scope the next project, and
+          keep conversations and commitments moving from one private workspace.
         </p>
       </section>
       <LoginForm configured={hasSupabaseConfig()} />

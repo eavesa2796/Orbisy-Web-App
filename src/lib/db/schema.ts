@@ -1,5 +1,6 @@
 import {
   boolean,
+  date,
   check,
   foreignKey,
   index,
@@ -905,3 +906,86 @@ export const submissionNotifications = pgTable(
     index("notification_status_idx").on(t.status),
   ],
 ).enableRLS();
+
+
+// Private agency workspace. All access goes through requireAdmin() on the server.
+export const clientWorkspaces = pgTable("client_workspaces", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: varchar("name", {length: 160}).notNull(),
+  status: varchar("status", {length: 20}).notNull().default("prospect"),
+  contactName: varchar("contact_name", {length: 120}).notNull().default(""),
+  contactEmail: varchar("contact_email", {length: 254}).notNull().default(""),
+  contactRole: varchar("contact_role", {length: 120}).notNull().default(""),
+  websiteUrl: varchar("website_url", {length: 500}).notNull().default(""),
+  cms: varchar("cms", {length: 200}).notNull().default(""),
+  platforms: text("platforms").notNull().default(""),
+  vendorContacts: text("vendor_contacts").notNull().default(""),
+  accessNotes: text("access_notes").notNull().default(""),
+  currentScope: text("current_scope").notNull().default(""),
+  supportScope: text("support_scope").notNull().default(""),
+  supportCapacity: varchar("support_capacity", {length: 200}).notNull().default(""),
+  supportBoundaries: text("support_boundaries").notNull().default(""),
+  nextAction: varchar("next_action", {length: 300}).notNull().default(""),
+  nextActionDate: date("next_action_date"),
+  proposalStatus: varchar("proposal_status", {length: 20}).notNull().default("not_started"),
+  proposalUrl: varchar("proposal_url", {length: 500}).notNull().default(""),
+  version: integer("version").notNull().default(1),
+  updatedBy: varchar("updated_by", {length: 254}).notNull(),
+  createdAt: timestamp("created_at", {withTimezone: true}).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", {withTimezone: true}).notNull().defaultNow(),
+}, t=>[
+  index("client_workspace_status_updated_idx").on(t.status,t.updatedAt),
+  index("client_workspace_next_action_idx").on(t.nextActionDate),
+  check("client_workspace_status_valid",sql`${t.status} in ('prospect','active','paused','archived')`),
+  check("client_workspace_proposal_valid",sql`${t.proposalStatus} in ('not_started','scoping','draft','sent','accepted','declined')`),
+  check("client_workspace_version_positive",sql`${t.version} > 0`),
+]).enableRLS();
+
+export const clientLeadLinks = pgTable("client_lead_links", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  workspaceId: uuid("workspace_id").notNull().references(()=>clientWorkspaces.id,{onDelete:"cascade"}),
+  leadId: uuid("lead_id").notNull().references(()=>leads.id,{onDelete:"restrict"}),
+  createdAt: timestamp("created_at",{withTimezone:true}).notNull().defaultNow(),
+},t=>[uniqueIndex("client_lead_link_lead_unique").on(t.leadId), index("client_lead_workspace_idx").on(t.workspaceId)]).enableRLS();
+
+export const clientWorkspaceNotes = pgTable("client_workspace_notes", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  workspaceId: uuid("workspace_id").notNull().references(()=>clientWorkspaces.id,{onDelete:"cascade"}),
+  body: text("body").notNull(),
+  createdBy: varchar("created_by",{length:254}).notNull(),
+  createdAt: timestamp("created_at",{withTimezone:true}).notNull().defaultNow(),
+},t=>[index("client_note_workspace_created_idx").on(t.workspaceId,t.createdAt)]).enableRLS();
+
+export const discoveryBriefs = pgTable("discovery_briefs", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  workspaceId: uuid("workspace_id").notNull().references(()=>clientWorkspaces.id,{onDelete:"cascade"}),
+  title: varchar("title",{length:160}).notNull(),
+  status: varchar("status",{length:20}).notNull().default("draft"),
+  answers: jsonb("answers").$type<Record<string,string>>().notNull().default({}),
+  version: integer("version").notNull().default(1),
+  updatedBy: varchar("updated_by",{length:254}).notNull(),
+  createdAt: timestamp("created_at",{withTimezone:true}).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at",{withTimezone:true}).notNull().defaultNow(),
+},t=>[
+  index("discovery_workspace_updated_idx").on(t.workspaceId,t.updatedAt),
+  check("discovery_status_valid",sql`${t.status} in ('draft','ready','archived')`),
+  check("discovery_version_positive",sql`${t.version} > 0`),
+]).enableRLS();
+
+export const clientMilestones = pgTable("client_milestones", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  workspaceId: uuid("workspace_id").notNull().references(()=>clientWorkspaces.id,{onDelete:"cascade"}),
+  title: varchar("title",{length:200}).notNull(),
+  project: varchar("project",{length:160}).notNull().default(""),
+  status: varchar("status",{length:20}).notNull().default("open"),
+  dueDate: date("due_date"),
+  nextStep: varchar("next_step",{length:500}).notNull().default(""),
+  version: integer("version").notNull().default(1),
+  updatedBy: varchar("updated_by",{length:254}).notNull(),
+  updatedAt: timestamp("updated_at",{withTimezone:true}).notNull().defaultNow(),
+},t=>[
+  index("client_milestone_workspace_idx").on(t.workspaceId),
+  index("client_milestone_status_due_idx").on(t.status,t.dueDate),
+  check("client_milestone_status_valid",sql`${t.status} in ('open','blocked','done')`),
+  check("client_milestone_version_positive",sql`${t.version} > 0`),
+]).enableRLS();

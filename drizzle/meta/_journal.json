@@ -64,6 +64,13 @@
       "when": 1791059742934,
       "tag": "0008_agency_pricing_notifications",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1794704101158,
+      "tag": "0009_client_workspaces",
+      "breakpoints": true
     }
   ]
 }
