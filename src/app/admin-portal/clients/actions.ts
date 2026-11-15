@@ -19,6 +19,7 @@ import {
   milestoneSchema,
   noteSchema,
   linkLeadSchema,
+  unlinkLeadSchema,
 } from "@/lib/client-workspaces";
 export type WorkspaceActionState = {
   success: boolean;
@@ -79,8 +80,10 @@ function refresh(workspaceId?: string) {
   revalidatePath("/admin-portal/dashboard");
   revalidatePath("/admin-portal/clients");
   revalidatePath("/admin-portal/leads");
-  if (workspaceId)
+  if (workspaceId) {
     revalidatePath(`/admin-portal/clients/${workspaceId}`, "layout");
+    revalidatePath(`/admin-portal/clients/${workspaceId}/edit`);
+  }
 }
 export async function saveWorkspaceAction(
   _previous: WorkspaceActionState,
@@ -139,15 +142,13 @@ export async function saveWorkspaceAction(
           .returning();
         if (!entry) throw new Error("EDIT_CONFLICT");
       }
-      await tx
-        .insert(adminActivityLogs)
-        .values({
-          adminEmail: admin.email,
-          action: mode === "create" ? "workspace_created" : "workspace_updated",
-          entityType: "client_workspace",
-          entityId: id,
-          metadata: { status: input.status },
-        });
+      await tx.insert(adminActivityLogs).values({
+        adminEmail: admin.email,
+        action: mode === "create" ? "workspace_created" : "workspace_updated",
+        entityType: "client_workspace",
+        entityId: id,
+        metadata: { status: input.status },
+      });
       return entry;
     });
     refresh(id);
@@ -218,20 +219,17 @@ export async function saveDiscoveryAction(
           .returning();
         if (!entry) throw new Error("EDIT_CONFLICT");
       }
-      await tx
-        .insert(adminActivityLogs)
-        .values({
-          adminEmail: admin.email,
-          action:
-            p.mode === "create" ? "discovery_created" : "discovery_updated",
-          entityType: "discovery_brief",
-          entityId: p.id,
-          metadata: {
-            workspaceId: p.workspaceId,
-            status: p.status,
-            version: entry.version,
-          },
-        });
+      await tx.insert(adminActivityLogs).values({
+        adminEmail: admin.email,
+        action: p.mode === "create" ? "discovery_created" : "discovery_updated",
+        entityType: "discovery_brief",
+        entityId: p.id,
+        metadata: {
+          workspaceId: p.workspaceId,
+          status: p.status,
+          version: entry.version,
+        },
+      });
       return entry;
     });
     refresh(p.workspaceId);
@@ -298,15 +296,13 @@ export async function saveMilestoneAction(
           .returning();
         if (!entry) throw new Error("EDIT_CONFLICT");
       }
-      await tx
-        .insert(adminActivityLogs)
-        .values({
-          adminEmail: admin.email,
-          action: "milestone_saved",
-          entityType: "client_milestone",
-          entityId: id,
-          metadata: { workspaceId, status: p.status },
-        });
+      await tx.insert(adminActivityLogs).values({
+        adminEmail: admin.email,
+        action: "milestone_saved",
+        entityType: "client_milestone",
+        entityId: id,
+        metadata: { workspaceId, status: p.status },
+      });
       return entry;
     });
     refresh(workspaceId);
@@ -343,14 +339,12 @@ export async function addWorkspaceNoteAction(
         .onConflictDoNothing({ target: clientWorkspaceNotes.id })
         .returning();
       if (note)
-        await tx
-          .insert(adminActivityLogs)
-          .values({
-            adminEmail: admin.email,
-            action: "workspace_note_added",
-            entityType: "client_workspace",
-            entityId: p.workspaceId,
-          });
+        await tx.insert(adminActivityLogs).values({
+          adminEmail: admin.email,
+          action: "workspace_note_added",
+          entityType: "client_workspace",
+          entityId: p.workspaceId,
+        });
     });
     refresh(p.workspaceId);
     return {
@@ -398,15 +392,13 @@ export async function linkLeadAction(
           throw new Error("LEAD_ALREADY_LINKED");
         return;
       }
-      await tx
-        .insert(adminActivityLogs)
-        .values({
-          adminEmail: admin.email,
-          action: "workspace_lead_linked",
-          entityType: "client_workspace",
-          entityId: p.workspaceId,
-          metadata: { leadId: p.leadId },
-        });
+      await tx.insert(adminActivityLogs).values({
+        adminEmail: admin.email,
+        action: "workspace_lead_linked",
+        entityType: "client_workspace",
+        entityId: p.workspaceId,
+        metadata: { leadId: p.leadId },
+      });
     });
     refresh(p.workspaceId);
     revalidatePath(`/admin-portal/leads/${p.leadId}`);
@@ -414,6 +406,63 @@ export async function linkLeadAction(
       success: true,
       message:
         "Lead linked. Its original record and pipeline status are preserved.",
+      values: raw,
+    };
+  } catch (error) {
+    return failure(error, raw);
+  }
+}
+
+export async function unlinkLeadAction(
+  _previous: WorkspaceActionState,
+  form: FormData,
+): Promise<WorkspaceActionState> {
+  const admin = await requireAdmin();
+  const raw = inputs(form);
+  const parsed = unlinkLeadSchema.safeParse(raw);
+  if (!parsed.success) return validationError(parsed.error, raw);
+  const p = parsed.data;
+  try {
+    await getDb().transaction(async (tx) => {
+      const [workspace] = await tx
+        .select({ id: clientWorkspaces.id })
+        .from(clientWorkspaces)
+        .where(eq(clientWorkspaces.id, p.workspaceId));
+      if (!workspace) throw new Error("RECORD_NOT_FOUND");
+      const [current] = await tx
+        .select()
+        .from(clientLeadLinks)
+        .where(eq(clientLeadLinks.leadId, p.leadId));
+      if (!current) return;
+      if (current.id !== p.linkId || current.workspaceId !== p.workspaceId)
+        throw new Error("EDIT_CONFLICT");
+      const [removed] = await tx
+        .delete(clientLeadLinks)
+        .where(
+          and(
+            eq(clientLeadLinks.id, p.linkId),
+            eq(clientLeadLinks.workspaceId, p.workspaceId),
+            eq(clientLeadLinks.leadId, p.leadId),
+          ),
+        )
+        .returning({ id: clientLeadLinks.id });
+      if (!removed) throw new Error("EDIT_CONFLICT");
+      await tx
+        .insert(adminActivityLogs)
+        .values({
+          adminEmail: admin.email,
+          action: "workspace_lead_unlinked",
+          entityType: "client_workspace",
+          entityId: p.workspaceId,
+          metadata: { leadId: p.leadId, linkId: p.linkId },
+        });
+    });
+    refresh(p.workspaceId);
+    revalidatePath(`/admin-portal/leads/${p.leadId}`);
+    return {
+      success: true,
+      message:
+        "Link removed. The original lead, inquiry, and history are preserved.",
       values: raw,
     };
   } catch (error) {

@@ -6,6 +6,7 @@ vi.mock("@/app/admin-portal/clients/actions", () => ({
   saveMilestoneAction: vi.fn(),
   addWorkspaceNoteAction: vi.fn(),
   linkLeadAction: vi.fn(),
+  unlinkLeadAction: vi.fn(),
 }));
 import {
   WorkspaceEditor,

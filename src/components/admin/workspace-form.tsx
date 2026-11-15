@@ -7,6 +7,7 @@ import {
   saveMilestoneAction,
   addWorkspaceNoteAction,
   linkLeadAction,
+  unlinkLeadAction,
   type WorkspaceActionState,
 } from "@/app/admin-portal/clients/actions";
 export type WorkspaceField = {
@@ -25,6 +26,7 @@ const actions = {
   milestone: saveMilestoneAction,
   note: addWorkspaceNoteAction,
   link: linkLeadAction,
+  unlink: unlinkLeadAction,
 };
 export function WorkspaceForm({
   kind,
@@ -156,6 +158,17 @@ export function WorkspaceForm({
         >
           {state.message}
         </p>
+      )}
+      {state.success && target && (
+        <Link className="text-link span-two" href={target}>
+          View saved{" "}
+          {kind === "workspace"
+            ? "workspace"
+            : kind === "discovery"
+              ? "brief"
+              : "record"}{" "}
+          →
+        </Link>
       )}
       <div className="span-two workspace-form-footer">
         <button className="button" disabled={pending}>

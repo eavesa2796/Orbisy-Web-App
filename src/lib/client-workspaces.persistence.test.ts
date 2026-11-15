@@ -38,6 +38,7 @@ import {
   saveMilestoneAction,
   addWorkspaceNoteAction,
   linkLeadAction,
+  unlinkLeadAction,
   type WorkspaceActionState,
 } from "@/app/admin-portal/clients/actions";
 import {
@@ -377,6 +378,36 @@ describe("Client workspace persistence and authorization", () => {
     expect(text).toContain("Staff can edit and publish");
     expect(text).toContain("does not mean client approval");
   });
+  it("removes only the exact relationship, preserves the original record, and rejects stale unlink requests", async () => {
+    const { links } = await getWorkspaceContents(workspaceId);
+    const original = links.find((entry) => entry.lead.id === legacyLead)!;
+    const request = form({ workspaceId, leadId: legacyLead, linkId: original.linkId });
+    expect((await unlinkLeadAction(state, request)).success).toBe(true);
+    expect((await unlinkLeadAction(state, request)).success).toBe(true);
+    expect(await getLeadWorkspace(legacyLead)).toBeNull();
+    const [lead] = await mock.db.select().from(schema.leads).where(eq(schema.leads.id, legacyLead));
+    expect(lead.status).toBe("proposal_sent");
+    const notes = await mock.db.select().from(schema.leadNotes).where(eq(schema.leadNotes.leadId, legacyLead));
+    expect(notes[0].body).toBe("Original decision");
+    const audit = await pg.query<{count: number}>("select count(*)::int as count from admin_activity_logs where action='workspace_lead_unlinked'");
+    expect(audit.rows[0].count).toBe(1);
+    expect((await linkLeadAction(state, form({workspaceId, leadId: legacyLead}))).success).toBe(true);
+    const recreated = (await getWorkspaceContents(workspaceId)).links.find((entry) => entry.lead.id === legacyLead)!;
+    expect(recreated.linkId).not.toBe(original.linkId);
+    expect((await unlinkLeadAction(state, request)).success).toBe(false);
+    const other = (await getClientWorkspaces()).items.find((entry) => entry.id !== workspaceId)!;
+    expect((await unlinkLeadAction(state, form({workspaceId: other.id, leadId: legacyLead, linkId: recreated.linkId}))).success).toBe(false);
+    expect((await getLeadWorkspace(legacyLead))?.id).toBe(workspaceId);
+  });
+  it("manages linked proposals in the workspace queue without mutating their lead status", async () => {
+    const current = await getClientWorkspace(workspaceId);
+    expect((await saveWorkspaceAction(state, form(workspace({mode: "update", version: current!.version, status: "active", proposalStatus: "sent"})))).success).toBe(true);
+    const dashboard = await getAgencyDashboard();
+    expect(dashboard.queues.find((queue) => queue.key === "proposals")?.total).toBe(0);
+    const clientQueue = dashboard.queues.find((queue) => queue.key === "clientProposals")!;
+    expect(clientQueue.items.filter((entry) => entry.id === workspaceId)).toHaveLength(1);
+    expect((await getWorkspaceContents(workspaceId)).links.find((entry) => entry.lead.id === legacyLead)?.lead.status).toBe("proposal_sent");
+  });
   it("rejects non-admin reads and writes before touching the database", async () => {
     mock.admin.mockRejectedValue(new Error("AUTH_REQUIRED"));
     const calls = [
@@ -392,6 +423,7 @@ describe("Client workspace persistence and authorization", () => {
       () => saveMilestoneAction(state, form({})),
       () => addWorkspaceNoteAction(state, form({})),
       () => linkLeadAction(state, form({})),
+      () => unlinkLeadAction(state, form({})),
     ];
     for (const call of calls)
       await expect(call()).rejects.toThrow("AUTH_REQUIRED");

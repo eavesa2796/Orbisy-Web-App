@@ -26,7 +26,7 @@ describe("Preview-only design review", () => {
   });
   it("disables all example form submissions", async () => {
     vi.stubEnv("VERCEL_ENV", "preview");
-    for (const view of ["client", "discovery"]) {
+    for (const view of ["edit", "discovery"]) {
       const html = renderToStaticMarkup(
         await Page({ searchParams: Promise.resolve({ view }) }),
       );
