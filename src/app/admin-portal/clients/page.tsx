@@ -1,3 +1,4 @@
+import { ToolGuide } from "@/components/admin/tool-guide";
 import Link from "next/link";
 import { UsersRound, ArrowUpRight, Plus } from "lucide-react";
 import { AdminShell } from "@/components/admin/admin-shell";
@@ -53,6 +54,7 @@ export default async function ClientsPage({
           </Link>
         )}
       </header>
+<ToolGuide tool="clients" />
       {!data ? (
         <WorkspaceSetupNotice unavailable={unavailable} />
       ) : (

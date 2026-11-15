@@ -1,3 +1,4 @@
+import { ToolGuide } from "@/components/admin/tool-guide";
 import { LeadWorkspaceLink } from "@/components/admin/lead-workspace-link";
 import { getInquiryForLead } from "@/lib/data/inquiries";
 import { retryNotificationAction } from "@/app/admin-portal/notifications/actions";
@@ -67,6 +68,7 @@ export default async function LeadPage({
           </p>
         </div>
       </header>
+<ToolGuide tool="leads" />
       <LeadWorkspaceLink leadId={id}/>
       {contactRecorded === "1" && (
         <p className="notice" role="status">
@@ -308,7 +310,7 @@ export default async function LeadPage({
             <p className="eyebrow">Manual use only</p>
             <h2>
               {auditBriefAvailable
-                ? "Phase 5 outreach brief"
+                ? "Manual outreach brief"
                 : "Inbound response draft"}
             </h2>
           </div>
@@ -356,7 +358,7 @@ export default async function LeadPage({
               <div>
                 <strong>Verified audit source</strong>
                 <span>
-                  Only reviewed findings from the current Phase 5-ready audit
+                  Only reviewed findings from the current reviewed, brief-ready audit
                   can be selected.
                 </span>
               </div>

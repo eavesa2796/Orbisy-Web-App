@@ -1,3 +1,4 @@
+import { ToolDirectory } from "@/components/admin/tool-guide";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -34,250 +35,258 @@ export default async function DashboardPage() {
       <header className="admin-heading">
         <div>
           <p className="eyebrow">Supporting tools</p>
-          <h1>Prospecting & review tools</h1>
+          <h1>Tools & workflow guide</h1>
         </div>
         <Link className="button button-primary" href="/admin-portal/leads">
           View leads
         </Link>
       </header>
 
-      {!data ? (
-        <section className="admin-card empty-state">
-          <h2>Connect PostgreSQL to activate the dashboard</h2>
-          <p>
-            Add <code>DATABASE_URL</code>, run the migrations, and refresh. No
-            sample activity is invented.
-          </p>
-        </section>
-      ) : (
-        <>
-          {!data.secondarySummaryAvailable && (
-            <section className="admin-card empty-state" role="status">
-              <h2>Core dashboard loaded</h2>
-              <p>
-                Import and audit summaries took too long to load. Their counts
-                are temporarily hidden; refresh later to try again.
-              </p>
-            </section>
-          )}
-          <section
-            className="admin-card company-search-card"
-            aria-labelledby="company-search-title"
-          >
-            <div>
-              <p className="eyebrow">Company workspace</p>
-              <h2 id="company-search-title">
-                Find a company already in Orbisy
-              </h2>
-              <p>
-                Search saved businesses by name, domain, contact, phone, city,
-                or source identifier.
-              </p>
-            </div>
-            <form action="/admin-portal/leads" method="get" role="search">
-              <label className="sr-only" htmlFor="dashboard-company-search">
-                Search saved companies
-              </label>
-              <Search aria-hidden="true" size={18} />
-              <input
-                id="dashboard-company-search"
-                name="q"
-                placeholder="Business name, website, or city"
-                type="search"
-              />
-              <button className="button button-primary" type="submit">
-                Search leads
-              </button>
-            </form>
-            <div
-              className="company-search-actions"
-              aria-label="Company workflow shortcuts"
+      <ToolDirectory />
+      <details className="admin-card tools-legacy-activity">
+        <summary>Saved prospecting activity & queues</summary>
+        <p className="field-help">
+          Optional research activity from the existing prospecting workflow.
+          These are not client-project delivery metrics.
+        </p>
+        {!data ? (
+          <section className="admin-card empty-state">
+            <h2>Connect PostgreSQL to activate the dashboard</h2>
+            <p>
+              Add <code>DATABASE_URL</code>, run the migrations, and refresh. No
+              sample activity is invented.
+            </p>
+          </section>
+        ) : (
+          <>
+            {!data.secondarySummaryAvailable && (
+              <section className="admin-card empty-state" role="status">
+                <h2>Core dashboard loaded</h2>
+                <p>
+                  Import and audit summaries took too long to load. Their counts
+                  are temporarily hidden; refresh later to try again.
+                </p>
+              </section>
+            )}
+            <section
+              className="admin-card company-search-card"
+              aria-labelledby="company-search-title"
             >
-              <Link href="/admin-portal/leads#manual-entry">
-                <FilePlus2 size={16} /> Add manually
-              </Link>
-              <Link href="/admin-portal/imports">
-                <FileUp size={16} /> Import permitted CSV
-              </Link>
-              <Link href="/admin-portal/audits">
-                View audit-eligible leads <ArrowRight size={16} />
-              </Link>
-            </div>
-          </section>
-          <section className="metric-grid" aria-label="Lead summary">
-            <article className="metric-card">
-              <Inbox />
-              <span>New inbound</span>
-              <strong>{count("new_inbound")}</strong>
-            </article>
-            <article className="metric-card">
-              <UsersRound />
-              <span>Needs review</span>
-              <strong>{count("needs_review")}</strong>
-            </article>
-            <article className="metric-card">
-              <PhoneForwarded />
-              <span>Follow-ups due</span>
-              <strong>{data.due.length}</strong>
-            </article>
-            <article className="metric-card">
-              <FileWarning />
-              <span>Import reviews</span>
-              <strong>
-                {data.secondarySummaryAvailable
-                  ? data.importSummary.review_rows
-                  : "—"}
-              </strong>
-            </article>
-          </section>
-          <section className="admin-card action-queue">
-            <div className="card-heading">
               <div>
-                <p className="eyebrow">Ordered by business value</p>
-                <h2>Action queue</h2>
+                <p className="eyebrow">Company workspace</p>
+                <h2 id="company-search-title">
+                  Find a company already in Orbisy
+                </h2>
+                <p>
+                  Search saved businesses by name, domain, contact, phone, city,
+                  or source identifier.
+                </p>
               </div>
-            </div>
-            <ol>
-              <li>
-                <strong>Reply to interested businesses</strong>
-                <span>{count("replied")} active replies</span>
-              </li>
-              <li>
-                <strong>Complete scheduled follow-ups</strong>
-                <span>{data.due.length} due</span>
-              </li>
-              <li>
-                <Link href="/admin-portal/preflight?status=failed">
-                  <strong>Review failed or blocked jobs</strong>
+              <form action="/admin-portal/leads" method="get" role="search">
+                <label className="sr-only" htmlFor="dashboard-company-search">
+                  Search saved companies
+                </label>
+                <Search aria-hidden="true" size={18} />
+                <input
+                  id="dashboard-company-search"
+                  name="q"
+                  placeholder="Business name, website, or city"
+                  type="search"
+                />
+                <button className="button button-primary" type="submit">
+                  Search leads
+                </button>
+              </form>
+              <div
+                className="company-search-actions"
+                aria-label="Company workflow shortcuts"
+              >
+                <Link href="/admin-portal/leads#manual-entry">
+                  <FilePlus2 size={16} /> Add manually
                 </Link>
-                <span>
-                  {secondary(
-                    data.preflightSummary.attention +
-                      data.auditSummary.attention,
-                    "jobs",
-                  )}
-                </span>
-              </li>
-              <li>
-                <Link href="/admin-portal/audits?status=completed">
-                  <strong>Verify completed deep audits</strong>
+                <Link href="/admin-portal/imports">
+                  <FileUp size={16} /> Import permitted CSV
                 </Link>
-                <span>
-                  {secondary(data.auditSummary.verification, "audits")}
-                </span>
-              </li>
-              <li>
-                <Link href="/admin-portal/leads?view=phase_five_ready">
-                  <strong>Prepare approved outreach briefs</strong>
-                </Link>
-                <span>
-                  {secondary(data.auditSummary.ready_for_brief, "ready")}
-                </span>
-              </li>
-              <li>
                 <Link href="/admin-portal/audits">
-                  <strong>Review eligible leads waiting to be queued</strong>
+                  View audit-eligible leads <ArrowRight size={16} />
                 </Link>
-                <span>
-                  {secondary(data.auditSummary.eligible_waiting, "eligible")}
-                </span>
-              </li>
-              <li>
-                <strong>Review homepage-review requests</strong>
-                <span>{count("new_inbound")} inbound</span>
-              </li>
-              <li>
-                <Link href="/admin-portal/imports/review">
-                  <strong>Review possible duplicates</strong>
-                </Link>
-                <span>
-                  {secondary(data.importSummary.review_rows, "decisions")}
-                </span>
-              </li>
-              <li>
-                <Link href="/admin-portal/imports">
-                  <strong>Review pending import batches</strong>
-                </Link>
-                <span>
-                  {secondary(data.importSummary.pending_batches, "batches")}
-                </span>
-              </li>
-              <li>
-                <Link href="/admin-portal/imports">
-                  <strong>
-                    Add more businesses only when this queue is low
-                  </strong>
-                </Link>
-                <span>
-                  {secondary(
-                    data.importSummary.newly_imported,
-                    "imported in 30 days",
-                  )}
-                </span>
-              </li>
-            </ol>
-          </section>
+              </div>
+            </section>
+            <section className="metric-grid" aria-label="Lead summary">
+              <article className="metric-card">
+                <Inbox />
+                <span>New inbound</span>
+                <strong>{count("new_inbound")}</strong>
+              </article>
+              <article className="metric-card">
+                <UsersRound />
+                <span>Needs review</span>
+                <strong>{count("needs_review")}</strong>
+              </article>
+              <article className="metric-card">
+                <PhoneForwarded />
+                <span>Follow-ups due</span>
+                <strong>{data.due.length}</strong>
+              </article>
+              <article className="metric-card">
+                <FileWarning />
+                <span>Import reviews</span>
+                <strong>
+                  {data.secondarySummaryAvailable
+                    ? data.importSummary.review_rows
+                    : "—"}
+                </strong>
+              </article>
+            </section>
+            <section className="admin-card action-queue">
+              <div className="card-heading">
+                <div>
+                  <p className="eyebrow">Ordered by business value</p>
+                  <h2>Action queue</h2>
+                </div>
+              </div>
+              <ol>
+                <li>
+                  <strong>Reply to interested businesses</strong>
+                  <span>{count("replied")} active replies</span>
+                </li>
+                <li>
+                  <strong>Complete scheduled follow-ups</strong>
+                  <span>{data.due.length} due</span>
+                </li>
+                <li>
+                  <Link href="/admin-portal/preflight?status=failed">
+                    <strong>Review failed or blocked jobs</strong>
+                  </Link>
+                  <span>
+                    {secondary(
+                      data.preflightSummary.attention +
+                        data.auditSummary.attention,
+                      "jobs",
+                    )}
+                  </span>
+                </li>
+                <li>
+                  <Link href="/admin-portal/audits?status=completed">
+                    <strong>Verify completed deep audits</strong>
+                  </Link>
+                  <span>
+                    {secondary(data.auditSummary.verification, "audits")}
+                  </span>
+                </li>
+                <li>
+                  <Link href="/admin-portal/leads?view=phase_five_ready">
+                    <strong>Prepare manual outreach briefs</strong>
+                  </Link>
+                  <span>
+                    {secondary(data.auditSummary.ready_for_brief, "ready")}
+                  </span>
+                </li>
+                <li>
+                  <Link href="/admin-portal/audits">
+                    <strong>Review eligible leads waiting to be queued</strong>
+                  </Link>
+                  <span>
+                    {secondary(data.auditSummary.eligible_waiting, "eligible")}
+                  </span>
+                </li>
+                <li>
+                  <strong>Review incoming consultation requests</strong>
+                  <span>{count("new_inbound")} inbound</span>
+                </li>
+                <li>
+                  <Link href="/admin-portal/imports/review">
+                    <strong>Review possible duplicates</strong>
+                  </Link>
+                  <span>
+                    {secondary(data.importSummary.review_rows, "decisions")}
+                  </span>
+                </li>
+                <li>
+                  <Link href="/admin-portal/imports">
+                    <strong>Review pending import batches</strong>
+                  </Link>
+                  <span>
+                    {secondary(data.importSummary.pending_batches, "batches")}
+                  </span>
+                </li>
+                <li>
+                  <Link href="/admin-portal/imports">
+                    <strong>
+                      Add more businesses only when this queue is low
+                    </strong>
+                  </Link>
+                  <span>
+                    {secondary(
+                      data.importSummary.newly_imported,
+                      "imported in 30 days",
+                    )}
+                  </span>
+                </li>
+              </ol>
+            </section>
 
-          <section className="admin-grid">
-            <article className="admin-card">
-              <div className="card-heading">
-                <div>
-                  <p className="eyebrow">Priority one</p>
-                  <h2>Inbound requests</h2>
+            <section className="admin-grid">
+              <article className="admin-card">
+                <div className="card-heading">
+                  <div>
+                    <p className="eyebrow">Priority one</p>
+                    <h2>Inbound requests</h2>
+                  </div>
                 </div>
-              </div>
-              {data.inbound.length ? (
-                <ul className="admin-list">
-                  {data.inbound.map((lead) => (
-                    <li key={lead.id}>
-                      <div>
-                        <strong>{lead.businessName}</strong>
-                        <span>Requested a conversation</span>
-                      </div>
-                      <Link
-                        href={`/admin-portal/leads/${lead.id}`}
-                        aria-label={`Open ${lead.businessName}`}
-                      >
-                        <ArrowRight />
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="muted">No new inbound requests.</p>
-              )}
-            </article>
-            <article className="admin-card">
-              <div className="card-heading">
-                <div>
-                  <p className="eyebrow">Priority two</p>
-                  <h2>Follow-ups due</h2>
+                {data.inbound.length ? (
+                  <ul className="admin-list">
+                    {data.inbound.map((lead) => (
+                      <li key={lead.id}>
+                        <div>
+                          <strong>{lead.businessName}</strong>
+                          <span>Requested a conversation</span>
+                        </div>
+                        <Link
+                          href={`/admin-portal/leads/${lead.id}`}
+                          aria-label={`Open ${lead.businessName}`}
+                        >
+                          <ArrowRight />
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="muted">No new inbound requests.</p>
+                )}
+              </article>
+              <article className="admin-card">
+                <div className="card-heading">
+                  <div>
+                    <p className="eyebrow">Priority two</p>
+                    <h2>Follow-ups due</h2>
+                  </div>
                 </div>
-              </div>
-              {data.due.length ? (
-                <ul className="admin-list">
-                  {data.due.map((lead) => (
-                    <li key={lead.id}>
-                      <div>
-                        <strong>{lead.businessName}</strong>
-                        <span>{lead.followUpAt?.toLocaleDateString()}</span>
-                      </div>
-                      <Link
-                        href={`/admin-portal/leads/${lead.id}`}
-                        aria-label={`Open ${lead.businessName}`}
-                      >
-                        <ArrowRight />
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="muted">Nothing is overdue.</p>
-              )}
-            </article>
-          </section>
-        </>
-      )}
+                {data.due.length ? (
+                  <ul className="admin-list">
+                    {data.due.map((lead) => (
+                      <li key={lead.id}>
+                        <div>
+                          <strong>{lead.businessName}</strong>
+                          <span>{lead.followUpAt?.toLocaleDateString()}</span>
+                        </div>
+                        <Link
+                          href={`/admin-portal/leads/${lead.id}`}
+                          aria-label={`Open ${lead.businessName}`}
+                        >
+                          <ArrowRight />
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="muted">Nothing is overdue.</p>
+                )}
+              </article>
+            </section>
+          </>
+        )}
+      </details>
     </AdminShell>
   );
 }

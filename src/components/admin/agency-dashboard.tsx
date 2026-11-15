@@ -204,7 +204,7 @@ export function AgencyDashboard({ data }: { data: Data }) {
               and analytics remain in the portal.
             </p>
             <Link className="text-link" href="/admin-portal/tools">
-              Prospecting & review overview →
+              Tools, instructions & workflow guide →
             </Link>
             <Link className="text-link" href="/admin-portal/pricing">
               Private pricing catalog →

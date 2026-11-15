@@ -1,3 +1,4 @@
+import { ToolGuide } from "@/components/admin/tool-guide";
 import Link from "next/link";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { requireAdmin } from "@/lib/auth";
@@ -21,6 +22,7 @@ export default async function Page() {
           </p>
         </div>
       </header>
+<ToolGuide tool="notifications" />
       <section className="admin-card">
         <p className="notice">
           Retries use a stable provider idempotency key. Wait at least one

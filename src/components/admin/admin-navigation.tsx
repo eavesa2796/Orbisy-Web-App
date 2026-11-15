@@ -40,9 +40,11 @@ const icons = {
 export function AdminNavigation({
   reviewMode = false,
   reviewView,
+  reviewArea,
 }: {
   reviewMode?: boolean;
   reviewView?: string;
+  reviewArea?: "workspace" | "tools";
 }) {
   const pathname = usePathname();
   return (
@@ -51,6 +53,7 @@ export function AdminNavigation({
       pathname={pathname}
       reviewMode={reviewMode}
       reviewView={reviewView}
+      reviewArea={reviewArea}
     />
   );
 }
@@ -58,14 +61,16 @@ function NavigationContent({
   pathname,
   reviewMode,
   reviewView,
+  reviewArea,
 }: {
   pathname: string;
   reviewMode: boolean;
   reviewView?: string;
+  reviewArea?: "workspace" | "tools";
 }) {
   const [open, setOpen] = useState(false);
   const trigger = useRef<HTMLButtonElement>(null);
-  const reviewLinks = [
+  const workspaceReviewLinks = [
     {
       href: "/preview/workspace",
       label: "Dashboard preview",
@@ -85,6 +90,35 @@ function NavigationContent({
       active: reviewView === "discovery",
     },
   ];
+  const reviewLinks =
+    reviewArea === "tools"
+      ? [
+          {
+            href: "/preview/tools",
+            label: "Tools guide preview",
+            icon: "tools" as const,
+            active: !reviewView,
+          },
+          {
+            href: "/preview/tools?tool=settings",
+            label: "Settings preview",
+            icon: "settings" as const,
+            active: reviewView === "settings",
+          },
+          {
+            href: "/preview/tools?tool=imports",
+            label: "Import instructions",
+            icon: "imports" as const,
+            active: reviewView === "imports",
+          },
+          {
+            href: "/preview/tools?tool=audits",
+            label: "Audit instructions",
+            icon: "audits" as const,
+            active: reviewView === "audits",
+          },
+        ]
+      : workspaceReviewLinks;
   const link = (
     item: { href: string; label: string; icon: keyof typeof icons },
     active: boolean,
