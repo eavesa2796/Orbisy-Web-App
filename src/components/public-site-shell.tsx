@@ -73,6 +73,7 @@ export function PublicFooter() {
         </p>
         <div>
           <Link href="/privacy">Privacy</Link>
+          <Link href="/privacy#analytics-settings">Analytics choices</Link>
           <Link href="/terms">Terms</Link>
         </div>
       </div>

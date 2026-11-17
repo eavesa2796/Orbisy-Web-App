@@ -6,28 +6,36 @@ import {
   attributionSchema,
   sanitizeAttribution,
 } from "@/lib/attribution";
-import { useEffect } from "react";
+import { useEffect, useLayoutEffect, useSyncExternalStore } from "react";
+import {
+  browserPrivacyBlocked,
+  isPrivateAnalyticsPath,
+  ANALYTICS_OPTOUT_KEY,
+  ANALYTICS_CHOICE_EVENT,
+} from "@/lib/analytics/privacy";
+import {
+  setGoogleConsent,
+  suspendGoogleAnalytics,
+  trackGooglePage,
+  trackGoogleEvent,
+} from "@/lib/analytics/google";
+import {
+  subscribeAnalyticsChoices,
+  googleChoiceSnapshot,
+} from "@/components/google-analytics-consent";
 import type { analyticsEventNames } from "@/lib/analytics";
 
 export type AnalyticsEventName = (typeof analyticsEventNames)[number];
 
 const SESSION_KEY = "orbisy_analytics_session";
-const OPTOUT_KEY = "orbisy_analytics_opt_out";
+const OPTOUT_KEY = ANALYTICS_OPTOUT_KEY;
 
 export function shouldTrack() {
-  if (typeof window === "undefined") return false;
-  try {
-    if (window.localStorage.getItem(OPTOUT_KEY) === "true") return false;
-  } catch {
-    return false;
-  }
-  if (navigator.doNotTrack === "1") return false;
-  if (
-    (navigator as Navigator & { globalPrivacyControl?: boolean })
-      .globalPrivacyControl
-  )
-    return false;
-  return !window.location.pathname.startsWith("/admin-portal");
+  return (
+    typeof window !== "undefined" &&
+    !browserPrivacyBlocked() &&
+    !isPrivateAnalyticsPath(window.location.pathname)
+  );
 }
 
 function getSessionId() {
@@ -55,6 +63,7 @@ export function trackEvent(
 ) {
   try {
     if (!shouldTrack()) return;
+    trackGoogleEvent(eventName, componentId);
 
     const url = new URL(window.location.href);
     let referrerDomain: string | undefined;
@@ -100,6 +109,14 @@ export function trackEvent(
 
 export function AnalyticsProvider() {
   const pathname = usePathname();
+  const googleChoice = useSyncExternalStore(
+    subscribeAnalyticsChoices,
+    googleChoiceSnapshot,
+    () => "denied",
+  );
+  useLayoutEffect(() => {
+    trackGooglePage();
+  }, [pathname, googleChoice]);
   useEffect(() => {
     if (!shouldTrack()) return;
     captureInquiryAttribution();
@@ -164,18 +181,26 @@ export function AnalyticsProvider() {
 }
 
 export function setAnalyticsOptOut(optOut: boolean) {
-  window.localStorage.setItem(OPTOUT_KEY, String(optOut));
-  if (optOut) {
-    window.sessionStorage.removeItem(SESSION_KEY);
-    window.sessionStorage.removeItem(ATTRIBUTION_KEY);
+  try {
+    window.localStorage.setItem(OPTOUT_KEY, String(optOut));
+    if (optOut) {
+      window.sessionStorage.removeItem(SESSION_KEY);
+      window.sessionStorage.removeItem(ATTRIBUTION_KEY);
+      setGoogleConsent("denied");
+    }
+  } catch {
+    suspendGoogleAnalytics(true);
   }
+  window.dispatchEvent(new Event(ANALYTICS_CHOICE_EVENT));
 }
 
 export function getAnalyticsOptOut() {
-  return (
-    typeof window !== "undefined" &&
-    window.localStorage.getItem(OPTOUT_KEY) === "true"
-  );
+  if (typeof window === "undefined") return false;
+  try {
+    return window.localStorage.getItem(OPTOUT_KEY) === "true";
+  } catch {
+    return true;
+  }
 }
 
 export function captureInquiryAttribution() {

@@ -322,7 +322,7 @@ export const adminToolGuides = {
       "Allow for consent choices, privacy signals, blockers, and repeat page views. Do not treat sessions as unique people or clicks as customers.",
     ],
     outcome:
-      "A directional view of website use. A saved inquiry can exist without an analytics event when tracking is declined or blocked.",
+      "A directional view of website use. A saved inquiry can exist without an analytics event when tracking is declined or blocked. Optional Google Analytics is a separate visitor-choice-based report; its totals can differ from this first-party dashboard.",
     terms: [
       ["Page views", "Tracked page loads, including repeats."],
       [
