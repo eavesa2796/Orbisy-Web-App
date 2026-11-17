@@ -1,162 +1,60 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { AnalyticsChoice } from "@/components/analytics-choice";
 import { LegalLayout } from "@/components/legal-layout";
+import { browserStorageDisclosures } from "@/lib/browser-storage-disclosures";
 
 export const metadata: Metadata = {
   title: "Privacy Policy",
-  description: "How Orbisy collects and uses information.",
+  description: "How Orbisy LLC handles inquiries, website analytics, cookies, browser storage, and privacy choices.",
   alternates: { canonical: "/privacy" },
 };
-
 export default function PrivacyPage() {
-  return (
-    <LegalLayout
-      kicker="Last updated: November 16, 2026 · Draft—legal review required"
-      title="Privacy Policy"
-    >
-      <p>
-        This draft explains the information Orbisy expects to process through
-        its public website and private lead-management tools.
-      </p>
+  return <LegalLayout kicker="Last updated: November 16, 2026" title="Privacy Policy" current="privacy">
+    <p>This policy explains how Orbisy LLC handles information through orbisy.com and its private business administration tools. Orbisy is an independent development business based in Chicago, Illinois. Contact <a href="mailto:info@orbisy.com">info@orbisy.com</a> with privacy questions or requests.</p>
+    <p>Our public website introduces association websites, member functionality, integrations, and ongoing development services. It is not a public member portal. Data handled for a commissioned client project is addressed in the applicable project agreement and any separately agreed data-handling arrangements.</p>
+    <nav className="legal-toc" aria-label="Privacy policy sections"><a href="#information">Information we handle</a><a href="#analytics">Website reporting</a><a href="#cookies-storage">Cookies & storage</a><a href="#analytics-settings">Your analytics choices</a><a href="#providers">Service providers</a><a href="#retention">Retention</a><a href="#privacy-requests">Privacy requests</a></nav>
 
-      <h2>Information you provide</h2>
-      <p>
-        When you request a website review or submit a project request, Orbisy
-        may collect your name, association or organization name, email address,
-        website URL, current platform names, requested service, project
-        description, timeline, budget range, and acknowledgment of this policy.
-        Do not submit passwords, account credentials, API keys, payment details,
-        or confidential member or customer records through these public forms.
-      </p>
+    <section id="information"><h2>Information we handle</h2>
+      <h3>Inquiries and business conversations</h3><p>When you contact Orbisy or submit a project request, we receive the information you provide. This may include your name, association or organization name, email address, website URL, current platform names, requested service, project description, optional budget and timing details, and your acknowledgment of this policy.</p>
+      <p>We use this information to review the request, reply, arrange a conversation, prepare a scope, and manage related follow-ups. The private workspace may also contain contact details, notes, proposals, project milestones, support arrangements, and client outcomes. An email alert may contain the inquiry details so Orbisy can follow up; the saved inquiry is separate from the email alert.</p>
+      <p>Please do not include passwords, API keys, payment details, or confidential member or customer records in the public forms. If project materials are needed, we agree on a suitable transfer method and responsibilities separately.</p>
+      <h3>Business information from other sources</h3><p>Orbisy may keep business contact information from referrals, documented public sources, permitted lists, or administrator-reviewed imports. Records can include the source, original and normalized details, review decisions, and do-not-contact instructions. Information from these sources may be incomplete or outdated. Contact us if a record needs correction or an exclusion.</p>
+      <h3>Technical and security information</h3><p>Hosting, authentication, email, and spam-protection services may process technical information such as IP addresses, browser details, request metadata, and service logs to operate and protect the site. Orbisy’s application also uses a hashed request identifier for rate limiting. These operational functions are separate from optional audience reporting.</p>
+    </section>
 
-      <h2>Business lead information</h2>
-      <p>
-        The private administrator system may contain business contact
-        information entered manually from documented public or otherwise
-        permitted sources or imported through administrator-reviewed CSV files.
-        Orbisy records source attribution and may retain the original imported
-        value alongside a normalized value used for duplicate and suppression
-        checks. Imported information may be incomplete, outdated, or inaccurate.
-        It may also contain notes, follow-up dates, pipeline history,
-        suppression choices, and manually recorded contact attempts.
-      </p>
+    <section id="analytics"><h2>Website reporting</h2>
+      <h3>Orbisy’s first-party reporting</h3><p>Orbisy’s own reports record public-site page views and interactions, including calls to action, form activity, successful submissions, referring domains, and broad device or viewport categories. A random identifier is kept in tab-based session storage. That reporting identifier is not attached to a saved inquiry, and the events do not include the inquiry’s name, email address, or message.</p>
+      <p>This limited reporting is allowed unless you opt out or your browser sends a supported Do Not Track or Global Privacy Control signal. It does not use a persistent analytics cookie. The public site does not include session replay, keystroke recording, or a configured advertising-retargeting pixel.</p>
+      <h3>Optional Google Analytics</h3><p>Google Analytics 4 is a separate reporting service provided by Google. The Google tag loads only after you choose to allow it in this browser. It uses analytics cookies and processes technical information such as device and browser details; reports may include approximate location and website interactions.</p>
+      <p>Orbisy’s controlled Google events use known public page paths, selected interaction labels, and a form type. Names, email addresses, organization names, inquiry contents, Orbisy database identifiers, and Orbisy reporting session identifiers are not sent in those events. Controlled page URLs exclude query strings and fragments; referring URLs are reduced to their origin. Advertising consent stays denied, and the tag configuration disables Google signals and advertising personalization.</p>
+      <p>Browser-history page changes, automatic scrolls, form interactions, and site search are disabled in the Google stream in favor of the site’s controlled events. Any separately enabled Google measurements, such as outbound links, downloads, or supported videos, can include interaction metadata such as link URLs under Google’s measurement settings. Do not put confidential information into public URLs.</p>
+      <p>Google cookies are configured for up to 90 days without renewal on each event; browsers may shorten that lifetime. Google Analytics data retention is controlled separately by the property’s settings. See <a href="https://policies.google.com/technologies/partner-sites" target="_blank" rel="noopener noreferrer">how Google uses information from sites that use its services</a>.</p>
+      <h3>Inquiry source and campaign attribution</h3><p>When optional reporting is allowed, Orbisy may attach the initial landing path, submission path, referring domain, and bounded campaign labels to an inquiry. Full referring URLs, advertising click identifiers, and reporting session identifiers are not attached. Analytics opt-out, Do Not Track, and Global Privacy Control block this optional capture. An inquiry can still be saved when analytics are disabled.</p>
+    </section>
 
-      <h2>Website analytics</h2>
-      <p>
-        Orbisy uses first-party analytics to understand page views, calls to
-        action, form starts, successful submissions, referring domains, broad
-        device categories, and aggregate website journeys. These events use a
-        random session identifier and are not connected to form submissions.
-        Orbisy does not intentionally store raw IP addresses, full user-agent
-        strings, exact location, advertising identifiers, fingerprints, or form
-        contents as analytics.
-      </p>
-      <h3>Optional Google Analytics</h3>
-      <p>
-        With your permission, Orbisy also uses Google Analytics 4, provided by
-        Google, to understand visits to public pages and interactions such as
-        consultation form starts and successful submissions. Google Analytics
-        uses first-party analytics cookies configured for up to 90 days and
-        processes technical information such as device and browser details. Its
-        reporting may include approximate location. It is separate from Orbisy’s
-        own limited reporting.
-      </p>
-      <p>
-        The Google tag loads only after you choose to allow it on this device.
-        Analytics opt-out, Do Not Track, and Global Privacy Control prevent it
-        from loading. Orbisy’s controlled events exclude form contents, names,
-        email addresses, query strings, and private administrator pages.
-        Advertising personalization and Google signals are disabled in the tag
-        configuration. You can decline or withdraw permission below, or return
-        using Analytics choices in the footer. Contact forms work either way.
-      </p>
-      <p>
-        Google’s processing and your property’s configured retention settings
-        apply to Google Analytics data. See{" "}
-        <a
-          href="https://policies.google.com/technologies/partner-sites"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          how Google uses information from sites that use its services
-        </a>
-        .
-      </p>
-      <AnalyticsChoice />
+    <section id="cookies-storage"><h2>Cookies and browser storage</h2><p>Cookies, local storage, and session storage are different browser mechanisms. The table describes the current site’s known analytics, preference, attribution, and administrator-authentication storage. Values and authentication tokens are never displayed here. The browser and service settings can affect actual lifetime.</p>
+      <p className="legal-table-help" id="storage-scroll-help">On a narrow screen, scroll the table horizontally to read all columns.</p>
+      <div className="legal-table-wrap" role="region" aria-label="Cookie and browser storage inventory" aria-describedby="storage-scroll-help" tabIndex={0}>
+        <table className="legal-storage-table"><caption>Storage used by Orbisy</caption><thead><tr><th scope="col">Name & type</th><th scope="col">Purpose</th><th scope="col">Lifetime</th><th scope="col">Your choice</th></tr></thead><tbody>{browserStorageDisclosures.map(item=><tr key={item.name}><th scope="row"><code>{item.name}</code><span>{item.type}</span></th><td>{item.purpose}</td><td>{item.duration}</td><td>{item.choice}</td></tr>)}</tbody></table>
+      </div>
+      <p>Spam protection is provided separately through Cloudflare Turnstile. Its challenge can process technical information under Cloudflare’s service practices. Declining optional analytics does not disable form verification or administrator authentication. Browser settings can restrict cookies and storage, but doing so may affect those functions.</p>
+    </section>
 
-      <h2>Inquiry source and campaign attribution</h2>
-      <p>
-        When analytics are permitted by your choices, Orbisy may save the
-        initial landing path, submission page path, referring domain, and
-        bounded campaign labels with an inquiry. Full referring URLs, query
-        strings, advertising click identifiers, and analytics session
-        identifiers are not attached to your inquiry. Analytics opt-out, Do Not
-        Track, and Global Privacy Control prevent this optional capture. Your
-        inquiry is still saved when optional analytics are disabled.
-      </p>
-      <h2>How information is used</h2>
-      <ul>
-        <li>Review and respond to requests.</li>
-        <li>Manage legitimate business conversations and follow-ups.</li>
-        <li>Protect forms and administrator access from abuse.</li>
-        <li>Understand and improve the public website.</li>
-        <li>Maintain suppression records to avoid unwanted contact.</li>
-      </ul>
+    <section aria-labelledby="analytics-choices-heading"><h2 id="analytics-choices-heading">Your analytics choices</h2><p>You can allow or decline Google Analytics separately from Orbisy’s limited first-party reporting. “Opt out of all analytics” also withdraws Google permission. Reallowing first-party reporting does not automatically reallow Google Analytics.</p><AnalyticsChoice />
+      <p>Choices apply in this browser. Clearing site storage can reset remembered preferences; Google permission is not assumed when no choice is stored. Supported Do Not Track and Global Privacy Control signals block optional collection even if Google permission was previously granted.</p><p>Withdrawing Google permission stops future collection through this integration and attempts to remove this property’s accessible Google cookies. It does not itself erase information already collected. To request a review of information Orbisy holds, use the contact details below.</p>
+    </section>
 
-      <h2>Client project information</h2>
-      <p>
-        If a written client agreement is later established, the parties will
-        separately confirm the approved transfer method, permitted uses,
-        retention, deletion, access, and service providers for project materials
-        and any website or advertising-account access. The public application
-        does not provide a customer document portal or public file-upload
-        feature.
-      </p>
+    <section id="providers"><h2>Service providers and disclosures</h2><p>The website uses service providers for the following functions:</p><ul><li><strong>Vercel:</strong> website hosting and delivery.</li><li><strong>Supabase:</strong> database services and administrator authentication.</li><li><strong>Cloudflare Turnstile:</strong> public-form verification and abuse prevention.</li><li><strong>Resend, when notifications are enabled:</strong> inquiry email alerts to Orbisy, which can include the submitted inquiry.</li><li><strong>Google Analytics, when you allow it:</strong> optional public-site reporting.</li></ul>
+      <p>Providers process information needed for their functions and may maintain operational logs under their own service practices. Processing and storage locations depend on the service and account configuration. Contact Orbisy before transferring client or member data if you need information about a proposed project’s providers, locations, or contractual arrangements.</p><p>Information may also be disclosed when needed to comply with applicable legal obligations, respond to a lawful request, protect people or the service, or carry out an action you authorize. We do not send inquiry contents to Google Analytics as part of this site’s controlled reporting.</p>
+    </section>
 
-      <h2>Service providers</h2>
-      <p>
-        Orbisy may use providers for hosting, PostgreSQL database services,
-        administrator authentication, spam prevention, error monitoring, and
-        optional transactional notifications.{" "}
-        <strong>Legal-review placeholder:</strong> final service providers,
-        processing locations, and contractual terms must be confirmed by the
-        owner and qualified counsel.
-      </p>
+    <section id="retention"><h2>Retention and deletion</h2><p>First-party analytics have an age-based cleanup setting of 90 days by default. Older records are removed when application cleanup runs; that is separate from the browser storage lifetimes above. Google Analytics reporting data follows the Google property’s configured retention, which is distinct from its cookie lifetime.</p><p>Inquiry, business, and client-work records do not all share a single automatic deletion schedule. Retention decisions consider ongoing conversations, project and support needs, source history, accounting or legal obligations, and requests for correction or deletion. Minimal do-not-contact records may remain to help prevent renewed unwanted contact.</p><p>Deleting an active record may not immediately remove copies in provider logs or backups that follow their own retention cycles. Contact us to discuss a particular record rather than assuming that withdrawing analytics permission deletes business correspondence or project records.</p>
+    </section>
 
-      <h2>Retention and deletion</h2>
-      <p>
-        Orbisy’s own raw analytics are intended to be retained for approximately
-        90 days. Other business records are retained only while reasonably
-        useful for the stated purposes or required for legitimate operational,
-        legal, security, or accounting needs. Backup deletion may be delayed
-        until the relevant backup expires. A minimal suppression record may be
-        retained without automatic expiration to prevent renewed contact.
-      </p>
-
-      <h2>Security and limitations</h2>
-      <p>
-        Orbisy uses reasonable technical and organizational safeguards, but no
-        online service can promise absolute security. Production backup,
-        incident-response, vendor, and retention procedures must be confirmed
-        before expanded service delivery. Reasonable safeguards do not mean
-        perfect security. <strong>Legal-review placeholder:</strong> final
-        incident and security commitments require owner and qualified legal
-        review.
-      </p>
-
-      <h2>Your choices</h2>
-      <p>
-        You may ask to access, correct, delete, or suppress information by
-        contacting info@orbisy.com. Requests may require reasonable
-        verification.
-      </p>
-
-      <h2>Changes</h2>
-      <p>
-        This policy may be updated as Orbisy&apos;s services and providers
-        change. The effective date and policy version should be updated whenever
-        material terms change.
-      </p>
-    </LegalLayout>
-  );
+    <section id="privacy-requests"><h2>Privacy questions and requests</h2><p>Email <a href="mailto:info@orbisy.com">info@orbisy.com</a> to ask about information Orbisy holds, request correction or deletion, or ask that business contact details be excluded from prospecting. Describe the request without sending unnecessary sensitive information. We may need to verify your identity or authority before acting.</p><p>Available rights and exceptions can depend on your location and applicable law. We review requests in that context and may retain information needed for an ongoing obligation or a valid exclusion record. These contact options do not limit any rights you have under applicable law.</p>
+    </section>
+    <section><h2>Security</h2><p>Orbisy uses access controls and service safeguards to protect its systems and business records. No online service or transmission can be guaranteed completely secure. For a client project, access methods, responsibilities, and any additional data-handling requirements are agreed separately.</p></section>
+    <section><h2>Updates and related terms</h2><p>We may update this policy when the website, providers, or information practices change. The date at the top identifies the latest revision. See the <Link href="/terms">Terms of Use</Link> for public website use and how project agreements are established.</p></section>
+  </LegalLayout>;
 }
