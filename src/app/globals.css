@@ -522,3 +522,7 @@ h1 > span { color: transparent; background: linear-gradient(100deg, var(--accent
 .analytics-choice p { margin-block: 12px; }
 #analytics-settings { scroll-margin-top: 110px; }
 @media (max-width: 700px) { .google-analytics-consent { flex-direction: column; align-items: stretch; gap: 16px; padding: 18px; bottom: 10px; }.google-analytics-consent .google-consent-actions { flex-direction: row; }.google-consent-actions .button { flex: 1; } }
+.analytics-choice { display: grid; grid-template-columns: minmax(0, 1fr); align-items: start; gap: 12px; }
+.analytics-choice > .button { justify-self: start; }
+.analytics-choice > span, .analytics-choice > p { min-width: 0; width: 100%; }
+.analytics-choice .google-consent-actions { flex-shrink: 1; }
