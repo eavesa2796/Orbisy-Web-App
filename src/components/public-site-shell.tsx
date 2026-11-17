@@ -50,6 +50,7 @@ export function PublicFooter() {
           <Link href="/associations">For associations</Link>
           <Link href="/work">Our Work</Link>
           <Link href="/about">About Orbisy</Link>
+          <Link href="/knowledge-base">Knowledge base</Link>
           <Link href="/pricing">Project quotes & support</Link>
           <Link href="/#contact">Discuss your project</Link>
         </div>

@@ -71,6 +71,13 @@
       "when": 1794704101158,
       "tag": "0009_client_workspaces",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1794892618757,
+      "tag": "0010_knowledge_base",
+      "breakpoints": true
     }
   ]
 }

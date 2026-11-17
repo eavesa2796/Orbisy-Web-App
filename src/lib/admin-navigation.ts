@@ -10,6 +10,7 @@ export const adminNavigationGroups = [
         icon: "leads",
       },
       { href: "/admin-portal/pricing", label: "Pricing", icon: "pricing" },
+      { href: "/admin-portal/knowledge-base", label: "Knowledge base", icon: "knowledge" },
       {
         href: "/admin-portal/notifications",
         label: "Notifications",
