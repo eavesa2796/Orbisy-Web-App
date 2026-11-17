@@ -177,6 +177,9 @@ export function PublicNavigation({
       <Link href="/work" onClick={closeAll}>
         Our Work
       </Link>
+      <Link href="/knowledge-base" onClick={closeAll}>
+        Knowledge base
+      </Link>
       <Link href="/about" onClick={closeAll}>
         About
       </Link>

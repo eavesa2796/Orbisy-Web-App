@@ -3,6 +3,7 @@ import { useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  BookOpen,
   DollarSign,
   Bell,
   BarChart3,
@@ -28,6 +29,7 @@ const icons = {
   clients: BriefcaseBusiness,
   leads: UsersRound,
   pricing: DollarSign,
+  knowledge: BookOpen,
   notifications: Bell,
   tools: Wrench,
   imports: FileUp,

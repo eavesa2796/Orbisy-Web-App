@@ -989,3 +989,29 @@ export const clientMilestones = pgTable("client_milestones", {
   check("client_milestone_status_valid",sql`${t.status} in ('open','blocked','done')`),
   check("client_milestone_version_positive",sql`${t.version} > 0`),
 ]).enableRLS();
+
+
+// Private working copy + explicit public snapshot. Data API access is denied by default.
+export const knowledgeArticles = pgTable("knowledge_articles", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  slug: varchar("slug", { length: 100 }).notNull(),
+  title: varchar("title", { length: 160 }).notNull(),
+  category: varchar("category", { length: 30 }).notNull().default("websites"),
+  summary: varchar("summary", { length: 350 }).notNull().default(""),
+  body: text("body").notNull().default(""),
+  internalNotes: text("internal_notes").notNull().default(""),
+  reviewedOn: date("reviewed_on"),
+  status: varchar("status", { length: 20 }).notNull().default("draft"),
+  published: jsonb("published").$type<import("@/lib/knowledge-base").PublicArticle>(),
+  version: integer("version").notNull().default(1),
+  updatedBy: varchar("updated_by", { length: 254 }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, t => [
+  uniqueIndex("knowledge_article_slug_unique").on(t.slug),
+  index("knowledge_article_status_updated_idx").on(t.status, t.updatedAt),
+  check("knowledge_article_status_valid", sql`${t.status} in ('draft','published','archived')`),
+  check("knowledge_article_category_valid", sql`${t.category} in ('websites','members','integrations','process')`),
+  check("knowledge_article_version_positive", sql`${t.version} > 0`),
+  check("knowledge_article_published_required", sql`${t.status} <> 'published' or ${t.published} is not null`),
+]).enableRLS();

@@ -40,8 +40,8 @@ describe("Association public positioning", () => {
  expect(doc.querySelectorAll('.portfolio-project')).toHaveLength(4);
  expect(doc.querySelector('#orbisy-operations-dashboard')?.textContent).toContain('Not a live application');
  });
- it("keeps private, archived and retired routes out of discovery", () => {
- const paths=sitemap().map(entry=>new URL(entry.url).pathname);
+ it("keeps private, archived and retired routes out of discovery", async () => {
+ const paths=(await sitemap()).map(entry=>new URL(entry.url).pathname);
  expect(paths).toContain('/associations'); expect(paths).toContain('/about');
  for(const service of associationServices) expect(paths).toContain(`/${service.slug}`);
  for(const retired of ['/admin-portal','/google-ads','/local-seo','/industries','/archive']) expect(paths).not.toContain(retired);

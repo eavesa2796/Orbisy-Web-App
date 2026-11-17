@@ -29,6 +29,7 @@ const publicPages: Record<string, string> = {
   "/pricing": "Project pricing",
   "/privacy": "Privacy",
   "/terms": "Terms",
+  "/knowledge-base": "Knowledge base",
 };
 export function publicAnalyticsPage(pathname: string) {
   const path = pathname === "/" ? "/" : pathname.replace(/\/$/, "");
