@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 export default function PrivacyPage() {
   return (
     <LegalLayout
-      kicker="Last updated: October 3, 2026 · Draft—legal review required"
+      kicker="Last updated: November 16, 2026 · Draft—legal review required"
       title="Privacy Policy"
     >
       <p>
@@ -22,11 +22,11 @@ export default function PrivacyPage() {
       <h2>Information you provide</h2>
       <p>
         When you request a website review or submit a project request, Orbisy
-        may collect your name, association or organization name, email address, website URL,
-        current platform names, requested service, project description, timeline, budget range, and
-        acknowledgment of this policy. Do not submit passwords,
-        account credentials, API keys, payment details, or confidential
-        member or customer records through these public forms.
+        may collect your name, association or organization name, email address,
+        website URL, current platform names, requested service, project
+        description, timeline, budget range, and acknowledgment of this policy.
+        Do not submit passwords, account credentials, API keys, payment details,
+        or confidential member or customer records through these public forms.
       </p>
 
       <h2>Business lead information</h2>
@@ -41,7 +41,7 @@ export default function PrivacyPage() {
         suppression choices, and manually recorded contact attempts.
       </p>
 
-      <h2>Anonymous website analytics</h2>
+      <h2>Website analytics</h2>
       <p>
         Orbisy uses first-party analytics to understand page views, calls to
         action, form starts, successful submissions, referring domains, broad
@@ -50,6 +50,37 @@ export default function PrivacyPage() {
         Orbisy does not intentionally store raw IP addresses, full user-agent
         strings, exact location, advertising identifiers, fingerprints, or form
         contents as analytics.
+      </p>
+      <h3>Optional Google Analytics</h3>
+      <p>
+        With your permission, Orbisy also uses Google Analytics 4, provided by
+        Google, to understand visits to public pages and interactions such as
+        consultation form starts and successful submissions. Google Analytics
+        uses first-party analytics cookies configured for up to 90 days and
+        processes technical information such as device and browser details. Its
+        reporting may include approximate location. It is separate from Orbisy’s
+        own limited reporting.
+      </p>
+      <p>
+        The Google tag loads only after you choose to allow it on this device.
+        Analytics opt-out, Do Not Track, and Global Privacy Control prevent it
+        from loading. Orbisy’s controlled events exclude form contents, names,
+        email addresses, query strings, and private administrator pages.
+        Advertising personalization and Google signals are disabled in the tag
+        configuration. You can decline or withdraw permission below, or return
+        using Analytics choices in the footer. Contact forms work either way.
+      </p>
+      <p>
+        Google’s processing and your property’s configured retention settings
+        apply to Google Analytics data. See{" "}
+        <a
+          href="https://policies.google.com/technologies/partner-sites"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          how Google uses information from sites that use its services
+        </a>
+        .
       </p>
       <AnalyticsChoice />
 
@@ -94,12 +125,12 @@ export default function PrivacyPage() {
 
       <h2>Retention and deletion</h2>
       <p>
-        Raw anonymous analytics are intended to be retained for approximately 90
-        days. Other business records are retained only while reasonably useful
-        for the stated purposes or required for legitimate operational, legal,
-        security, or accounting needs. Backup deletion may be delayed until the
-        relevant backup expires. A minimal suppression record may be retained
-        without automatic expiration to prevent renewed contact.
+        Orbisy’s own raw analytics are intended to be retained for approximately
+        90 days. Other business records are retained only while reasonably
+        useful for the stated purposes or required for legitimate operational,
+        legal, security, or accounting needs. Backup deletion may be delayed
+        until the relevant backup expires. A minimal suppression record may be
+        retained without automatic expiration to prevent renewed contact.
       </p>
 
       <h2>Security and limitations</h2>

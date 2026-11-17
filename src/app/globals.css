@@ -509,3 +509,20 @@ h1 > span { color: transparent; background: linear-gradient(100deg, var(--accent
 @media (min-width: 981px) {
   .agency-hero h1 { font-size: clamp(3rem, 4.5vw, 4.3rem); text-wrap: balance; }
 }
+
+/* Optional Google Analytics choice; normal content and inquiry forms remain accessible. */
+.google-analytics-consent { position: fixed; z-index: 80; bottom: 18px; left: 50%; transform: translateX(-50%); width: min(1080px, calc(100% - 32px)); max-height: min(65vh, 470px); overflow: auto; display: flex; gap: 24px; align-items: center; padding: 22px; background: #101a2c; border: 1px solid #65d6ff70; border-radius: 18px; box-shadow: 0 15px 65px #0008; }
+.google-analytics-consent h2 { font-size: 1rem; margin-bottom: 8px; color: #f3f7ff; }
+.google-analytics-consent p { font-size: .8rem; line-height: 1.8; color: #c6d4eb; }
+.google-analytics-consent a { display: inline-flex; margin-top: 10px; color: #91eed8; font-size: .8rem; text-decoration: underline; }
+.google-consent-actions { display: flex; flex-wrap: wrap; gap: 10px; flex-shrink: 0; }
+.google-analytics-consent .google-consent-actions { flex-direction: column; }
+.google-consent-actions .button { min-height: 44px; text-align: center; white-space: normal; }
+.analytics-choice h3 { margin: 22px 0 10px; }
+.analytics-choice p { margin-block: 12px; }
+#analytics-settings { scroll-margin-top: 110px; }
+@media (max-width: 700px) { .google-analytics-consent { flex-direction: column; align-items: stretch; gap: 16px; padding: 18px; bottom: 10px; }.google-analytics-consent .google-consent-actions { flex-direction: row; }.google-consent-actions .button { flex: 1; } }
+.analytics-choice { display: grid; grid-template-columns: minmax(0, 1fr); align-items: start; gap: 12px; }
+.analytics-choice > .button { justify-self: start; }
+.analytics-choice > span, .analytics-choice > p { min-width: 0; width: 100%; }
+.analytics-choice .google-consent-actions { flex-shrink: 1; }

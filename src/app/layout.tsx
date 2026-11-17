@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { DM_Sans, Manrope } from "next/font/google";
 import "./globals.css";
+import { GoogleAnalyticsConsent } from "@/components/google-analytics-consent";
 import { AnalyticsProvider } from "@/components/analytics-provider";
 import { siteConfig } from "@/lib/config";
 
@@ -55,6 +56,7 @@ export default function RootLayout({
           Skip to content
         </a>
         <AnalyticsProvider />
+        <GoogleAnalyticsConsent />
         {children}
       </body>
     </html>

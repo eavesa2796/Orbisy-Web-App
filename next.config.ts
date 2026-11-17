@@ -13,11 +13,11 @@ const supabaseOrigin = (() => {
 
 const contentSecurityPolicy = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com",
+  "script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com https://www.googletagmanager.com",
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob:",
+  "img-src 'self' data: blob: https://www.google-analytics.com https://region1.google-analytics.com",
   "font-src 'self' data:",
-  `connect-src 'self' https://challenges.cloudflare.com${supabaseOrigin ? ` ${supabaseOrigin}` : ""}`,
+  `connect-src 'self' https://challenges.cloudflare.com https://www.google-analytics.com https://region1.google-analytics.com${supabaseOrigin ? ` ${supabaseOrigin}` : ""}`,
   "frame-src https://challenges.cloudflare.com",
   "object-src 'none'",
   "base-uri 'self'",
@@ -30,7 +30,9 @@ const nextConfig: NextConfig = {
   experimental: {
     taint: true,
   },
-  async redirects() { return legacyPublicRedirects; },
+  async redirects() {
+    return legacyPublicRedirects;
+  },
   async headers() {
     return [
       {
