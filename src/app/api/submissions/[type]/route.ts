@@ -70,6 +70,7 @@ export async function POST(
 
     const data = parsed.data;
     if (
+      process.env.INQUIRY_ATTRIBUTION_ENABLED === "false" ||
       process.env.ANALYTICS_ENABLED === "false" ||
       request.headers.get("dnt") === "1" ||
       request.headers.get("sec-gpc") === "1"

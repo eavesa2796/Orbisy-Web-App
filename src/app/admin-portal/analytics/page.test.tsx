@@ -8,7 +8,7 @@ vi.mock("@/components/admin/admin-shell", () => ({
     <main>{children}</main>
   ),
 }));
-import Page from "./page";
+import Page from "./history/page";
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();

@@ -19,7 +19,7 @@ Google Ads conversion tags are not configured by this brand update. Before an
 Orbisy advertising launch, supply the account’s tag/conversion identifiers,
 configure the applicable privacy choices and security-policy permissions, and
 verify that a successful saved inquiry records one conversion. Existing
-first-party analytics continue to measure the new page and service identifiers.
+Google Analytics now measures consented public interactions; the separate Orbisy event collector is retired.
 
 Public service pages now include `/web-design`, `/google-ads`, `/local-seo`, and
 `/custom-development`. `/work` presents real Rescue portfolio screenshots.
@@ -34,7 +34,7 @@ workspace; public-facing product messaging has been superseded by the agency sit
 Orbisy is Anthony Eaves’s Chicago-based software-development business. This
 MVP combines a public service website, secure inbound forms, a
 single-administrator lead workspace, manual outreach preparation,
-privacy-conscious first-party analytics, and an administrator-reviewed
+consent-controlled Google Analytics, saved-inquiry sales reporting, and an administrator-reviewed
 business-import workflow.
 
 Phase Five turns administrator-approved audit evidence into private outreach
@@ -207,13 +207,14 @@ sign-in.
 | `DATABASE_URL` | Yes | PostgreSQL connection string |
 | `NEXT_PUBLIC_SUPABASE_URL` | Yes | Supabase project URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes | Public Supabase browser key |
-| `ADMIN_EMAIL` | Yes | Sole authorized administrator; use `anthonyeaves33@gmail.com` |
+| `ADMIN_EMAIL` | Yes | Sole authorized administrator; set your approved administrator email |
 | `NEXT_PUBLIC_SITE_URL` | Production | Canonical origin, such as `https://orbisy.com` |
 | `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | Production | Public Turnstile widget key |
 | `TURNSTILE_SECRET_KEY` | Production | Server-side Turnstile verification |
 | `RATE_LIMIT_SECRET` | Production | Secret salt used to hash request IPs |
-| `ANALYTICS_ENABLED` | No | Set to `false` to disable event collection |
-| `ANALYTICS_RETENTION_DAYS` | No | Retention period; defaults to 90, capped at 365 |
+| `INQUIRY_ATTRIBUTION_ENABLED` | No | Set to `false` to omit optional source/campaign details from saved inquiries |
+| `ANALYTICS_ENABLED` | Legacy | A value of `false` still disables inquiry attribution; it cannot re-enable the retired event collector |
+| `ANALYTICS_RETENTION_DAYS` | Retired | No longer used; historical event rows are preserved |
 | `RESEND_API_KEY` | No | Optional notification for new inbound forms only |
 | `RESEND_FROM_EMAIL` | With Resend | Verified sender |
 | `NOTIFICATION_EMAIL` | No | Required destination when notifications are enabled; no default recipient |
@@ -285,7 +286,7 @@ from the provider backup when a partial change cannot be safely completed.
 ## Supabase authentication
 
 1. Create a Supabase project and enable email/password authentication.
-2. Create the administrator user `anthonyeaves33@gmail.com` in the Supabase
+2. Create the administrator user `admin@example.com` in the Supabase
    dashboard. Do not enable public registration in this application.
 3. Add the site origin and
    `https://your-domain.example/auth/callback?next=/auth/reset-password` to the
@@ -306,17 +307,15 @@ Without Resend, submissions are still safely stored and shown in the admin
 portal; notification failure never discards a submission. Resend is
 inbound-notification-only. There is no outbound prospect email delivery.
 
-## Analytics
+## Analytics and sales reporting
 
-Orbisy records an allowlisted set of first-party aggregate events: page views,
-CTA clicks, section views, FAQ opens, scroll depth, form views/starts/errors,
-and successful submissions. The client uses a tab-scoped anonymous UUID.
+GA4 is the audience reporting system, loaded only after explicit Google permission and subject to browser privacy signals and the existing global opt-out. Controlled page views remain manual with send_page_view=false. Disable enhanced browser-history page views and automatic form interactions to avoid overlaps with the site’s controlled events. Keep automatic site search off unless a separately reviewed privacy-safe configuration is introduced. Successful inquiries map to generate_lead only after a confirmed nonduplicate save; the event excludes inquiry contents and identifiers.
 
-The system does not store full IP addresses, names, email addresses, cookies,
-fingerprints, cross-site identifiers, keystrokes, heatmaps, or session replay.
-Global Privacy Control, Do Not Track, and the Privacy Policy opt-out are
-honored. Old events are pruned as new events arrive according to
-`ANALYTICS_RETENTION_DAYS`.
+Orbisy no longer POSTs page views, clicks, scrolls, or other public events to its own database. The retired /api/analytics endpoint returns 204 without reading the request body, writing events, or deleting historical records, including requests from old open tabs. There is no runtime switch that re-enables it. Old event rows remain in the read-only admin archive at /admin-portal/analytics/history. Its totals are historical, not GA4 data.
+
+/admin-portal/sales counts actual saved inquiries, requested services, available sources/campaigns, current lead statuses, and due follow-ups. Inquiry metrics use submission dates; current lead status may have changed later. It does not join visitor identities with business records or present a website conversion rate. Existing /admin-portal/analytics bookmarks redirect to Sales overview.
+
+Optional inquiry attribution retains the same bounded paths, referring domains, campaign labels, opt-out behavior, and DNT/GPC checks. Google permission and source-attribution permission remain separate. No extra Orbisy reporting session identifier is created. No new environment variable is required for the change; INQUIRY_ATTRIBUTION_ENABLED=false optionally disables source capture on the server, and legacy ANALYTICS_ENABLED=false continues to do so.
 
 ## Phase Two lead imports
 

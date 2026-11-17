@@ -308,36 +308,13 @@ export const adminToolGuides = {
     ],
   },
   analytics: {
-    title: "Website analytics",
-    href: "/admin-portal/analytics",
-    role: "Everyday",
-    purpose:
-      "See aggregate public-site traffic, interactions, and tracked successful form submissions.",
-    fit: "Use it to check whether visitors explore association services and reach the consultation flow.",
-    skip: "It cannot identify organizations or members, explain why a visitor left, or replace the saved lead records when counting actual inquiries.",
-    steps: [
-      "Choose a 7-, 30-, or 90-day window and compare trends over a useful period.",
-      "Look at Top pages and Interactions to see which content and calls to action receive activity.",
-      "Use tracked submissions as a directional signal, then open Leads to review the actual saved inquiries and their fit.",
-      "Allow for consent choices, privacy signals, blockers, and repeat page views. Do not treat sessions as unique people or clicks as customers.",
-    ],
-    outcome:
-      "A directional view of website use. A saved inquiry can exist without an analytics event when tracking is declined or blocked. Optional Google Analytics is a separate visitor-choice-based report; its totals can differ from this first-party dashboard.",
-    terms: [
-      ["Page views", "Tracked page loads, including repeats."],
-      [
-        "Anonymous sessions",
-        "Distinct temporary session identifiers in the reporting window, not verified people.",
-      ],
-      [
-        "Direct",
-        "No referrer domain was captured; it does not prove the visitor typed the URL.",
-      ],
-      [
-        "Tracked submissions",
-        "Success events emitted after saving a form, when tracking is allowed. Leads is the source for saved inquiry records.",
-      ],
-    ],
+    title: "Sales overview", href: "/admin-portal/sales", role: "Everyday",
+    purpose: "Review saved inquiries, requested services, consent-aware sources, and current lead outcomes.",
+    fit: "Use this to decide which conversations need attention and which services people ask about. Use Google Analytics for website traffic and visitor behavior.",
+    skip: "These totals are business records, not visitor counts or a website conversion rate. Unknown source information is not proof of a direct visit.",
+    steps: ["Choose the inquiry date range. Status totals reflect the current status of inquiries saved in that period.", "Review requested services and available source or campaign details. An inquiry still counts when analytics or attribution is declined.", "Open a recent inquiry or due follow-up to read the request and record the next action.", "Use Open Google Analytics for audience reports. Historical Orbisy traffic reports are retained in a separate archive."],
+    outcome: "A clear view of saved sales activity without duplicating GA4 visitor analytics. Existing historical event records are preserved.",
+    terms: [["Saved inquiries", "Actual form submissions stored in the business database, including inquiries without tracking permission."], ["Current outcome", "The inquiry’s linked lead status now; it does not mean the status changed during the selected period."], ["Not captured", "A source or campaign detail was unavailable, declined, or blocked. No source is inferred."], ["Historical reports", "Retained records from Orbisy’s retired event collector. They are separate from current GA4 data."]],
   },
   settings: {
     title: "Settings & operating controls",
