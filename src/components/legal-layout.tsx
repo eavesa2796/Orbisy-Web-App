@@ -1,28 +1,30 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { OrbisyLogo } from "@/components/orbisy-logo";
+import { PublicHeader, PublicFooter } from "@/components/public-site-shell";
 
 export function LegalLayout({
   kicker,
   title,
+  current,
   children,
 }: {
   kicker: string;
   title: string;
+  current: "privacy" | "terms";
   children: ReactNode;
 }) {
   return (
-    <main className="legal-page" id="main-content">
+    <>
+      <PublicHeader />
+      <main className="legal-page" id="main-content">
       <div className="legal-shell">
-        <Link className="public-brand legal-brand" href="/" aria-label="Orbisy home">
-          <OrbisyLogo className="legal-brand-logo" priority />
-        </Link>
         <p className="legal-kicker">{kicker}</p>
         <h1>{title}</h1>
-        <p className="legal-review-note">
-          Draft for owner and legal review before launch. This page does not
-          claim that Orbisy has completed a legal-compliance review.
-        </p>
+        <nav className="legal-doc-nav" aria-label="Legal pages">
+          <Link href="/privacy" aria-current={current === "privacy" ? "page" : undefined}>Privacy Policy</Link>
+          <Link href="/terms" aria-current={current === "terms" ? "page" : undefined}>Terms of Use</Link>
+          <Link href="/privacy#analytics-settings">Analytics choices</Link>
+        </nav>
         <div className="legal-content">{children}</div>
         <div className="legal-actions">
           <Link className="button button-small" href="/">
@@ -33,6 +35,8 @@ export function LegalLayout({
           </a>
         </div>
       </div>
-    </main>
+      </main>
+      <PublicFooter />
+    </>
   );
 }
