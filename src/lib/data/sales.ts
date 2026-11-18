@@ -22,7 +22,7 @@ export async function getSalesSummary(requestedDays = 30): Promise<SalesSummary>
         db.select({ status: stage, count }).from(contactSubmissions).leftJoin(leads, eq(leads.submissionId, contactSubmissions.id)).where(cohort).groupBy(stage).orderBy(desc(count)),
         db.select({ service, count }).from(contactSubmissions).where(cohort).groupBy(service).orderBy(desc(count)),
         db.select({ source, medium, campaign, count, won: sql<number> `count(*) filter(where ${leads.status}='won')::int` }).from(contactSubmissions).leftJoin(leads, eq(leads.submissionId, contactSubmissions.id)).where(cohort).groupBy(source, medium, campaign).orderBy(desc(count)),
-        db.select({ id: contactSubmissions.id, leadId: leads.id, name: contactSubmissions.businessName, service, status: stage, submittedAt: contactSubmissions.submittedAt }).from(contactSubmissions).leftJoin(leads, eq(leads.submissionId, contactSubmissions.id)).where(cohort).orderBy(desc(contactSubmissions.submittedAt)).limit(10),
+        db.select({ id: contactSubmissions.id, leadId: leads.id, name: contactSubmissions.businessName, service, status: stage, source, campaign, submittedAt: contactSubmissions.submittedAt }).from(contactSubmissions).leftJoin(leads, eq(leads.submissionId, contactSubmissions.id)).where(cohort).orderBy(desc(contactSubmissions.submittedAt),desc(contactSubmissions.id)).limit(10),
         db.select({ id: leads.id, name: leads.businessName, status: leads.status, followUpAt: leads.followUpAt }).from(leads).where(due).orderBy(asc(leads.followUpAt)).limit(8),
         db.select({ count }).from(leads).where(due),
         db.select({ count }).from(clientWorkspaces).where(and(eq(clientWorkspaces.proposalStatus, 'sent'), notInArray(clientWorkspaces.status, ['archived']))),

@@ -34,6 +34,8 @@ export type SalesSummary = {
         service: string;
         status: string;
         submittedAt: Date;
+        source: string;
+        campaign: string;
     }[];
     followUps: {
         id: string;

@@ -42,6 +42,9 @@ describe("Sales overview from saved records", () => {
         expect(data.sources).toContainEqual({ source: "newsletter", medium: "email", campaign: "planning", count: 1, won: 1 });
         expect(data.services).toContainEqual({ service: "Association websites", count: 2 });
         expect(data.recent).toHaveLength(3);
+        expect(data.recent.find(row => row.name === "Example A")).toMatchObject({source:"newsletter",campaign:"planning"});
+        expect(data.recent.find(row => row.name === "Example B")).toMatchObject({source:"Not captured",campaign:"Not captured"});
+        expect(data.recent.every(row => row.submittedAt instanceof Date)).toBe(true);
     });
     it("supports all-time and limits follow-ups to open leads while keeping workspace proposals separate", async () => { const data = await getSalesSummary(0); expect(data.totals.inquiries).toBe(4); expect(data.totals.lost).toBe(1); expect(data.followUpsDue).toBe(2); expect(data.followUps.map(x => x.status)).not.toContain("won"); expect(data.followUps.map(x => x.status)).not.toContain("lost"); expect(data.workspaceProposals).toBe(1); });
     it("does not delete historical events or change business records when reporting or acknowledging an old collector request", async () => { await getSalesSummary(7); expect((await POST()).status).toBe(204); const counts = await pg.query<{

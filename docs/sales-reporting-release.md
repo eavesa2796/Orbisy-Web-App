@@ -27,7 +27,17 @@ Current Privacy Policy, storage disclosures, and README describe GA4, inquiry at
 - Test the real form-to-Google bridge: no generate_lead for a failed save, one after a confirmed nonduplicate save, no private form values in Google payloads, and no proprietary beacon or event endpoint requests. Save still succeeds when Google permission is declined.
 - Existing duplicate/unconfirmed-save tests, Google consent/privacy tests, and inquiry persistence tests remain required.
 - PostgreSQL-backed tests verify cohort counts, current status interpretation, unknown sources, imported-lead exclusion, separate follow-up/workspace counts, retained historical events, unchanged business records, and admin authorization.
-- Before production, verify generate_lead receipt in the actual GA4 property using a deliberate consented test inquiry, or have the owner verify a real saved inquiry. Automated checks prove emission behavior, not delivery to Google’s reporting UI. Realtime page activity was confirmed by the owner; saved-inquiry event receipt remains a separate release verification.
+- The owner confirmed that the live saved-inquiry test reached GA4 as generate_lead. Automated checks independently verify emission behavior; the reporting receipt is owner-confirmed. No further Google setting change is part of this refinement.
 - Review preview and production deployment separately. After approved deployment, confirm the collector returns 204, saved-inquiry flow remains available, and Sales overview/history can be opened by the administrator. An unavailable database must show an error state rather than misleading zero totals.
 
 No production records or GA4 settings are changed during preview preparation.
+
+## Prelaunch refinement: receipt times and action-first layout
+
+The owner confirmed a saved inquiry reached GA4 as generate_lead. No GA4 setting or event-mapping change is introduced in this refinement.
+
+Recent inquiries and due follow-ups now appear before pipeline/service breakdowns. Recent records show an explicit Received date and time, current status badge, captured source/campaign, and a link to the inquiry. Times consistently use America/Chicago with CST/CDT shown; the original stored submission timestamp remains unchanged. Lead detail pages separate receipt time from the privacy acknowledgment version and format other existing record timestamps consistently in Chicago time. Missing times are not fabricated.
+
+The overview adds readable status/service bars derived only from saved counts, clearer empty states, a keyboard-scrollable source table, and collapsible guidance. Proposed preview examples include multiple receipt times and remain fictional; date controls still change only the example period label.
+
+Tests cover Chicago/UTC date boundaries, summer/winter timezone labels, repeated daylight-saving clock times, missing/invalid dates, receipt markup and source/action display, and source/timestamp projection from saved inquiries. No database migration or production write is required.
