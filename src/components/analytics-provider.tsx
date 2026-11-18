@@ -38,72 +38,11 @@ export function shouldTrack() {
   );
 }
 
-function getSessionId() {
-  let id = window.sessionStorage.getItem(SESSION_KEY);
-  if (!id) {
-    id = crypto.randomUUID();
-    window.sessionStorage.setItem(SESSION_KEY, id);
-  }
-  return id;
-}
-
-function getDeviceCategory() {
-  const width = window.innerWidth;
-  return width < 768 ? "mobile" : width < 1024 ? "tablet" : "desktop";
-}
-
-function getViewportCategory() {
-  const width = window.innerWidth;
-  return width < 640 ? "small" : width < 1100 ? "medium" : "large";
-}
-
-export function trackEvent(
-  eventName: AnalyticsEventName,
-  componentId?: string,
-) {
+export function trackEvent(eventName: AnalyticsEventName, componentId?: string) {
   try {
-    if (!shouldTrack()) return;
-    trackGoogleEvent(eventName, componentId);
-
-    const url = new URL(window.location.href);
-    let referrerDomain: string | undefined;
-    try {
-      referrerDomain = document.referrer
-        ? new URL(document.referrer).hostname
-        : undefined;
-    } catch {
-      referrerDomain = undefined;
-    }
-
-    const body = JSON.stringify({
-      eventName,
-      sessionId: getSessionId(),
-      pagePath: url.pathname,
-      referrerDomain,
-      utmSource: url.searchParams.get("utm_source")?.slice(0, 100) || undefined,
-      utmMedium: url.searchParams.get("utm_medium")?.slice(0, 100) || undefined,
-      utmCampaign:
-        url.searchParams.get("utm_campaign")?.slice(0, 100) || undefined,
-      deviceCategory: getDeviceCategory(),
-      viewportCategory: getViewportCategory(),
-      componentId,
-    });
-
-    if (navigator.sendBeacon) {
-      navigator.sendBeacon(
-        "/api/analytics",
-        new Blob([body], { type: "application/json" }),
-      );
-    } else {
-      void fetch("/api/analytics", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body,
-        keepalive: true,
-      });
-    }
+    if (shouldTrack()) trackGoogleEvent(eventName, componentId);
   } catch {
-    /* Optional analytics never interrupt navigation or saved inquiries. */
+    /* Optional Google reporting never interrupts navigation or saved inquiries. */
   }
 }
 
@@ -118,9 +57,9 @@ export function AnalyticsProvider() {
     trackGooglePage();
   }, [pathname, googleChoice]);
   useEffect(() => {
-    if (!shouldTrack()) return;
+    try { window.sessionStorage.removeItem(SESSION_KEY); } catch { /* Retired identifier cleanup is best effort. */ }
     captureInquiryAttribution();
-    trackEvent("page_view");
+    if (!shouldTrack()) return;
 
     const milestones = new Set<number>();
     const onScroll = () => {
@@ -175,7 +114,7 @@ export function AnalyticsProvider() {
       );
       observer.disconnect();
     };
-  }, [pathname]);
+  }, [pathname, googleChoice]);
 
   return null;
 }

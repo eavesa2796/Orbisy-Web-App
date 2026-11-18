@@ -39,8 +39,8 @@ export const adminNavigationGroups = [
         icon: "suppressions",
       },
       {
-        href: "/admin-portal/analytics",
-        label: "Website analytics",
+        href: "/admin-portal/sales",
+        label: "Sales overview",
         icon: "analytics",
       },
       { href: "/admin-portal/settings", label: "Settings", icon: "settings" },

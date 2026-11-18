@@ -102,7 +102,7 @@ export function ToolDirectory({ preview = false }: { preview?: boolean }) {
           </p>
           <p className="tool-recommendation">
             <strong>Recommended now:</strong> prioritize client workspaces,
-            inquiries, internal pricing, and website analytics. Leave imports,
+            inquiries, internal pricing, and sales reporting. Leave imports,
             checks, and audits aside unless you are deliberately researching
             prospects. Keep do-not-contact records when handling exclusions.
           </p>

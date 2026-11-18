@@ -17,7 +17,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 describe("Google Analytics visitor choice", () => {
-  it("requires a separate explicit choice even when first-party reporting was allowed", () => {
+  it("requires a separate explicit choice even when inquiry attribution was allowed", () => {
     window.localStorage.setItem(ANALYTICS_OPTOUT_KEY, "false");
     render(<GoogleAnalyticsConsent />);
     expect(
@@ -31,7 +31,7 @@ describe("Google Analytics visitor choice", () => {
       screen.queryByRole("button", { name: "Allow Google Analytics" }),
     ).not.toBeInTheDocument();
   });
-  it("can decline without disabling the existing limited reporting", () => {
+  it("can decline without disabling inquiry attribution", () => {
     render(<GoogleAnalyticsConsent />);
     fireEvent.click(
       screen.getByRole("button", { name: "Continue without Google Analytics" }),
@@ -39,18 +39,18 @@ describe("Google Analytics visitor choice", () => {
     expect(window.localStorage.getItem(GOOGLE_CONSENT_KEY)).toBe("denied");
     expect(window.localStorage.getItem(ANALYTICS_OPTOUT_KEY)).toBeNull();
   });
-  it("provides an accessible way to withdraw permission and does not restore it when first-party reporting is allowed again", () => {
+  it("provides an accessible way to withdraw permission and does not restore it when inquiry attribution is allowed again", () => {
     window.localStorage.setItem(GOOGLE_CONSENT_KEY, "granted");
     render(<AnalyticsChoice />);
     fireEvent.click(
-      screen.getByRole("button", { name: "Opt out of all analytics" }),
+      screen.getByRole("button", { name: "Opt out of analytics and attribution" }),
     );
     expect(window.localStorage.getItem(GOOGLE_CONSENT_KEY)).toBe("denied");
     expect(
       screen.getByRole("button", { name: "Allow Google Analytics" }),
     ).toBeDisabled();
     fireEvent.click(
-      screen.getByRole("button", { name: "Allow first-party reporting" }),
+      screen.getByRole("button", { name: "Allow inquiry attribution" }),
     );
     expect(window.localStorage.getItem(GOOGLE_CONSENT_KEY)).toBe("denied");
     expect(

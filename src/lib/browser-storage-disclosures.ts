@@ -21,15 +21,15 @@ export const browserStorageDisclosures = [
   },
   {
     name: "orbisy_analytics_opt_out", type: "Local storage · preference",
-    purpose: "Remembers your opt-out from optional reporting, including Orbisy’s own reporting and Google Analytics.",
+    purpose: "Remembers your opt-out from optional Google Analytics and inquiry source attribution.",
     duration: "Until changed or this browser’s site storage is cleared; no automatic expiry is set.",
-    choice: "Controlled by the analytics choices below. Allowing first-party reporting again does not automatically grant Google permission.",
+    choice: "Controlled by the analytics choices below. Allowing inquiry attribution again does not automatically grant Google permission.",
   },
   {
-    name: "orbisy_analytics_session", type: "Session storage · first-party reporting",
-    purpose: "Keeps a random identifier for limited, first-party website interaction reports. It is not attached to your saved inquiry.",
-    duration: "Normally the browser tab’s session, subject to browser restore behavior. Removed by Orbisy when you opt out of analytics.",
-    choice: "Used unless you opt out or a supported browser privacy signal blocks optional reporting.",
+    name: "orbisy_analytics_session", type: "Session storage · retired Orbisy reporting identifier",
+    purpose: "Previously kept an identifier for Orbisy’s separate event reports. New identifiers are no longer created; saved inquiries never use this identifier.",
+    duration: "The site attempts to remove this legacy entry on page navigation. A remaining entry follows the browser tab’s session and restore behavior.",
+    choice: "Retired. The site does not use this entry for new reports.",
   },
   {
     name: "orbisy_inquiry_attribution", type: "Session storage · optional inquiry attribution",

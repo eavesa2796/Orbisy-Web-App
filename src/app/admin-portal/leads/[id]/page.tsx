@@ -1,3 +1,6 @@
+import { formatAdminDateTime } from "@/lib/admin-date-time";
+import { AdminTimestamp } from "@/components/admin/admin-timestamp";
+import "@/components/admin/sales-overview.css";
 import { ToolGuide } from "@/components/admin/tool-guide";
 import { LeadWorkspaceLink } from "@/components/admin/lead-workspace-link";
 import { getInquiryForLead } from "@/lib/data/inquiries";
@@ -16,7 +19,7 @@ import { requireAdmin } from "@/lib/auth";
 import { getLead } from "@/lib/data/admin";
 import { leadStatusValues } from "@/lib/validation";
 
-const format = (date: Date | null) => (date ? date.toLocaleString() : "—");
+const format = formatAdminDateTime;
 
 export default async function LeadPage({
   params,
@@ -148,11 +151,12 @@ export default async function LeadPage({
               <dd>{format(lead.followUpAt)}</dd>
             </div>
             <div>
-              <dt>Saved / privacy version</dt>
-              <dd>
-                {format(inquiry.submission.submittedAt)} ·{" "}
-                {inquiry.submission.consentVersion}
-              </dd>
+              <dt>Inquiry received · Chicago time</dt>
+              <dd><AdminTimestamp date={inquiry.submission.submittedAt}/></dd>
+            </div>
+            <div>
+              <dt>Privacy acknowledgment version</dt>
+              <dd>{inquiry.submission.consentVersion}</dd>
             </div>
             <div>
               <dt>Notification</dt>

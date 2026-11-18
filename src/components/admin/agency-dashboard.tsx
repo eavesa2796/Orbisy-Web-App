@@ -201,7 +201,7 @@ export function AgencyDashboard({ data }: { data: Data }) {
             <h2>Your supporting tools</h2>
             <p className="field-help">
               Imports, preflight checks, audits, suppression records, pricing,
-              and analytics remain in the portal.
+              and sales reporting remain in the portal.
             </p>
             <Link className="text-link" href="/admin-portal/tools">
               Tools, instructions & workflow guide →

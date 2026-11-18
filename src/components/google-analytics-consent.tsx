@@ -38,7 +38,7 @@ export function GoogleAnalyticsConsent() {
       <div>
         <h2 id="google-consent-heading">Optional Google Analytics</h2>
         <p>
-          Orbisy uses limited first-party reporting. With your permission,
+          Orbisy can remember limited inquiry source details. With your permission,
           Google Analytics also helps us understand visits and project inquiries
           using analytics cookies. Your choice does not affect contacting
           Orbisy.
