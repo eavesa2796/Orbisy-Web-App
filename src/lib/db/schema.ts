@@ -858,6 +858,8 @@ export const pricingEntries = pgTable(
     deliverables: jsonb("deliverables").$type<string[]>().notNull().default([]),
     billingBasis: billingBasis("billing_basis").notNull().default("one_time"),
     amountCents: integer("amount_cents"),
+    rangeMinCents: integer("range_min_cents"),
+    rangeMaxCents: integer("range_max_cents"),
     setupFeeCents: integer("setup_fee_cents"),
     recurringFeeCents: integer("recurring_fee_cents"),
     recurringInterval: varchar("recurring_interval", { length: 80 }),
@@ -874,6 +876,7 @@ export const pricingEntries = pgTable(
   },
   (t) => [
     check("pricing_amount_nonnegative", sql`${t.amountCents} >= 0`),
+    check("pricing_range_valid", sql`(${t.rangeMinCents} IS NULL AND ${t.rangeMaxCents} IS NULL) OR (${t.rangeMinCents} IS NOT NULL AND ${t.rangeMaxCents} IS NOT NULL AND ${t.rangeMinCents} >= 0 AND ${t.rangeMaxCents} >= ${t.rangeMinCents} AND ${t.amountCents} IS NULL)`),
     check("pricing_setup_nonnegative", sql`${t.setupFeeCents} >= 0`),
     check("pricing_recurring_nonnegative", sql`${t.recurringFeeCents} >= 0`),
     index("pricing_status_category_idx").on(t.status, t.category),

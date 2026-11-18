@@ -200,6 +200,8 @@ export type AttentionItem = {
   href: string;
   date?: string | null;
   urgent?: boolean;
+  receivedAt?: string | null;
+  receivedLabel?: "Received" | "Added";
 };
 export type AttentionQueue = {
   key: string;
@@ -220,6 +222,9 @@ export async function getAgencyDashboard() {
         id: leads.id,
         title: leads.businessName,
         service: contactSubmissions.serviceNeeded,
+        submissionId: leads.submissionId,
+        receivedAt: contactSubmissions.submittedAt,
+        createdAt: leads.createdAt,
         total: sql<number>`count(*) over()::int`,
       })
       .from(leads)
@@ -278,12 +283,14 @@ export async function getAgencyDashboard() {
     {
       key: "inquiries",
       title: "New inquiries",
-      description: "Read the request and arrange a conversation.",
+      description: "Read the request and arrange a conversation. Received / added times are shown in Chicago time (CST/CDT).",
       total: inbound[0]?.total ?? 0,
       items: inbound.map((r) => ({
         id: r.id,
         title: r.title,
         detail: r.service || "Website review",
+        receivedAt: (r.submissionId ? r.receivedAt : r.createdAt)?.toISOString() ?? null,
+        receivedLabel: r.submissionId ? "Received" : "Added",
         href: `/admin-portal/leads/${r.id}`,
       })),
     },

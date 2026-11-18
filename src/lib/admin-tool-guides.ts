@@ -78,8 +78,8 @@ export const adminToolGuides = {
     skip: "Archive old advertising or SEO entries when they no longer represent an offer. Nothing is archived automatically.",
     steps: [
       "Filter existing entries before adding templates or creating another entry.",
-      "Describe the deliverables, exclusions, and billing basis. Leave amounts blank until you choose an actual rate.",
-      "Use draft while reviewing, active for current internal options, and archived for retired offers.",
+      "Add association pricing drafts to save the proposed ranges without overwriting existing entries. Review the assumptions, hours, and exclusions before quoting.",
+      "Enter a fixed base amount or minimum/maximum range. Use Draft for proposals, Active after you approve a rate, and Archived for retired offers. Legacy entries remain available under the Offer filter.",
       "Prepare a project-specific quote from the agreed scope; this catalog does not issue invoices or publish rates.",
     ],
     outcome:

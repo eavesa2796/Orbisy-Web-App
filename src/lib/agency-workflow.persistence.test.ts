@@ -71,6 +71,8 @@ beforeAll(async () => {
       )
     ).replaceAll("--> statement-breakpoint", ""),
   );
+  await pg.exec("insert into pricing_entries(template_key,name,category,amount_cents,status,internal_notes,updated_by) values('ads-setup','Preserved legacy offer','google_ads',123456,'active','Retain original notes','owner@example.test')");
+  await pg.exec((await readFile(join(process.cwd(), "drizzle/0011_pricing_ranges.sql"), "utf8")).replaceAll("--> statement-breakpoint", ""));
   mocked.db = drizzle(pg, { schema }) as unknown as ReturnType<typeof getDb>;
   mocked.admin.mockResolvedValue({ id: "admin", email: "owner@example.test" });
   mocked.spam.mockResolvedValue(true);
@@ -296,14 +298,16 @@ describe("Agency database and inquiry workflow", () => {
   });
 });
 describe("Private pricing catalog", () => {
-  it("creates repeatable service templates with all amounts unset", async () => {
+  it("creates repeatable association drafts with proposed ranges and no confirmed fixed amounts", async () => {
     await addPricingTemplatesAction();
     await addPricingTemplatesAction();
     const entries = await getPricingEntries();
-    expect(entries).toHaveLength(pricingTemplates.length);
+    expect(entries).toHaveLength(pricingTemplates.length + 1);
+    expect(entries.find(e => e.templateKey === "ads-setup")).toMatchObject({amountCents:123456, status:"active", internalNotes:"Retain original notes", rangeMinCents:null, rangeMaxCents:null});
     expect(
-      entries.every(
+      entries.filter(e => e.templateKey !== "ads-setup").every(
         (e) =>
+          e.rangeMinCents !== null && e.rangeMaxCents !== null &&
           e.amountCents === null &&
           e.setupFeeCents === null &&
           e.recurringFeeCents === null &&
@@ -342,6 +346,20 @@ describe("Private pricing catalog", () => {
     expect(
       (await getPricingEntries()).find((e) => e.id === created.id)?.status,
     ).toBe("archived");
+  });
+  it("persists editable ranges, rejects invalid bounds, and never overwrites an edited draft on reseeding", async () => {
+    const row = (await getPricingEntries()).find(e => e.templateKey === "association-website-v1")!;
+    const form = pricingForm(row.id);
+    form.set("rangeMin", "4500.50"); form.set("rangeMax", "9500");
+    expect(await savePricingAction({message:"",success:false},form)).toMatchObject({success:true});
+    await addPricingTemplatesAction();
+    expect((await getPricingEntries()).find(e => e.id === row.id)).toMatchObject({rangeMinCents:450050,rangeMaxCents:950000,amountCents:null});
+    for (const [min,max,amount] of [["5000","4000",""],["","4000",""],["-1","4000",""],["1.001","4000",""],["1","2","5"]]) {
+      form.set("rangeMin",min);form.set("rangeMax",max);form.set("amount",amount);
+      expect(await savePricingAction({message:"",success:false},form)).toMatchObject({success:false});
+    }
+    await expect(pg.query("update pricing_entries set range_min_cents=20,range_max_cents=10 where id=$1",[row.id])).rejects.toThrow(/pricing_range_valid/);
+    expect((await getPricingEntries()).find(e => e.id === row.id)?.rangeMinCents).toBe(450050);
   });
   it("rejects invalid prices without changing persisted entries", async () => {
     const form = pricingForm();

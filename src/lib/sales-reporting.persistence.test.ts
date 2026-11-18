@@ -9,6 +9,7 @@ import * as schema from "@/lib/db/schema";
 const mocks = vi.hoisted(() => ({ db: null as unknown as ReturnType<typeof getDb>, getDb: vi.fn(), admin: vi.fn() }));
 vi.mock("@/lib/db", () => ({ getDb: () => { mocks.getDb(); return mocks.db; } }));
 vi.mock("@/lib/auth", () => ({ requireAdmin: mocks.admin }));
+import { getLeads } from "@/lib/data/admin";
 import { getSalesSummary } from "@/lib/data/sales";
 import { POST } from "@/app/api/analytics/route";
 let pg: PGlite;
@@ -53,4 +54,15 @@ describe("Sales overview from saved records", () => {
         leads: number;
     }>("select (select count(*)::int from analytics_events) as events,(select count(*)::int from contact_submissions) as inquiries,(select count(*)::int from leads) as leads"); expect(counts.rows[0]).toEqual({ events: 1, inquiries: 4, leads: 4 }); });
     it("requires administrator access before any database read", async () => { mocks.admin.mockRejectedValueOnce(Error("AUTH_REQUIRED")); await expect(getSalesSummary()).rejects.toThrow("AUTH_REQUIRED"); expect(mocks.getDb).not.toHaveBeenCalled(); });
+});
+
+it("lists original inquiry receipt time separately from manual/import creation time", async () => {
+ const items = (await getLeads({})).items;
+ const inquiry = items.find(x => x.businessName === "A")!;
+ const imported = items.find(x => x.businessName === "Imported lead")!;
+ const [original] = await mocks.db.select().from(schema.contactSubmissions).where((await import("drizzle-orm")).eq(schema.contactSubmissions.id,inquiry.submissionId!));
+ expect(inquiry.inquiryReceivedAt?.toISOString()).toBe(original.submittedAt.toISOString());
+ await mocks.db.update(schema.leads).set({updatedAt:new Date("2030-01-01T00:00:00Z")}).where((await import("drizzle-orm")).eq(schema.leads.id,inquiry.id));
+ expect((await getLeads({})).items.find(x=>x.id===inquiry.id)?.inquiryReceivedAt?.toISOString()).toBe(original.submittedAt.toISOString());
+ expect(imported.submissionId).toBeNull();expect(imported.inquiryReceivedAt).toBeNull();expect(imported.createdAt).toBeInstanceOf(Date);
 });

@@ -1,0 +1,3 @@
+ALTER TABLE "pricing_entries" ADD COLUMN "range_min_cents" integer;--> statement-breakpoint
+ALTER TABLE "pricing_entries" ADD COLUMN "range_max_cents" integer;--> statement-breakpoint
+ALTER TABLE "pricing_entries" ADD CONSTRAINT "pricing_range_valid" CHECK (("pricing_entries"."range_min_cents" IS NULL AND "pricing_entries"."range_max_cents" IS NULL) OR ("pricing_entries"."range_min_cents" IS NOT NULL AND "pricing_entries"."range_max_cents" IS NOT NULL AND "pricing_entries"."range_min_cents" >= 0 AND "pricing_entries"."range_max_cents" >= "pricing_entries"."range_min_cents" AND "pricing_entries"."amount_cents" IS NULL));
