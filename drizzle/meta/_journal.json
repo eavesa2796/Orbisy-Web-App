@@ -78,6 +78,13 @@
       "when": 1794892618757,
       "tag": "0010_knowledge_base",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1794977509053,
+      "tag": "0011_pricing_ranges",
+      "breakpoints": true
     }
   ]
 }

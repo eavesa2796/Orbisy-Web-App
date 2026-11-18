@@ -30,6 +30,8 @@ export async function savePricingAction(
         deliverables: p.deliverables,
         billingBasis: p.billingBasis,
         amountCents: p.amount,
+        rangeMinCents: p.rangeMin,
+        rangeMaxCents: p.rangeMax,
         setupFeeCents: p.setupFee,
         recurringFeeCents: p.recurringFee,
         recurringInterval: p.recurringInterval || null,
@@ -72,28 +74,20 @@ export async function savePricingAction(
 export async function addPricingTemplatesAction() {
   const admin = await requireAdmin();
   await getDb().transaction(async (tx) => {
-    for (const [
-      templateKey,
-      name,
-      category,
-      billingBasis,
-      deliverables,
-    ] of pricingTemplates) {
-      await tx
-        .insert(pricingEntries)
-        .values({
-          templateKey,
-          name,
-          category,
-          billingBasis,
-          deliverables: deliverables.split("; "),
-          description:
-            "Confirm scope and deliverables before using in a proposal.",
-          internalNotes:
-            "Owner review required. No prices have been confirmed.",
-          updatedBy: admin.email,
-        })
-        .onConflictDoNothing({ target: pricingEntries.templateKey });
+    for (const template of pricingTemplates) {
+      await tx.insert(pricingEntries).values({
+        templateKey: template.templateKey,
+        name: template.name,
+        category: template.category,
+        billingBasis: template.billingBasis,
+        deliverables: [...template.deliverables],
+        description: template.description,
+        rangeMinCents: template.min * 100,
+        rangeMaxCents: template.max * 100,
+        internalNotes: `PROPOSED RANGE — owner review required. ${template.notes}`,
+        status: "draft",
+        updatedBy: admin.email,
+      }).onConflictDoNothing({target: pricingEntries.templateKey});
     }
     await tx
       .insert(adminActivityLogs)
@@ -101,7 +95,7 @@ export async function addPricingTemplatesAction() {
         adminEmail: admin.email,
         action: "pricing_templates_added",
         entityType: "pricing_catalog",
-        metadata: { amountsSet: false },
+        metadata: { rangesProposed: true, confirmedAmountsSet: false },
       });
   });
   revalidatePath("/admin-portal/pricing");

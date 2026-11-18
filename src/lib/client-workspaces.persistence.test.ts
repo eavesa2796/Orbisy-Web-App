@@ -346,6 +346,7 @@ describe("Client workspace persistence and authorization", () => {
     )!;
     expect(inbound.total).toBe(12);
     expect(inbound.items).toHaveLength(8);
+    expect(inbound.items.every(item => item.receivedLabel === "Added" && !!item.receivedAt)).toBe(true);
     expect(
       dashboard.queues.find((queue) => queue.key === "followups")?.total,
     ).toBe(11);

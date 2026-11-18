@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { AdminTimestamp } from "./admin-timestamp";
+import "./sales-overview.css";
 import {
   ArrowUpRight,
   ArrowRight,
@@ -123,6 +125,7 @@ export function AgencyDashboard({ data }: { data: Data }) {
                           <div>
                             <strong>{item.title}</strong>
                             <span>{item.detail}</span>
+                            {item.receivedAt !== undefined && <AdminTimestamp date={item.receivedAt ? new Date(item.receivedAt) : null} label={item.receivedLabel} />}
                             {item.date && (
                               <small
                                 className={

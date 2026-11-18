@@ -1,3 +1,4 @@
+import { LeadReceivedTime } from "@/components/admin/lead-received-time";
 import { formatAdminDateTime } from "@/lib/admin-date-time";
 import { AdminTimestamp } from "@/components/admin/admin-timestamp";
 import "@/components/admin/sales-overview.css";
@@ -65,6 +66,8 @@ export default async function LeadPage({
         <div>
           <p className="eyebrow">Lead record</p>
           <h1>{lead.businessName}</h1>
+          <LeadReceivedTime {...lead} inquiryReceivedAt={inquiry.submission?.submittedAt} />
+          <p className="field-help">Chicago time (CST/CDT). Added is the creation time for a manual or imported lead.</p>
           <p>
             {lead.contactName || "Contact not identified"} ·{" "}
             {lead.email || "No email"}

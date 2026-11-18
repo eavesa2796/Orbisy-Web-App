@@ -83,6 +83,14 @@ export function PricingEditor({ entry }: { entry?: Entry }) {
         />
       </label>
       <label>
+        Range minimum (USD)
+        <input name="rangeMin" type="number" min="0" max="9999999.99" step="0.01" placeholder="Unset" defaultValue={moneyInput(entry?.rangeMinCents ?? null)} />
+      </label>
+      <label>
+        Range maximum (USD)
+        <input name="rangeMax" type="number" min="0" max="9999999.99" step="0.01" placeholder="Unset" defaultValue={moneyInput(entry?.rangeMaxCents ?? null)} />
+      </label>
+      <label>
         Setup fee (USD)
         <input
           name="setupFee"
@@ -116,9 +124,7 @@ export function PricingEditor({ entry }: { entry?: Entry }) {
         />
       </label>
       <p className="span-two field-help">
-        Leave unconfirmed amounts blank. The base amount follows the billing
-        basis; setup and recurring fees are additional only when your
-        description says so. Keep Google advertising spend separate.
+        Use a fixed base amount or a minimum/maximum range, following the billing basis. Draft ranges are proposals for review; change to Active only after you approve the scope and rate. Blank means unset. Setup and recurring fees are additional only when the description explicitly says so. Specify included hours, exclusions, platform costs, and response expectations.
       </p>
       <label className="span-two">
         Internal notes

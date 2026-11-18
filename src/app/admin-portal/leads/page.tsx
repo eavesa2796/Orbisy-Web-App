@@ -1,4 +1,7 @@
 import { ToolGuide } from "@/components/admin/tool-guide";
+import { LeadReceivedTime } from "@/components/admin/lead-received-time";
+import { AdminTimestamp } from "@/components/admin/admin-timestamp";
+import "@/components/admin/sales-overview.css";
 import Link from "next/link";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { createLeadAction } from "@/app/admin-portal/actions";
@@ -83,6 +86,7 @@ export default async function LeadsPage({
         <div>
           <p className="eyebrow">Pipeline</p>
           <h1>Leads</h1>
+          <p>Received and follow-up times are shown in Chicago time (CST/CDT). “Added” is the creation time for manual or imported leads.</p>
         </div>
       </header>
 <ToolGuide tool="leads" />
@@ -203,6 +207,7 @@ export default async function LeadsPage({
                     <th>Select</th>
                     <th>Business</th>
                     <th>Service</th>
+                    <th>Received / added</th>
                     <th>Proposal / outcome</th>
                     <th>Source</th>
                     <th>Follow-up</th>
@@ -229,13 +234,14 @@ export default async function LeadsPage({
                         </span>
                       </td>
                       <td>{lead.serviceNeeded ?? "—"}</td>
+                      <td><LeadReceivedTime {...lead} /></td>
                       <td>
                         <span className="status-pill">
                           {labels[lead.status]}
                         </span>
                       </td>
                       <td>{lead.sourceName}</td>
-                      <td>{lead.followUpAt?.toLocaleDateString() ?? "—"}</td>
+                      <td><AdminTimestamp date={lead.followUpAt} /></td>
                     </tr>
                   ))}
                 </tbody>

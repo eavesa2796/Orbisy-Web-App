@@ -286,6 +286,7 @@ export async function getLeads(options: {
       .select({
         ...getTableColumns(leads),
         serviceNeeded: contactSubmissions.serviceNeeded,
+        inquiryReceivedAt: contactSubmissions.submittedAt,
       })
       .from(leads)
       .leftJoin(
