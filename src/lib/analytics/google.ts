@@ -1,3 +1,4 @@
+import { googleCampaignParameters, measurementPageContext } from "./measurement";
 import { analyticsEventNames, analyticsEventSchema } from "@/lib/analytics";
 import {
   ANALYTICS_CHOICE_EVENT,
@@ -88,6 +89,7 @@ function safeReferrer() {
 function context() {
   const page = publicAnalyticsPage(window.location.pathname)!;
   return {
+    ...measurementPageContext(page.path),
     page_location: canonicalOrigin + page.path,
     page_title: `Orbisy | ${page.title}`,
     page_referrer: currentReferrer || safeReferrer(),
@@ -126,6 +128,7 @@ function initialize() {
     cookie_expires: 90 * 24 * 60 * 60,
     cookie_update: false,
     ...context(),
+    ...googleCampaignParameters(new URL(window.location.href)),
   });
   if (document.getElementById(GOOGLE_SCRIPT_ID)) {
     initialized = true;

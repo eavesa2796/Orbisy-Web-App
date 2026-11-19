@@ -43,6 +43,7 @@ export const adminNavigationGroups = [
         label: "Sales overview",
         icon: "analytics",
       },
+      { href: "/admin-portal/measurement", label: "Measurement setup", icon: "analytics" },
       { href: "/admin-portal/settings", label: "Settings", icon: "settings" },
     ],
   },

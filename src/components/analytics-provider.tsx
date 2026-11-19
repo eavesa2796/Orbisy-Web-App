@@ -1,4 +1,5 @@
 "use client";
+import { classifyMeasurementLink } from "@/lib/analytics/measurement";
 
 import { usePathname } from "next/navigation";
 import {
@@ -100,6 +101,15 @@ export function AnalyticsProvider() {
       { threshold: 0.5 },
     );
 
+    const onClick = (event: MouseEvent) => {
+      const target = event.target instanceof Element ? event.target : null;
+      const anchor = target?.closest<HTMLAnchorElement>("a[href]");
+      if (!anchor || anchor.hasAttribute("data-analytics-tracked")) return;
+      const area = anchor.closest("header") ? "header" : anchor.closest("footer") ? "footer" : "content";
+      const interaction = classifyMeasurementLink(anchor.getAttribute("href") || "", window.location.origin, area);
+      if (interaction) trackEvent(interaction.event, interaction.component);
+    };
+    document.addEventListener("click", onClick);
     document.addEventListener("scroll", onScroll, { passive: true });
     const details = document.querySelectorAll("details[data-faq-index]");
     details.forEach((element) => element.addEventListener("toggle", onToggle));
@@ -108,6 +118,7 @@ export function AnalyticsProvider() {
       .forEach((element) => observer.observe(element));
 
     return () => {
+      document.removeEventListener("click", onClick);
       document.removeEventListener("scroll", onScroll);
       details.forEach((element) =>
         element.removeEventListener("toggle", onToggle),

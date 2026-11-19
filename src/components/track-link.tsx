@@ -20,6 +20,7 @@ export function TrackLink({
   return (
     <a
       {...props}
+      data-analytics-tracked="true"
       onClick={(event) => {
         trackEvent(eventName, componentId);
         onClick?.(event);

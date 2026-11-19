@@ -41,7 +41,7 @@ export async function saveInquiry(
         budgetRange: project?.budgetRange,
         attribution: data.attribution,
         idempotencyKey: data.submissionToken ?? crypto.randomUUID(),
-        consentVersion: "privacy-2026-10-03",
+        consentVersion: "privacy-2026-11-18",
       })
       .onConflictDoNothing({ target: contactSubmissions.idempotencyKey })
       .returning({ id: contactSubmissions.id });

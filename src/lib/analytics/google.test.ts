@@ -178,3 +178,16 @@ describe("Consent-gated Google Analytics", () => {
     expect(fakeWindow["ga-disable-G-DZQMLKQDTE"]).toBe(true);
   });
 });
+it("configures sanitized campaign fields only after consent without putting query strings or click IDs in page URLs",()=>{
+ location.href="https://www.orbisy.com/?utm_source=google&utm_medium=cpc&utm_campaign=association-search&utm_content=ad-a&gclid=private-click-id&email=private@example.test";
+ google.trackGooglePage();expect(commands()).toHaveLength(0);
+ google.setGoogleConsent("granted");google.trackGooglePage();
+ const config=commands().find(c=>c[0]==="config")!;
+ expect(config[2]).toMatchObject({campaign_source:"google",campaign_medium:"cpc",campaign_name:"association-search",campaign_content:"ad-a",page_location:"https://www.orbisy.com/"});
+ expect(JSON.stringify(commands())).not.toMatch(/private-click-id|private@example|gclid|email=/);
+ location.pathname="/member-portals";google.trackGooglePage();
+ const views=commands().filter(c=>c[0]==="event"&&c[1]==="page_view");
+ expect(views.at(-1)?.[2]).toMatchObject({content_group:"services",service_interest:"member_portals"});
+ location.pathname="/about";google.trackGooglePage();
+ expect(commands().filter(c=>c[0]==="event"&&c[1]==="page_view").at(-1)?.[2]).toMatchObject({service_interest:"not_applicable"});
+});
