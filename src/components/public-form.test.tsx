@@ -85,6 +85,9 @@ describe("Consultation confirmation", () => {
     expect(events.track).not.toHaveBeenCalledWith(
       "project_request_form_submit_success",
     );
+    expect(events.track).toHaveBeenCalledWith("project_request_form_submit_attempt");
+    expect(events.track).toHaveBeenCalledWith("project_request_form_submit_error");
+    expect(events.track).not.toHaveBeenCalledWith("project_request_form_validation_error");
     fireEvent.submit(container.querySelector("form")!);
     await screen.findByText("Request received");
     expect(events.track).toHaveBeenCalledWith(
@@ -117,4 +120,11 @@ describe("Consultation confirmation", () => {
       "project_request_form_submit_success",
     );
   });
+});
+
+it.each([true,false])("distinguishes field validation from a generic 400 rejection (fields=%s)",async(fields)=>{
+ vi.stubGlobal("fetch",vi.fn().mockResolvedValue(new Response(JSON.stringify({message:"Please retry",...(fields?{fields:{email:["Review email"]}}:{})}),{status:400})));
+ const {container}=render(<PublicForm type="project-request"/>);fill();fireEvent.submit(container.querySelector("form")!);await screen.findByRole("alert");
+ expect(events.track).toHaveBeenCalledWith(fields?"project_request_form_validation_error":"project_request_form_submit_error");
+ expect(events.track).not.toHaveBeenCalledWith("project_request_form_submit_success");
 });

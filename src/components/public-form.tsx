@@ -48,7 +48,9 @@ export function PublicForm({
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!formRef.current) return;
+    trackEvent(eventName("submit_attempt"));
     if (process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && !turnstileToken) {
+      trackEvent(eventName("submit_error"));
       setState({
         status: "error",
         message:
@@ -83,7 +85,8 @@ export function PublicForm({
       };
 
       if (!response.ok) {
-        trackEvent(eventName("validation_error"));
+        const fieldValidation = (response.status === 400 || response.status === 422) && result.fields && Object.keys(result.fields).length > 0;
+        trackEvent(eventName(fieldValidation ? "validation_error" : "submit_error"));
         setState({
           status: "error",
           fields: result.fields,
@@ -103,6 +106,7 @@ export function PublicForm({
       formRef.current.reset();
       setPlatforms("");
     } catch {
+      trackEvent(eventName("submit_error"));
       setTurnstileToken("");
       setChallengeVersion((v) => v + 1);
       setState({
