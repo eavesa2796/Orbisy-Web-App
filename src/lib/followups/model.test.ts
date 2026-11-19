@@ -1,0 +1,9 @@
+import {afterEach,describe,expect,it,vi} from "vitest";
+import {afterBusinessDays,chicagoParts,defaultTemplates,nextSendingTime,outboundEnabled,renderTemplate,templatesSchema,withinSendingHours} from "./model";
+afterEach(()=>vi.unstubAllEnvs());
+describe("Chicago follow-up scheduling",()=>{
+ it("uses all seven days and closes at 9pm, reopening at 5am",()=>{expect(withinSendingHours(new Date("2026-11-19T02:59:00Z"))).toBe(true);expect(withinSendingHours(new Date("2026-11-19T03:00:00Z"))).toBe(false);expect(nextSendingTime(new Date("2026-11-19T03:00:00Z")).toISOString()).toBe("2026-11-19T11:00:00.000Z");expect(chicagoParts(afterBusinessDays(new Date("2026-11-20T18:00:00Z"),2))).toMatchObject({date:"2026-11-22",hour:12});});
+ it("preserves the local follow-up hour across daylight saving changes",()=>{expect(chicagoParts(afterBusinessDays(new Date("2026-10-31T16:00:00Z"),2))).toEqual({date:"2026-11-02",hour:11,minute:0});expect(chicagoParts(afterBusinessDays(new Date("2026-03-07T17:30:00Z"),2))).toEqual({date:"2026-03-09",hour:11,minute:30});});
+ it("keeps preview and unconfigured sending disabled",()=>{vi.stubEnv("FOLLOWUP_SEND_ENABLED","true");vi.stubEnv("VERCEL_ENV","preview");expect(outboundEnabled()).toBe(false);vi.stubEnv("VERCEL_ENV","production");expect(outboundEnabled()).toBe(true);vi.stubEnv("FOLLOWUP_SEND_ENABLED","false");expect(outboundEnabled()).toBe(false);});
+ it("supports plain-text first names and validates template placeholders and subjects",()=>{expect(templatesSchema.safeParse(defaultTemplates).success).toBe(true);expect(renderTemplate(defaultTemplates.followup_one,"Alex Example").body).toContain("Hi Alex,");expect(templatesSchema.safeParse({...defaultTemplates,followup_one:{subject:"Bad\nsubject",body:"Use a valid template body here."}}).success).toBe(false);expect(templatesSchema.safeParse({...defaultTemplates,followup_one:{subject:"Hello",body:"Unsupported {{secret}} placeholder"}}).success).toBe(false);});
+});

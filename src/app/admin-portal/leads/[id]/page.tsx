@@ -75,6 +75,7 @@ export default async function LeadPage({
         </div>
       </header>
 <ToolGuide tool="leads" />
+      <p className="notice"><Link href="/admin-portal/followups">Open follow-up inbox →</Link> to review email drafts, record replies, or pause a sequence.</p>
       <LeadWorkspaceLink leadId={id}/>
       {contactRecorded === "1" && (
         <p className="notice" role="status">
