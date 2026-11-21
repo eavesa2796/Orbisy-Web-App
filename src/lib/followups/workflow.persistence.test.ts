@@ -7,6 +7,7 @@ import {eq} from "drizzle-orm";
 import {afterAll,afterEach,beforeAll,beforeEach,describe,expect,it,vi} from "vitest";
 import type {getDb} from "@/lib/db";
 import * as schema from "@/lib/db/schema";
+import {postgresDateSerialization} from "@/test/postgres-date-serialization";
 const mocks=vi.hoisted(()=>({db:null as unknown as ReturnType<typeof getDb>,getDb:vi.fn(),admin:vi.fn(),identity:vi.fn(),cookies:new Map<string,string>()}));
 vi.mock("@/lib/db",()=>({getDb:()=>{mocks.getDb();return mocks.db;}}));vi.mock("@/lib/auth",()=>({requireAdmin:mocks.admin,getAdminIdentity:mocks.identity}));vi.mock("next/cache",()=>({revalidatePath:vi.fn()}));vi.mock("next/headers",()=>({cookies:async()=>({get:(name:string)=>mocks.cookies.has(name)?{value:mocks.cookies.get(name)}:undefined,set:(name:string,value:string)=>mocks.cookies.set(name,value)})}));
 import {enrollInquiry,enrollNewInquiries,getFollowupSettings,recordPersonalResponse} from "./service";
@@ -22,7 +23,7 @@ import {POST as deliveryRoute} from "@/app/api/followups/delivery/route";
 import {GET as unsubscribeGet,POST as unsubscribePost} from "@/app/api/followups/unsubscribe/route";
 import {unsubscribeUrl} from "./security";
 let pg:PGlite;const initial={success:false,message:""};
-beforeAll(async()=>{pg=new PGlite();const names=(await readdir(join(process.cwd(),"drizzle"))).filter(n=>/^\d{4}.*\.sql$/.test(n)).sort();for(const name of names.filter(n=>!n.startsWith("0012_")))await pg.exec((await readFile(join(process.cwd(),"drizzle",name),"utf8")).replaceAll("--> statement-breakpoint",""));await pg.exec("insert into leads(business_name,source_name,status) values('Preserved imported record','Legacy fixture','proposal_sent'); insert into pricing_entries(name,category,amount_cents,status,updated_by) values('Preserved price','website',450000,'active','owner@example.test')");await pg.exec((await readFile(join(process.cwd(),"drizzle/0012_inbound_followups.sql"),"utf8")).replaceAll("--> statement-breakpoint",""));mocks.db=drizzle(pg,{schema}) as unknown as ReturnType<typeof getDb>;},30000);
+beforeAll(async()=>{pg=new PGlite();const names=(await readdir(join(process.cwd(),"drizzle"))).filter(n=>/^\d{4}.*\.sql$/.test(n)).sort();for(const name of names.filter(n=>!n.startsWith("0012_")))await pg.exec((await readFile(join(process.cwd(),"drizzle",name),"utf8")).replaceAll("--> statement-breakpoint",""));await pg.exec("insert into leads(business_name,source_name,status) values('Preserved imported record','Legacy fixture','proposal_sent'); insert into pricing_entries(name,category,amount_cents,status,updated_by) values('Preserved price','website',450000,'active','owner@example.test')");await pg.exec((await readFile(join(process.cwd(),"drizzle/0012_inbound_followups.sql"),"utf8")).replaceAll("--> statement-breakpoint",""));mocks.db=drizzle(pg,{schema,logger:postgresDateSerialization}) as unknown as ReturnType<typeof getDb>;},30000);
 beforeEach(async()=>{vi.useFakeTimers({toFake:["Date"]});vi.setSystemTime(new Date("2026-11-18T18:00:00Z"));await pg.exec("delete from followup_events;delete from followup_messages;delete from followup_conversations;delete from followup_settings;delete from suppression_entries;delete from leads where source_name='Inbound consultation';delete from contact_submissions;");mocks.admin.mockResolvedValue({email:"owner@example.test"});mocks.identity.mockResolvedValue(null);mocks.getDb.mockClear();mocks.cookies.clear();vi.stubEnv("VERCEL_ENV","production");vi.stubEnv("FOLLOWUP_SEND_ENABLED","true");vi.stubEnv("RESEND_API_KEY","fictional-test-key");vi.stubEnv("RESEND_FROM_EMAIL","Orbisy <info@orbisy.example>");vi.stubEnv("FOLLOWUP_TOKEN_ENCRYPTION_KEY",Buffer.alloc(32,3).toString("base64"));vi.stubEnv("GMAIL_CLIENT_ID","fictional-client");vi.stubEnv("GMAIL_CLIENT_SECRET","fictional-client-secret");vi.stubEnv("FOLLOWUP_RESEND_WEBHOOK_SECRET","whsec_"+Buffer.alloc(32,4).toString("base64"));vi.stubEnv("FOLLOWUP_POSTAL_ADDRESS","Fictional business mailing address");vi.stubEnv("FOLLOWUP_UNSUBSCRIBE_SECRET","fictional-stop-link-key-at-least-32-characters");});
 afterEach(()=>{vi.useRealTimers();vi.unstubAllEnvs();vi.unstubAllGlobals();vi.restoreAllMocks();});afterAll(async()=>pg.close());
 async function inquiry(email=`qa-${crypto.randomUUID()}@example.test`,submittedAt=new Date()){const [submission]=await mocks.db.insert(schema.contactSubmissions).values({type:"project_request",name:"Example Owner",businessName:"Example Association",email,consentVersion:"test",submittedAt,idempotencyKey:crypto.randomUUID()}).returning();const [lead]=await mocks.db.insert(schema.leads).values({submissionId:submission.id,businessName:submission.businessName,email,sourceName:"Inbound consultation",status:"new_inbound"}).returning();return {submission,lead};}
@@ -31,6 +32,62 @@ async function approve(id:string){const [message]=await mocks.db.select().from(s
 async function healthyGmail(){await getFollowupSettings();await mocks.db.update(schema.followupSettings).set({sendingEnabled:true,gmailTokenCiphertext:encryptGmailToken("fictional-refresh-token"),gmailCursor:"100",gmailSyncedAt:new Date(),gmailError:null}).where(eq(schema.followupSettings.id,"main"));}
 function mockedProvider(resendStatuses=[200]){const payloads:Array<{body:string;key:string}>=[];let count=0;const request=vi.fn(async(input:RequestInfo|URL,init?:RequestInit)=>{const url=String(input);if(url==="https://api.resend.com/emails"){payloads.push({body:String(init?.body),key:String((init?.headers as Record<string,string>)["Idempotency-Key"])});const status=resendStatuses[Math.min(count++,resendStatuses.length-1)];return new Response(JSON.stringify({id:`provider-${count}`}),{status});}if(url==="https://oauth2.googleapis.com/token")return Response.json({access_token:"fictional-access"});if(url.endsWith("/profile"))return Response.json({emailAddress:"info@orbisy.com",historyId:"101"});if(url.includes("/history?"))return Response.json({historyId:"101"});throw Error("Unexpected external request in test");});vi.stubGlobal("fetch",request);return {request,payloads};}
 describe("Private inbound follow-up workflow",()=>{
+ it("claims an available or expired worker lease, leaves a live lease alone, and runs with sending disabled",async()=>{
+  const provider=mockedProvider();await healthyGmail();vi.stubEnv("FOLLOWUP_SEND_ENABLED","false");
+  expect(await runFollowupWorker()).toMatchObject({status:"sending_disabled",sent:0,enrolled:0});
+  expect(await getFollowupSettings()).toMatchObject({lastWorkerAt:new Date(),workerLease:null,workerLeaseUntil:null});
+  await mocks.db.update(schema.followupSettings).set({workerLease:"11111111-1111-4111-8111-111111111111",workerLeaseUntil:new Date(Date.now()+60000)});
+  expect(await runFollowupWorker()).toMatchObject({status:"already_running",sent:0});
+  expect((await getFollowupSettings()).workerLease).toBe("11111111-1111-4111-8111-111111111111");
+  vi.setSystemTime(new Date(Date.now()+60001));
+  expect(await runFollowupWorker()).toMatchObject({status:"sending_disabled",sent:0});
+  expect((await getFollowupSettings()).workerLease).toBeNull();expect(provider.payloads).toHaveLength(0);
+ });
+ it("does not deliver an approved retry until its retry time, then accepts it once",async()=>{
+  const {message}=await enroll();await healthyGmail();await approve(message.id);const provider=mockedProvider();
+  await mocks.db.update(schema.followupMessages).set({nextAttemptAt:new Date(Date.now()+60000)}).where(eq(schema.followupMessages.id,message.id));
+  expect(await runFollowupWorker()).toMatchObject({status:"complete",sent:0});expect(provider.payloads).toHaveLength(0);
+  vi.setSystemTime(new Date(Date.now()+60000));
+  expect(await runFollowupWorker()).toMatchObject({status:"complete",sent:1});
+  expect(await runFollowupWorker()).toMatchObject({status:"complete",sent:0});expect(provider.payloads).toHaveLength(1);
+ });
+ it("honors a temporary suppression until its expiry without losing the inquiry",async()=>{
+  const {lead,submission}=await inquiry();const expiresAt=new Date(Date.now()+60000);
+  await mocks.db.insert(schema.suppressionEntries).values({normalizedEmail:submission.email,type:"email",reason:"Temporary hold",expiresAt});
+  expect(await enrollInquiry(lead.id,"owner")).toBe(false);
+  vi.setSystemTime(expiresAt);expect(await enrollInquiry(lead.id,"owner")).toBe(true);
+ });
+ it("returns an observable 503 for a startup failure without logging query parameters or clearing another lease",async()=>{
+  await getFollowupSettings();await mocks.db.update(schema.followupSettings).set({workerLease:"11111111-1111-4111-8111-111111111111",workerLeaseUntil:new Date(Date.now()+60000)});
+  vi.stubEnv("FOLLOWUP_CRON_SECRET","fictional-test-worker-secret-at-least-32-characters");
+  const logs=vi.spyOn(console,"error").mockImplementation(()=>{});
+  vi.spyOn(mocks.db,"update").mockImplementationOnce(()=>{throw new Error("private-query-parameter",{cause:{code:"ERR_INVALID_ARG_TYPE"}});});
+  const response=await workerRoute(new Request("https://www.orbisy.com/api/internal/followups",{method:"POST",headers:{authorization:`Bearer ${process.env.FOLLOWUP_CRON_SECRET}`}}));
+  expect(response.status).toBe(503);expect(await response.json()).toMatchObject({status:"needs_attention",sent:0});
+  const events=await mocks.db.select().from(schema.followupEvents);expect(events[0]).toMatchObject({kind:"worker_error"});expect(events[0].detail).toContain("startup (ERR_INVALID_ARG_TYPE)");
+  expect(JSON.stringify([events,logs.mock.calls])).not.toContain("private-query-parameter");expect((await getFollowupSettings()).workerLease).toBe("11111111-1111-4111-8111-111111111111");
+ });
+ it("releases its own lease after a processing failure and does not send",async()=>{
+  const provider=mockedProvider();await healthyGmail();vi.spyOn(console,"error").mockImplementation(()=>{});
+  vi.spyOn(mocks.db,"transaction").mockRejectedValueOnce(Error("Unavailable"));
+  expect(await runFollowupWorker()).toMatchObject({status:"needs_attention",sent:0});
+  expect((await getFollowupSettings()).workerLease).toBeNull();expect(provider.payloads).toHaveLength(0);
+  expect((await mocks.db.select().from(schema.followupEvents))[0].detail).toContain("processing");
+ });
+ it("returns needs attention when the database cannot initialize or save an error",async()=>{
+  const logs=vi.spyOn(console,"error").mockImplementation(()=>{});
+  mocks.getDb.mockImplementationOnce(()=>{throw Error("private-connection-string");}).mockImplementationOnce(()=>{throw Error("private-connection-string");});
+  expect(await runFollowupWorker()).toMatchObject({status:"needs_attention",sent:0});
+  expect(logs).toHaveBeenCalledTimes(2);expect(JSON.stringify(logs.mock.calls)).not.toContain("private-connection-string");
+ });
+ it("reports lease release failure and leaves the lease to expire without sending",async()=>{
+  const provider=mockedProvider();await healthyGmail();vi.stubEnv("FOLLOWUP_SEND_ENABLED","false");vi.spyOn(console,"error").mockImplementation(()=>{});
+  const logQuery=postgresDateSerialization.logQuery.bind(postgresDateSerialization);let failed=false;
+  vi.spyOn(postgresDateSerialization,"logQuery").mockImplementation((query,params)=>{logQuery(query,params);if(!failed&&query.startsWith('update "followup_settings" set "worker_lease"')&&params[0]===null){failed=true;throw Error("Release unavailable");}});
+  expect(await runFollowupWorker()).toMatchObject({status:"needs_attention",sent:0});
+  expect((await getFollowupSettings()).workerLease).toBeTruthy();expect(provider.payloads).toHaveLength(0);
+  expect((await mocks.db.select().from(schema.followupEvents))[0].detail).toContain("lease release");
+ });
  it("preserves existing records and prices, starts off, and does not enroll historical inquiries on its own",async()=>{expect((await pg.query("select amount_cents,status from pricing_entries where name='Preserved price'")).rows[0]).toEqual({amount_cents:450000,status:"active"});expect((await pg.query("select status from leads where source_name='Legacy fixture'")).rows[0]).toEqual({status:"proposal_sent"});const settings=await getFollowupSettings();expect(settings).toMatchObject({enrollmentEnabled:false,sendingEnabled:false,autoAcknowledge:false,gmailTokenCiphertext:null});await inquiry();expect(await enrollNewInquiries()).toBe(0);});
  it("enrolls an inquiry only once and prevents simultaneous open sequences for the same email or imported/suppressed records",async()=>{const a=await enroll();expect(await enrollInquiry(a.lead.id,"owner")).toBe(false);const duplicate=await inquiry(a.submission.email);expect(await enrollInquiry(duplicate.lead.id,"owner")).toBe(false);const [imported]=await mocks.db.select().from(schema.leads).where(eq(schema.leads.sourceName,"Legacy fixture"));expect(await enrollInquiry(imported.id,"owner")).toBe(false);const blocked=await inquiry();await mocks.db.insert(schema.suppressionEntries).values({normalizedEmail:blocked.submission.email,type:"email",reason:"Do not contact"});expect(await enrollInquiry(blocked.lead.id,"owner")).toBe(false);});
  it("uses the activation cutoff and keeps stale acknowledgments in draft",async()=>{const old=await inquiry(undefined,new Date("2026-11-18T16:00:00Z"));const stale=await inquiry(undefined,new Date("2026-11-18T17:40:00Z"));const fresh=await inquiry();await getFollowupSettings();await mocks.db.update(schema.followupSettings).set({enrollmentEnabled:true,activatedAt:new Date("2026-11-18T17:00:00Z"),autoAcknowledge:true}).where(eq(schema.followupSettings.id,"main"));expect(await enrollNewInquiries()).toBe(2);const rows=await mocks.db.select().from(schema.followupConversations);expect(rows.some(c=>c.leadId===old.lead.id)).toBe(false);for(const [row,status] of [[stale,"draft"],[fresh,"approved"]] as const){const c=rows.find(c=>c.leadId===row.lead.id)!;expect((await mocks.db.select().from(schema.followupMessages).where(eq(schema.followupMessages.conversationId,c.id)))[0].status).toBe(status);}});

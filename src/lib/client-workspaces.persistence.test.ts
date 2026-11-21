@@ -15,6 +15,7 @@ import {
 } from "vitest";
 import type { getDb } from "@/lib/db";
 import * as schema from "@/lib/db/schema";
+import { postgresDateSerialization } from "@/test/postgres-date-serialization";
 const mock = vi.hoisted(() => ({
   db: null as unknown as ReturnType<typeof getDb>,
   getDb: vi.fn(),
@@ -126,7 +127,7 @@ beforeAll(async () => {
     "insert into lead_notes(lead_id,body) values($1,'Original decision')",
     [legacyLead],
   );
-  mock.db = drizzle(pg, { schema }) as unknown as ReturnType<typeof getDb>;
+  mock.db = drizzle(pg, { schema, logger: postgresDateSerialization }) as unknown as ReturnType<typeof getDb>;
   mock.admin.mockResolvedValue(actor);
   mock.identity.mockResolvedValue(actor);
   missingMigrationReady = await workspaceSchemaAvailable();

@@ -1,12 +1,12 @@
 import "server-only";
-import {and,eq,gte,inArray,isNull,ne,or,sql} from "drizzle-orm";
+import {and,eq,gt,gte,inArray,isNull,ne,or,sql} from "drizzle-orm";
 import {getDb} from "@/lib/db";
 import {contactSubmissions,leads,suppressionEntries,followupSettings,followupConversations,followupMessages,followupEvents,pipelineEvents,manualContactAttempts} from "@/lib/db/schema";
 import {afterBusinessDays,defaultTemplates,FOLLOWUP_MAILBOX,renderTemplate,templatesSchema} from "./model";
 export type FollowupTx=Parameters<Parameters<ReturnType<typeof getDb>["transaction"]>[0]>[0];
 export async function getFollowupSettings(){const db=getDb();await db.insert(followupSettings).values({id:"main",templates:defaultTemplates}).onConflictDoNothing();const [settings]=await db.select().from(followupSettings).where(eq(followupSettings.id,"main"));return {...settings,templates:templatesSchema.safeParse(settings.templates).success?settings.templates:defaultTemplates};}
 export async function isSuppressed(tx:FollowupTx,email:string,leadId:string,now=new Date()){
- const [match]=await tx.select({id:suppressionEntries.id}).from(suppressionEntries).where(and(or(eq(suppressionEntries.normalizedEmail,email),eq(suppressionEntries.normalizedDomain,email.split("@")[1]),eq(suppressionEntries.leadId,leadId)),or(isNull(suppressionEntries.expiresAt),sql`${suppressionEntries.expiresAt}>${now}`))).limit(1);return !!match;
+ const [match]=await tx.select({id:suppressionEntries.id}).from(suppressionEntries).where(and(or(eq(suppressionEntries.normalizedEmail,email),eq(suppressionEntries.normalizedDomain,email.split("@")[1]),eq(suppressionEntries.leadId,leadId)),or(isNull(suppressionEntries.expiresAt),gt(suppressionEntries.expiresAt,now)))).limit(1);return !!match;
 }
 export async function pauseConversation(tx:FollowupTx,id:string,reason:string,at=new Date(),externalKey?:string,reply=false){
  const [existing]=await tx.select().from(followupConversations).where(eq(followupConversations.id,id)).for("update");if(!existing)return;
