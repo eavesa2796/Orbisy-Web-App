@@ -22,6 +22,7 @@ import {POST as workerRoute} from "@/app/api/internal/followups/route";
 import {POST as deliveryRoute} from "@/app/api/followups/delivery/route";
 import {GET as unsubscribeGet,POST as unsubscribePost} from "@/app/api/followups/unsubscribe/route";
 import {unsubscribeUrl} from "./security";
+import {GET as preferenceGet,POST as preferencePost} from "@/app/email-preferences/route";
 let pg:PGlite;const initial={success:false,message:""};
 beforeAll(async()=>{pg=new PGlite();const names=(await readdir(join(process.cwd(),"drizzle"))).filter(n=>/^\d{4}.*\.sql$/.test(n)).sort();for(const name of names.filter(n=>!n.startsWith("0012_")))await pg.exec((await readFile(join(process.cwd(),"drizzle",name),"utf8")).replaceAll("--> statement-breakpoint",""));await pg.exec("insert into leads(business_name,source_name,status) values('Preserved imported record','Legacy fixture','proposal_sent'); insert into pricing_entries(name,category,amount_cents,status,updated_by) values('Preserved price','website',450000,'active','owner@example.test')");await pg.exec((await readFile(join(process.cwd(),"drizzle/0012_inbound_followups.sql"),"utf8")).replaceAll("--> statement-breakpoint",""));mocks.db=drizzle(pg,{schema,logger:postgresDateSerialization}) as unknown as ReturnType<typeof getDb>;},30000);
 beforeEach(async()=>{vi.useFakeTimers({toFake:["Date"]});vi.setSystemTime(new Date("2026-11-18T18:00:00Z"));await pg.exec("delete from followup_events;delete from followup_messages;delete from followup_conversations;delete from followup_settings;delete from suppression_entries;delete from leads where source_name='Inbound consultation';delete from contact_submissions;");mocks.admin.mockResolvedValue({email:"owner@example.test"});mocks.identity.mockResolvedValue(null);mocks.getDb.mockClear();mocks.cookies.clear();vi.stubEnv("VERCEL_ENV","production");vi.stubEnv("FOLLOWUP_SEND_ENABLED","true");vi.stubEnv("RESEND_API_KEY","fictional-test-key");vi.stubEnv("RESEND_FROM_EMAIL","Orbisy <info@orbisy.example>");vi.stubEnv("FOLLOWUP_TOKEN_ENCRYPTION_KEY",Buffer.alloc(32,3).toString("base64"));vi.stubEnv("GMAIL_CLIENT_ID","fictional-client");vi.stubEnv("GMAIL_CLIENT_SECRET","fictional-client-secret");vi.stubEnv("FOLLOWUP_RESEND_WEBHOOK_SECRET","whsec_"+Buffer.alloc(32,4).toString("base64"));vi.stubEnv("FOLLOWUP_POSTAL_ADDRESS","Fictional business mailing address");vi.stubEnv("FOLLOWUP_UNSUBSCRIBE_SECRET","fictional-stop-link-key-at-least-32-characters");});
@@ -33,6 +34,42 @@ async function healthyGmail(){await getFollowupSettings();await mocks.db.update(
 function mockedProvider(resendStatuses=[200]){const payloads:Array<{body:string;key:string}>=[];let count=0;const request=vi.fn(async(input:RequestInfo|URL,init?:RequestInit)=>{const url=String(input);if(url==="https://api.resend.com/emails"){payloads.push({body:String(init?.body),key:String((init?.headers as Record<string,string>)["Idempotency-Key"])});const status=resendStatuses[Math.min(count++,resendStatuses.length-1)];return new Response(JSON.stringify({id:`provider-${count}`}),{status});}if(url==="https://oauth2.googleapis.com/token")return Response.json({access_token:"fictional-access"});if(url.endsWith("/profile"))return Response.json({emailAddress:"info@orbisy.com",historyId:"101"});if(url.includes("/history?"))return Response.json({historyId:"101"});throw Error("Unexpected external request in test");});vi.stubGlobal("fetch",request);return {request,payloads};}
 async function enableDigest(now="2026-11-19T00:00:00Z"){vi.setSystemTime(new Date(now));await healthyGmail();await mocks.db.update(schema.followupSettings).set({digestEnabled:true,digestHour:18}).where(eq(schema.followupSettings.id,"main"));}
 describe("Private inbound follow-up workflow",()=>{
+ it("delivers branded customer emails and freezes the HTML, address, and preference link across retries",async()=>{
+  const {message}=await enroll();await healthyGmail();await approve(message.id);
+  vi.stubEnv("FOLLOWUP_POSTAL_ADDRESS","123 Example St\nExample City, IL 60000");
+  const provider=mockedProvider([503,200]);expect(await deliverFollowupMessage(message.id)).toBe(false);
+  const [frozen]=await mocks.db.select().from(schema.followupMessages).where(eq(schema.followupMessages.id,message.id));
+  const payload=frozen.deliveryPayload as {html:string;text:string;headers:Record<string,string>};
+  expect(payload.html).toContain(">Stop These Follow Ups</a>");expect(payload.html).toContain("123 Example St<br>Example City, IL 60000");
+  expect(payload.html).toContain("https://www.orbisy.com/email-preferences?token=");
+  expect(payload.headers["List-Unsubscribe"]).toContain("/api/followups/unsubscribe?token=");
+  expect(payload.headers["List-Unsubscribe-Post"]).toBe("List-Unsubscribe=One-Click");
+  vi.setSystemTime(new Date("2026-11-18T18:06:00Z"));await healthyGmail();vi.stubEnv("FOLLOWUP_POSTAL_ADDRESS","A changed address");
+  expect(await deliverFollowupMessage(message.id)).toBe(true);expect(provider.payloads[0]).toEqual(provider.payloads[1]);
+ });
+ it("keeps the dedicated preference page private and read-only until confirmation, then cancels unsent mail idempotently",async()=>{
+  const {conversation,submission}=await enroll();const token=new URL(unsubscribeUrl(conversation.id)).searchParams.get("token")!;
+  const page=await preferenceGet(new Request(`https://www.orbisy.com/email-preferences?token=${token}`));
+  expect(page.status).toBe(200);expect(page.headers.get("Referrer-Policy")).toBe("no-referrer");expect(page.headers.get("Cache-Control")).toBe("no-store");
+  expect(page.headers.get("X-Robots-Tag")).toContain("noindex");
+  const html=await page.text();expect(html).toContain('action="/email-preferences"');expect(html).toContain(">Stop These Follow Ups</button>");expect(html).not.toContain("<script");expect(html).not.toContain("googletagmanager");
+  expect((await mocks.db.select().from(schema.followupConversations).where(eq(schema.followupConversations.id,conversation.id)))[0].state).toBe("needs_response");
+  for(let attempt=0;attempt<2;attempt++){
+   const response=await preferencePost(new Request("https://www.orbisy.com/email-preferences",{method:"POST",body:new URLSearchParams({token})}));
+   expect(response.status).toBe(200);expect(await response.text()).toContain("Automated follow-ups stopped.");
+  }
+  expect((await mocks.db.select().from(schema.suppressionEntries).where(eq(schema.suppressionEntries.normalizedEmail,submission.email)))).toHaveLength(1);
+  expect((await mocks.db.select().from(schema.followupMessages).where(eq(schema.followupMessages.conversationId,conversation.id))).every(m=>m.status==="cancelled")).toBe(true);
+ });
+ it("handles invalid links and save failures without reporting a successful opt-out",async()=>{
+  const invalid=await preferenceGet(new Request("https://www.orbisy.com/email-preferences?token=invalid"));expect(invalid.status).toBe(400);expect(await invalid.text()).toContain("info@orbisy.com");
+  const {conversation}=await enroll();const token=new URL(unsubscribeUrl(conversation.id)).searchParams.get("token")!;
+  vi.spyOn(mocks.db,"transaction").mockRejectedValueOnce(Error("Database unavailable"));
+  const failed=await preferencePost(new Request("https://www.orbisy.com/email-preferences",{method:"POST",body:new URLSearchParams({token})}));
+  expect(failed.status).toBe(503);expect(await failed.text()).toContain("We couldn’t save your preference.");
+  expect((await mocks.db.select().from(schema.followupConversations).where(eq(schema.followupConversations.id,conversation.id)))[0].state).toBe("needs_response");
+  vi.stubEnv("VERCEL_ENV","preview");expect((await preferencePost(new Request("https://www.orbisy.com/email-preferences",{method:"POST",body:new URLSearchParams({token})}))).status).toBe(404);
+ });
  it("claims an available or expired worker lease, leaves a live lease alone, and runs with sending disabled",async()=>{
   const provider=mockedProvider();await healthyGmail();vi.stubEnv("FOLLOWUP_SEND_ENABLED","false");
   expect(await runFollowupWorker()).toMatchObject({status:"sending_disabled",sent:0,enrolled:0});

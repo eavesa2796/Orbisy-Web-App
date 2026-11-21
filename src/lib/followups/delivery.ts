@@ -6,6 +6,7 @@ import {FOLLOWUP_MAILBOX,outboundEnabled,withinSendingHours,afterBusinessDays} f
 import {isSuppressed,pauseConversation} from "./service";
 import {mailingConfigurationReady,unsubscribeUrl,resendWebhookConfigured} from "./security";
 import {dailyDigestKey,digestWindowOpen,loadDigestSnapshot,renderDailyDigest} from "./digest";
+import {renderBrandedEmail} from "@/lib/email-brand";
 export async function reconcileDeliveryEvents(){const db=getDb();const rows=await db.select({event:followupEvents,message:followupMessages}).from(followupEvents).innerJoin(followupMessages,eq(followupEvents.providerEmailId,followupMessages.providerId)).where(isNull(followupEvents.messageId)).limit(100);
  for(const {event,message} of rows)await db.transaction(async tx=>{
  if(message.conversationId)await tx.select({id:followupConversations.id}).from(followupConversations).where(eq(followupConversations.id,message.conversationId)).for("update");
@@ -48,8 +49,8 @@ export async function deliverFollowupMessage(id:string){
   if(!snapshot.hasActions){await tx.update(followupMessages).set({status:"cancelled",lastError:"No follow-up actions need attention; empty daily digest skipped."}).where(eq(followupMessages.id,id));return null;}
   messageBody=renderDailyDigest(snapshot,now);
  }
- const stopUrl=isFollowup?unsubscribeUrl(message.conversationId!):null;
- const payload=message.deliveryPayload||{from:process.env.RESEND_FROM_EMAIL,to:[message.recipientEmail],reply_to:FOLLOWUP_MAILBOX,subject:message.subject,text:messageBody+(isFollowup?`\n\nOrbisy LLC\n${process.env.FOLLOWUP_POSTAL_ADDRESS}\nStop these follow-ups: ${stopUrl}`:""),...(stopUrl?{headers:{"List-Unsubscribe":`<${stopUrl}>`,"List-Unsubscribe-Post":"List-Unsubscribe=One-Click"}}:{})};
+ const stopUrl=message.kind!=="digest"&&mailingConfigurationReady()?unsubscribeUrl(message.conversationId!):null;
+ const payload=message.deliveryPayload||{from:process.env.RESEND_FROM_EMAIL,to:[message.recipientEmail],reply_to:FOLLOWUP_MAILBOX,subject:message.subject,...renderBrandedEmail({subject:message.subject,body:messageBody,postalAddress:process.env.FOLLOWUP_POSTAL_ADDRESS,stopUrl}),...(stopUrl?{headers:{"List-Unsubscribe":`<${stopUrl}>`,"List-Unsubscribe-Post":"List-Unsubscribe=One-Click"}}:{})};
  const [saved]=await tx.update(followupMessages).set({body:messageBody,status:"sending",attempts:message.attempts+1,firstAttemptAt:message.firstAttemptAt||now,lastAttemptAt:now,leaseToken:lease,deliveryPayload:payload}).where(eq(followupMessages.id,id)).returning();return saved;
  });
  if(!claimed)return false;

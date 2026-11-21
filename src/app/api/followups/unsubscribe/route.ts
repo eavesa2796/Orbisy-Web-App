@@ -1,8 +1,5 @@
-import {eq} from "drizzle-orm";
-import {getDb} from "@/lib/db";
-import {followupConversations,suppressionEntries} from "@/lib/db/schema";
-import {verifyUnsubscribeToken,boundedRequestText} from "@/lib/followups/security";
-import {pauseConversation} from "@/lib/followups/service";
-const headers={"Cache-Control":"no-store","Referrer-Policy":"no-referrer","X-Robots-Tag":"noindex, nofollow"};
-export async function GET(request:Request){const token=new URL(request.url).searchParams.get("token")||"";if(!verifyUnsubscribeToken(token))return new Response("This preference link is invalid or expired. Reply to info@orbisy.com for help.",{status:400,headers});return new Response(`<!doctype html><html lang="en"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Orbisy follow-up preferences</title><main><h1>Stop Orbisy follow-ups?</h1><p>This stops the automated email sequence. You can still contact Orbisy directly.</p><form method="post"><input type="hidden" name="token" value="${token}"><button type="submit">Stop follow-ups</button></form></main></html>`,{headers:{...headers,"Content-Type":"text/html; charset=utf-8","Content-Security-Policy":"default-src 'none'; form-action 'self'; frame-ancestors 'none'"}});}
-export async function POST(request:Request){if(process.env.VERCEL_ENV!=="production")return new Response(null,{status:404});const url=new URL(request.url);let token=url.searchParams.get("token")||"";if(!token){try{const raw=await boundedRequestText(request,2000);token=new URLSearchParams(raw).get("token")||"";}catch{return new Response(null,{status:413});}}const id=verifyUnsubscribeToken(token);if(!id)return new Response("Invalid or expired link",{status:400,headers});await getDb().transaction(async tx=>{const [conversation]=await tx.select().from(followupConversations).where(eq(followupConversations.id,id)).for("update");if(!conversation)return;await pauseConversation(tx,id,"Contact requested no further automated follow-ups.");const [existing]=await tx.select({id:suppressionEntries.id}).from(suppressionEntries).where(eq(suppressionEntries.normalizedEmail,conversation.recipientEmail)).limit(1);if(!existing)await tx.insert(suppressionEntries).values({normalizedEmail:conversation.recipientEmail,type:"email",source:"Follow-up preference",reason:"Contact requested no further automated follow-ups."});});return new Response("Automated follow-ups stopped. You can still contact info@orbisy.com.",{headers});}
+import {getPreferences, postPreferences} from "@/lib/followups/preferences";
+
+// Existing signed links and provider one-click POST requests remain compatible.
+export const GET = getPreferences;
+export async function POST(request: Request) { return postPreferences(request); }
