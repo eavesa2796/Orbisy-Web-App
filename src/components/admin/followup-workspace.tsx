@@ -8,9 +8,18 @@ import "./sales-overview.css";
 const initial={success:false,message:""};
 type Action=(previous:FollowupActionState,form:FormData)=>Promise<FollowupActionState>;
 function ActionForm({action,reviewMode,children}:{action:Action;reviewMode:boolean;children:React.ReactNode}){const [state,submit,pending]=useActionState(action,initial);return <form action={reviewMode?undefined:submit} className="followup-action"><fieldset disabled={reviewMode||pending}>{children}</fieldset>{state.message&&<p className={state.success?"notice":"notice error-text"} role={state.success?"status":"alert"}>{state.message}</p>}</form>;}
-export function FollowupWorkspace({data,reviewMode=false}:{data:FollowupOverview;reviewMode?:boolean}){
+export function FollowupWorkspace({data,reviewMode=false,connectionNotice}:{data:FollowupOverview;reviewMode?:boolean;connectionNotice?:string}){
  const {settings:s,readiness:r}=data;const now=new Date();
+ const connected=connectionNotice==="gmail_connected"&&s.gmailConnected;
+ const connectionMessage=connected
+  ? "Gmail connected to info@orbisy.com. Review setup before enabling sending or enrollment."
+  : connectionNotice==="gmail_denied"
+   ? "Google authorization was cancelled or denied. Start the connection again when you are ready."
+   : connectionNotice==="gmail_failed"||connectionNotice==="gmail_connected"
+    ? "Gmail could not be connected. Check the Google client settings and production credentials, then try again."
+    : undefined;
  return <>
+ {connectionMessage&&<p className={connected?"notice":"notice error-text"} role={connected?"status":"alert"}>{connectionMessage}</p>}
  <section className="admin-card followup-intro"><p className="eyebrow">Email first · SMS planned separately</p><h2>Follow up without losing track of the conversation.</h2><p>Response hours: <strong>5 a.m.–9 p.m. Chicago time, seven days a week.</strong> The acknowledgment explains that near-closing and overnight inquiries get a personal response the next morning. Follow-up reminders go out only during response hours.</p><p className="notice"><strong>{s.sendingEnabled&&r.sending?"Approved sending enabled":"Customer sending is disabled"}.</strong> Approval alone does not send an email. The worker needs enabled sending, a healthy Gmail connection, and the provider configuration. A message already being sent cannot be recalled.</p><div className="followup-readiness"><div><strong>Gmail mailbox</strong><span>{s.gmailConnected?"Connected to info@orbisy.com":"Not connected"}</span></div><div><strong>Last complete Gmail sync</strong><AdminTimestamp date={s.gmailSyncedAt}/></div><div><strong>Last worker run</strong><AdminTimestamp date={s.lastWorkerAt}/></div></div>{s.gmailError&&<p role="alert" className="notice error-text">{s.gmailError}</p>}{s.gmailBacklog&&<p className="notice">Gmail history is catching up. Sending stays paused until synchronization completes.</p>}</section>
  <section className="admin-card"><h2>Your review queue</h2><p>Showing up to 50 recent conversations. Requests without a personal response come first; future email drafts remain available below each conversation. Only saved website inquiries can enroll—this does not contact imported prospects.</p>
  <div className="followup-metrics"><div><strong>{data.conversations.filter(x=>x.conversation.state==="needs_response").length}</strong><span>Need your response</span></div><div><strong>{data.messages.filter(x=>x.status==="draft"&&new Date(x.dueAt)<=now).length}</strong><span>Drafts due for review</span></div><div><strong>{data.conversations.filter(x=>x.conversation.state==="waiting_reply").length}</strong><span>Waiting for reply</span></div><div><strong>{data.conversations.filter(x=>x.conversation.state==="paused").length}</strong><span>Paused · {data.conversations.filter(x=>x.conversation.state==="paused"&&x.conversation.replyAt).length} with replies to review</span></div></div>

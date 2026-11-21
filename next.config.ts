@@ -48,6 +48,20 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      {
+        // Chrome also checks the redirect destination after an OAuth form POST.
+        // Only this private inbox needs to navigate a form to Google's sign-in.
+        source: "/admin-portal/followups",
+        headers: [
+          {
+            key: "Content-Security-Policy",
+            value: contentSecurityPolicy.replace(
+              "form-action 'self'",
+              "form-action 'self' https://accounts.google.com",
+            ),
+          },
+        ],
+      },
     ];
   },
 };
