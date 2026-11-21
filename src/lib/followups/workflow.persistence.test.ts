@@ -53,12 +53,22 @@ describe("Private inbound follow-up workflow",()=>{
  expect((await gmailCallback(new Request("https://www.orbisy.com/api/admin/followups/gmail/callback?state="+"b".repeat(64)+"&code=fictional"))).headers.get("location")).toContain("gmail_failed");expect(fetch).not.toHaveBeenCalled();
  const start=await gmailStart(new Request("https://www.orbisy.com/api/admin/followups/gmail/start",{method:"POST",headers:{origin:"https://www.orbisy.com"}}));const state=new URL(start.headers.get("location")!).searchParams.get("state")!;
  expect(new URL(start.headers.get("location")!).searchParams.get("scope")).toBe("https://www.googleapis.com/auth/gmail.metadata");
+ expect(start.status).toBe(303);expect(start.headers.get("cache-control")).toBe("no-store");
  expect((await gmailCallback(new Request(`https://www.orbisy.com/api/admin/followups/gmail/callback?state=${state}&code=fictional`))).headers.get("location")).toContain("gmail_failed");
  expect((await getFollowupSettings()).gmailTokenCiphertext).toBeNull();
  const second=await gmailStart(new Request("https://www.orbisy.com/api/admin/followups/gmail/start",{method:"POST",headers:{origin:"https://www.orbisy.com"}}));const state2=new URL(second.headers.get("location")!).searchParams.get("state")!;
  fetch.mockImplementation(async(input:RequestInfo|URL)=>String(input)==="https://oauth2.googleapis.com/token"?Response.json({access_token:"fictional-access",refresh_token:"fictional-refresh",scope:"https://www.googleapis.com/auth/gmail.metadata"}):Response.json({emailAddress:"info@orbisy.com",historyId:"100"}));
  expect((await gmailCallback(new Request(`https://www.orbisy.com/api/admin/followups/gmail/callback?state=${state2}&code=fictional`))).headers.get("location")).toContain("gmail_connected");
  const settings=await getFollowupSettings();expect(settings.gmailTokenCiphertext).toBeTruthy();expect(settings.gmailTokenCiphertext).not.toContain("fictional-refresh");expect(settings).toMatchObject({enrollmentEnabled:false,sendingEnabled:false,autoAcknowledge:false});expect(mocks.cookies.get("__Host-orbisy_gmail_oauth_state")).toBe("");
+ });
+ it("returns an uncached authorization URL for the enhanced button without weakening origin, administrator, or preview checks",async()=>{
+ const request=(origin="https://www.orbisy.com")=>new Request("https://www.orbisy.com/api/admin/followups/gmail/start",{method:"POST",headers:{origin,accept:"application/json"}});
+ expect((await gmailStart(request())).status).toBe(401);
+ mocks.identity.mockResolvedValue({email:"owner@example.test"});
+ expect((await gmailStart(request("https://untrusted.example"))).status).toBe(409);
+ vi.stubEnv("VERCEL_ENV","preview");expect((await gmailStart(request())).status).toBe(409);vi.stubEnv("VERCEL_ENV","production");
+ const response=await gmailStart(request());expect(response.status).toBe(200);expect(response.headers.get("cache-control")).toBe("no-store");expect(response.headers.get("vary")).toBe("Accept");expect(response.headers.get("location")).toBeNull();
+ const data=await response.json();const url=new URL(data.authorizationUrl);expect(url.origin).toBe("https://accounts.google.com");expect(url.pathname).toBe("/o/oauth2/v2/auth");expect(url.searchParams.get("state")).toBe(mocks.cookies.get("__Host-orbisy_gmail_oauth_state"));expect(url.searchParams.get("scope")).toBe("https://www.googleapis.com/auth/gmail.metadata");expect(url.searchParams.get("redirect_uri")).toBe("https://www.orbisy.com/api/admin/followups/gmail/callback");expect(JSON.stringify(data)).not.toMatch(/client_secret|encryption|refresh_token/);expect((await getFollowupSettings()).gmailTokenCiphertext).toBeNull();
  });
  it("synchronizes Gmail metadata without requesting message bodies and blocks incomplete history pages",async()=>{
  const {submission,conversation}=await enroll();await healthyGmail();let pages=0;
