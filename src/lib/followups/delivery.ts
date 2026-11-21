@@ -5,6 +5,7 @@ import {followupMessages,followupEvents,followupConversations,followupSettings,l
 import {FOLLOWUP_MAILBOX,outboundEnabled,withinSendingHours,afterBusinessDays} from "./model";
 import {isSuppressed,pauseConversation} from "./service";
 import {mailingConfigurationReady,unsubscribeUrl,resendWebhookConfigured} from "./security";
+import {dailyDigestKey,digestWindowOpen,loadDigestSnapshot,renderDailyDigest} from "./digest";
 export async function reconcileDeliveryEvents(){const db=getDb();const rows=await db.select({event:followupEvents,message:followupMessages}).from(followupEvents).innerJoin(followupMessages,eq(followupEvents.providerEmailId,followupMessages.providerId)).where(isNull(followupEvents.messageId)).limit(100);
  for(const {event,message} of rows)await db.transaction(async tx=>{
  if(message.conversationId)await tx.select({id:followupConversations.id}).from(followupConversations).where(eq(followupConversations.id,message.conversationId)).for("update");
@@ -29,7 +30,7 @@ export async function deliverFollowupMessage(id:string){
  const [message]=await tx.select().from(followupMessages).where(eq(followupMessages.id,id)).for("update");
  if(!message||message.status!=="approved"||!message.approvedAt||message.dueAt>now||(message.nextAttemptAt&&message.nextAttemptAt>now))return null;
  if(message.kind!=="acknowledgment"&&!withinSendingHours(now))return null;
- if(message.kind==="digest"&&!settings.digestEnabled)return null;
+ if(message.kind==="digest"&&(!settings.digestEnabled||!digestWindowOpen(now,settings.digestHour)||message.dedupKey!==dailyDigestKey(now)))return null;
  const isFollowup=message.kind==="followup_one"||message.kind==="followup_two";
  if(isFollowup&&!mailingConfigurationReady())return null;
  if(message.kind!=="digest"){
@@ -41,9 +42,15 @@ export async function deliverFollowupMessage(id:string){
  if(message.kind==="followup_two"){const [first]=await tx.select().from(followupMessages).where(and(eq(followupMessages.conversationId,conversation.id),eq(followupMessages.kind,"followup_one")));if(!first?.acceptedAt||now<afterBusinessDays(first.acceptedAt,5))return null;}
  }
  if(message.firstAttemptAt&&now.getTime()-message.firstAttemptAt.getTime()>23*3600000){await tx.update(followupMessages).set({status:"uncertain",lastError:"The deduplication window is ending. Check the provider log; do not resend blindly."}).where(eq(followupMessages.id,id));return null;}
+ let messageBody=message.body;
+ if(message.kind==="digest"&&!message.firstAttemptAt){
+  const snapshot=await loadDigestSnapshot(tx,now);
+  if(!snapshot.hasActions){await tx.update(followupMessages).set({status:"cancelled",lastError:"No follow-up actions need attention; empty daily digest skipped."}).where(eq(followupMessages.id,id));return null;}
+  messageBody=renderDailyDigest(snapshot,now);
+ }
  const stopUrl=isFollowup?unsubscribeUrl(message.conversationId!):null;
- const payload=message.deliveryPayload||{from:process.env.RESEND_FROM_EMAIL,to:[message.recipientEmail],reply_to:FOLLOWUP_MAILBOX,subject:message.subject,text:message.body+(isFollowup?`\n\nOrbisy LLC\n${process.env.FOLLOWUP_POSTAL_ADDRESS}\nStop these follow-ups: ${stopUrl}`:""),...(stopUrl?{headers:{"List-Unsubscribe":`<${stopUrl}>`,"List-Unsubscribe-Post":"List-Unsubscribe=One-Click"}}:{})};
- const [saved]=await tx.update(followupMessages).set({status:"sending",attempts:message.attempts+1,firstAttemptAt:message.firstAttemptAt||now,lastAttemptAt:now,leaseToken:lease,deliveryPayload:payload}).where(eq(followupMessages.id,id)).returning();return saved;
+ const payload=message.deliveryPayload||{from:process.env.RESEND_FROM_EMAIL,to:[message.recipientEmail],reply_to:FOLLOWUP_MAILBOX,subject:message.subject,text:messageBody+(isFollowup?`\n\nOrbisy LLC\n${process.env.FOLLOWUP_POSTAL_ADDRESS}\nStop these follow-ups: ${stopUrl}`:""),...(stopUrl?{headers:{"List-Unsubscribe":`<${stopUrl}>`,"List-Unsubscribe-Post":"List-Unsubscribe=One-Click"}}:{})};
+ const [saved]=await tx.update(followupMessages).set({body:messageBody,status:"sending",attempts:message.attempts+1,firstAttemptAt:message.firstAttemptAt||now,lastAttemptAt:now,leaseToken:lease,deliveryPayload:payload}).where(eq(followupMessages.id,id)).returning();return saved;
  });
  if(!claimed)return false;
  const owns=and(eq(followupMessages.id,id),eq(followupMessages.leaseToken,lease),eq(followupMessages.status,"sending"));

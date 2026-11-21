@@ -3,7 +3,7 @@ import {readFile,readdir} from "node:fs/promises";
 import {join} from "node:path";
 import {PGlite} from "@electric-sql/pglite";
 import {drizzle} from "drizzle-orm/pglite";
-import {eq} from "drizzle-orm";
+import {and,eq,inArray} from "drizzle-orm";
 import {afterAll,afterEach,beforeAll,beforeEach,describe,expect,it,vi} from "vitest";
 import type {getDb} from "@/lib/db";
 import * as schema from "@/lib/db/schema";
@@ -31,6 +31,7 @@ async function enroll(){const row=await inquiry();expect(await enrollInquiry(row
 async function approve(id:string){const [message]=await mocks.db.select().from(schema.followupMessages).where(eq(schema.followupMessages.id,id));const form=new FormData();Object.entries({id,subject:message.subject,body:message.body}).forEach(([k,v])=>form.set(k,v));return approveFollowupAction(initial,form);}
 async function healthyGmail(){await getFollowupSettings();await mocks.db.update(schema.followupSettings).set({sendingEnabled:true,gmailTokenCiphertext:encryptGmailToken("fictional-refresh-token"),gmailCursor:"100",gmailSyncedAt:new Date(),gmailError:null}).where(eq(schema.followupSettings.id,"main"));}
 function mockedProvider(resendStatuses=[200]){const payloads:Array<{body:string;key:string}>=[];let count=0;const request=vi.fn(async(input:RequestInfo|URL,init?:RequestInit)=>{const url=String(input);if(url==="https://api.resend.com/emails"){payloads.push({body:String(init?.body),key:String((init?.headers as Record<string,string>)["Idempotency-Key"])});const status=resendStatuses[Math.min(count++,resendStatuses.length-1)];return new Response(JSON.stringify({id:`provider-${count}`}),{status});}if(url==="https://oauth2.googleapis.com/token")return Response.json({access_token:"fictional-access"});if(url.endsWith("/profile"))return Response.json({emailAddress:"info@orbisy.com",historyId:"101"});if(url.includes("/history?"))return Response.json({historyId:"101"});throw Error("Unexpected external request in test");});vi.stubGlobal("fetch",request);return {request,payloads};}
+async function enableDigest(now="2026-11-19T00:00:00Z"){vi.setSystemTime(new Date(now));await healthyGmail();await mocks.db.update(schema.followupSettings).set({digestEnabled:true,digestHour:18}).where(eq(schema.followupSettings.id,"main"));}
 describe("Private inbound follow-up workflow",()=>{
  it("claims an available or expired worker lease, leaves a live lease alone, and runs with sending disabled",async()=>{
   const provider=mockedProvider();await healthyGmail();vi.stubEnv("FOLLOWUP_SEND_ENABLED","false");
@@ -99,7 +100,107 @@ describe("Private inbound follow-up workflow",()=>{
  it("pauses when a new personal SENT message or terminal lead status is detected",async()=>{const a=await enroll();await applyGmailMetadata({id:"personal-gmail",internalDate:String(Date.now()+1000),labelIds:["SENT"],payload:{headers:[{name:"From",value:"info@orbisy.com"},{name:"To",value:a.submission.email}]}});expect((await mocks.db.select().from(schema.followupConversations).where(eq(schema.followupConversations.id,a.conversation.id)))[0].state).toBe("paused");const b=await enroll();await mocks.db.update(schema.leads).set({status:"won"}).where(eq(schema.leads.id,b.lead.id));vi.stubEnv("FOLLOWUP_SEND_ENABLED","false");await runFollowupWorker();expect((await mocks.db.select().from(schema.followupConversations).where(eq(schema.followupConversations.id,b.conversation.id)))[0].state).toBe("paused");});
  it("stops all unsent emails and suppresses the contact when a signed preference link is confirmed, while GET alone is read-only",async()=>{const {conversation,submission}=await enroll();const url=unsubscribeUrl(conversation.id);expect((await unsubscribeGet(new Request(url))).status).toBe(200);expect((await mocks.db.select().from(schema.followupConversations).where(eq(schema.followupConversations.id,conversation.id)))[0].state).toBe("needs_response");expect((await unsubscribePost(new Request(url,{method:"POST"}))).status).toBe(200);expect((await mocks.db.select().from(schema.followupConversations).where(eq(schema.followupConversations.id,conversation.id)))[0].state).toBe("paused");expect((await mocks.db.select().from(schema.suppressionEntries).where(eq(schema.suppressionEntries.normalizedEmail,submission.email))).length).toBe(1);});
  it("reconciles an early bounce event after provider acceptance and blocks the conversation",async()=>{const {conversation,message,submission}=await enroll();await healthyGmail();await approve(message.id);const provider=mockedProvider();await mocks.db.insert(schema.followupEvents).values({externalKey:"resend:early-bounce",providerEmailId:"provider-1",kind:"email.bounced",detail:"Bounced"});await deliverFollowupMessage(message.id);await reconcileDeliveryEvents();expect(provider.payloads).toHaveLength(1);expect((await mocks.db.select().from(schema.followupConversations).where(eq(schema.followupConversations.id,conversation.id)))[0].state).toBe("paused");expect((await mocks.db.select().from(schema.suppressionEntries).where(eq(schema.suppressionEntries.normalizedEmail,submission.email))).length).toBe(1);});
- it("deduplicates the daily owner digest and reports Gmail sync failure without sending",async()=>{await healthyGmail();await mocks.db.update(schema.followupSettings).set({digestEnabled:true});const evening=new Date("2026-11-19T00:00:00Z");expect(await queueDailyDigest(evening)).toBe(true);expect(await queueDailyDigest(evening)).toBe(false);const provider=mockedProvider();vi.stubGlobal("fetch",vi.fn().mockRejectedValue(Error("Offline")));expect(await syncGmail()).toBe(false);expect(await deliverFollowupMessage((await mocks.db.select().from(schema.followupMessages))[0].id)).toBe(false);expect(provider.payloads).toHaveLength(0);});
+ it("deduplicates the daily owner digest and reports Gmail sync failure without sending",async()=>{await enableDigest();await enroll();expect(await queueDailyDigest()).toBe(true);expect(await queueDailyDigest()).toBe(false);const [digest]=await mocks.db.select().from(schema.followupMessages).where(eq(schema.followupMessages.kind,"digest"));const provider=mockedProvider();vi.stubGlobal("fetch",vi.fn().mockRejectedValue(Error("Offline")));expect(await syncGmail()).toBe(false);expect(await deliverFollowupMessage(digest.id)).toBe(false);expect(provider.payloads).toHaveLength(0);});
+ it("skips an empty evening without consuming the day's digest, then sends once when action appears",async()=>{
+  await enableDigest();const provider=mockedProvider();
+  expect(await queueDailyDigest()).toBe(false);expect((await mocks.db.select().from(schema.followupMessages)).length).toBe(0);
+  await enroll();expect(await queueDailyDigest()).toBe(true);
+  const [digest]=await mocks.db.select().from(schema.followupMessages).where(eq(schema.followupMessages.kind,"digest"));
+  expect(digest.recipientEmail).toBe("info@orbisy.com");
+  expect(await deliverFollowupMessage(digest.id)).toBe(true);
+  expect(await queueDailyDigest()).toBe(false);expect(await deliverFollowupMessage(digest.id)).toBe(false);
+  expect(provider.payloads).toHaveLength(1);expect((await mocks.db.select().from(schema.followupMessages).where(eq(schema.followupMessages.kind,"digest")))).toHaveLength(1);
+  const view=await getFollowupOverview();expect(view.latestDigest).toMatchObject({id:digest.id,status:"accepted",attempts:1});
+  expect(view.latestDigest).not.toHaveProperty("body");expect(view.latestDigest).not.toHaveProperty("deliveryPayload");
+ });
+ it("skips closed, paused without replies, blocked, completed, and already approved work",async()=>{
+  await enableDigest();
+  const closed=await enroll();await mocks.db.update(schema.followupConversations).set({state:"closed"}).where(eq(schema.followupConversations.id,closed.conversation.id));
+  const paused=await enroll();await mocks.db.update(schema.followupConversations).set({state:"paused"}).where(eq(schema.followupConversations.id,paused.conversation.id));
+  const blocked=await enroll();await mocks.db.insert(schema.suppressionEntries).values({normalizedEmail:blocked.submission.email,type:"email",reason:"Do not contact"});
+  const won=await enroll();await mocks.db.update(schema.leads).set({status:"won"}).where(eq(schema.leads.id,won.lead.id));
+  const waiting=await enroll();await recordPersonalResponse(waiting.conversation.id,"owner");
+  await mocks.db.update(schema.followupMessages).set({status:"approved",approvedAt:new Date(),approvedBy:"owner"}).where(and(eq(schema.followupMessages.conversationId,waiting.conversation.id),inArray(schema.followupMessages.kind,["followup_one","followup_two"])));
+  expect(await queueDailyDigest()).toBe(false);expect((await mocks.db.select().from(schema.followupMessages).where(eq(schema.followupMessages.kind,"digest")))).toHaveLength(0);
+ });
+ it("reports actionable counts beyond the five-item display limit with safe names and saved-inquiry links",async()=>{
+  await enableDigest();const emails:string[]=[];
+  for(let i=0;i<7;i++){const row=await enroll();emails.push(row.submission.email);await mocks.db.update(schema.leads).set({businessName:"Example\nAssociation "+i}).where(eq(schema.leads.id,row.lead.id));}
+  expect(await queueDailyDigest()).toBe(true);const [digest]=await mocks.db.select().from(schema.followupMessages).where(eq(schema.followupMessages.kind,"digest"));
+  expect(digest.body).toContain("Inquiries needing your personal response: 7");expect(digest.body).toContain("Email drafts awaiting approval: 7");
+  expect(digest.body).toContain("Plus 2 more in the follow-up inbox.");expect(digest.body).toContain("Example Association ");
+  expect(digest.body).not.toContain("Example\nAssociation");expect(digest.body).toContain("https://www.orbisy.com/admin-portal/leads/");
+  for(const email of emails)expect(digest.body).not.toContain(email);
+ });
+ it("excludes active suppressions while allowing expired holds back into the owner summary",async()=>{
+  await enableDigest();const blocked=await enroll(),expired=await enroll();
+  await mocks.db.update(schema.leads).set({businessName:"Active hold association"}).where(eq(schema.leads.id,blocked.lead.id));
+  await mocks.db.update(schema.leads).set({businessName:"Expired hold association"}).where(eq(schema.leads.id,expired.lead.id));
+  await mocks.db.insert(schema.suppressionEntries).values([{normalizedEmail:blocked.submission.email,type:"email",reason:"Hold",expiresAt:new Date(Date.now()+60000)},{normalizedEmail:expired.submission.email,type:"email",reason:"Old hold",expiresAt:new Date(Date.now()-60000)}]);
+  expect(await queueDailyDigest()).toBe(true);const [digest]=await mocks.db.select().from(schema.followupMessages).where(eq(schema.followupMessages.kind,"digest"));
+  expect(digest.body).toContain("Inquiries needing your personal response: 1");expect(digest.body).toContain("Expired hold association");expect(digest.body).not.toContain("Active hold association");
+ });
+ it("cancels an unattempted summary if its actions disappear and can reuse that unsent slot later the same evening",async()=>{
+  await enableDigest();const first=await enroll();expect(await queueDailyDigest()).toBe(true);
+  const [digest]=await mocks.db.select().from(schema.followupMessages).where(eq(schema.followupMessages.kind,"digest"));
+  const close=new FormData();close.set("id",first.conversation.id);close.set("action","close");expect((await followupConversationAction(initial,close)).success).toBe(true);
+  expect(await queueDailyDigest()).toBe(false);expect((await mocks.db.select().from(schema.followupMessages).where(eq(schema.followupMessages.id,digest.id)))[0].status).toBe("cancelled");
+  await enroll();expect(await queueDailyDigest()).toBe(false);
+  const provider=mockedProvider();expect(await deliverFollowupMessage(digest.id)).toBe(true);expect(provider.payloads).toHaveLength(1);
+  expect((await mocks.db.select().from(schema.followupMessages).where(eq(schema.followupMessages.kind,"digest")))).toHaveLength(1);
+ });
+ it("rechecks actionability at first delivery so an already resolved summary is not emailed",async()=>{
+  await enableDigest();const row=await enroll();await queueDailyDigest();
+  const [digest]=await mocks.db.select().from(schema.followupMessages).where(eq(schema.followupMessages.kind,"digest"));
+  const close=new FormData();close.set("id",row.conversation.id);close.set("action","close");await followupConversationAction(initial,close);
+  const provider=mockedProvider();expect(await deliverFollowupMessage(digest.id)).toBe(false);expect(provider.payloads).toHaveLength(0);
+  expect((await mocks.db.select().from(schema.followupMessages).where(eq(schema.followupMessages.id,digest.id)))[0]).toMatchObject({status:"cancelled",attempts:0,firstAttemptAt:null});
+ });
+ it("keeps an attempted digest's payload immutable while retrying under the same provider key",async()=>{
+  await enableDigest();await enroll();await queueDailyDigest();
+  const [digest]=await mocks.db.select().from(schema.followupMessages).where(eq(schema.followupMessages.kind,"digest"));
+  const provider=mockedProvider([503,200]);expect(await deliverFollowupMessage(digest.id)).toBe(false);
+  const frozen=(await mocks.db.select().from(schema.followupMessages).where(eq(schema.followupMessages.id,digest.id)))[0];
+  await enroll();await queueDailyDigest();vi.setSystemTime(new Date(Date.now()+6*60000));await healthyGmail();
+  expect(await deliverFollowupMessage(digest.id)).toBe(true);expect(provider.payloads).toHaveLength(2);expect(provider.payloads[0]).toEqual(provider.payloads[1]);
+  expect((await mocks.db.select().from(schema.followupMessages).where(eq(schema.followupMessages.id,digest.id)))[0].deliveryPayload).toEqual(frozen.deliveryPayload);
+ });
+ it.each([
+  ["winter","2026-11-18T23:59:00Z","2026-11-19T00:00:00Z","2026-11-19T03:00:00Z","digest:2026-11-18"],
+  ["summer","2026-07-15T22:59:00Z","2026-07-15T23:00:00Z","2026-07-16T02:00:00Z","digest:2026-07-15"],
+ ])("uses the Chicago 6 p.m. window in %s and stops at 9 p.m.",async(_season,before,evening,closed,key)=>{
+  await enableDigest(before);await enroll();expect(await queueDailyDigest()).toBe(false);
+  vi.setSystemTime(new Date(evening));expect(await queueDailyDigest()).toBe(true);
+  const [digest]=await mocks.db.select().from(schema.followupMessages).where(eq(schema.followupMessages.kind,"digest"));expect(digest.dedupKey).toBe(key);
+  vi.setSystemTime(new Date(closed));await healthyGmail();const provider=mockedProvider();expect(await deliverFollowupMessage(digest.id)).toBe(false);expect(provider.payloads).toHaveLength(0);
+  expect(await queueDailyDigest()).toBe(false);expect((await mocks.db.select().from(schema.followupMessages).where(eq(schema.followupMessages.id,digest.id)))[0].status).toBe("cancelled");
+ });
+ it("never sends yesterday's summary as a catch-up and respects disabling the digest",async()=>{
+  await enableDigest();await enroll();await queueDailyDigest();
+  const [old]=await mocks.db.select().from(schema.followupMessages).where(eq(schema.followupMessages.kind,"digest"));
+  vi.setSystemTime(new Date("2026-11-20T00:00:00Z"));await healthyGmail();const provider=mockedProvider();
+  expect(await deliverFollowupMessage(old.id)).toBe(false);expect(await queueDailyDigest()).toBe(true);
+  expect((await mocks.db.select().from(schema.followupMessages).where(eq(schema.followupMessages.id,old.id)))[0].status).toBe("cancelled");
+  await mocks.db.update(schema.followupSettings).set({digestEnabled:false});expect(await queueDailyDigest()).toBe(false);
+  expect((await mocks.db.select().from(schema.followupMessages).where(eq(schema.followupMessages.status,"approved"))).filter(m=>m.kind==="digest")).toHaveLength(0);expect(provider.payloads).toHaveLength(0);
+ });
+ it("does not queue a digest when Gmail synchronization fails",async()=>{
+  await enableDigest();await enroll();vi.stubGlobal("fetch",vi.fn().mockRejectedValue(Error("Offline")));
+  expect(await runFollowupWorker()).toMatchObject({status:"gmail_sync_required",sent:0});
+  expect((await mocks.db.select().from(schema.followupMessages).where(eq(schema.followupMessages.kind,"digest")))).toHaveLength(0);
+ });
+ it("builds and sends the owner summary after processing fresh Gmail replies",async()=>{
+  await enableDigest();const row=await enroll();const provider=mockedProvider();
+  vi.stubGlobal("fetch",vi.fn(async(input:RequestInfo|URL,init?:RequestInit)=>{
+   const url=String(input);
+   if(url.includes("/history?"))return Response.json({historyId:"101",history:[{messagesAdded:[{message:{id:"new-digest-reply"}}]}]});
+   if(url.includes("/messages/"))return Response.json({id:"new-digest-reply",internalDate:String(Date.now()+1),labelIds:["INBOX"],payload:{headers:[{name:"From",value:row.submission.email}]}});
+   return provider.request(input,init);
+  }));
+  expect(await runFollowupWorker()).toMatchObject({status:"complete",sent:1});
+  expect(provider.payloads).toHaveLength(1);const payload=JSON.parse(provider.payloads[0].body);
+  expect(payload.to).toEqual(["info@orbisy.com"]);expect(payload.text).toContain("Inquiries needing your personal response: 0");expect(payload.text).toContain("Replies paused for your review: 1");expect(payload.text).toContain("Email drafts awaiting approval: 0");
+ });
  it("requires administrator authorization before data or mutations and protects worker/webhook routes",async()=>{for(const task of [()=>getFollowupOverview(),()=>enrollFollowupAction(initial,new FormData()),()=>followupConversationAction(initial,new FormData()),()=>approveFollowupAction(initial,new FormData()),()=>saveFollowupSettingsAction(initial,new FormData()),()=>runFollowupsAction()]){mocks.getDb.mockClear();mocks.admin.mockRejectedValueOnce(Error("Unauthorized"));await expect(task()).rejects.toThrow("Unauthorized");expect(mocks.getDb).not.toHaveBeenCalled();}expect((await workerRoute(new Request("https://www.orbisy.com/api/internal/followups",{method:"POST"}))).status).toBe(401);expect((await deliveryRoute(new Request("https://www.orbisy.com/api/followups/delivery",{method:"POST",body:'{}'}))).status).toBe(400);});
  it("uses Google authorization state, rejects the wrong mailbox, and encrypts a valid connection while leaving sending off",async()=>{
  const fetch=vi.fn(async(input:RequestInfo|URL)=>String(input)==="https://oauth2.googleapis.com/token"?Response.json({access_token:"fictional-access",refresh_token:"fictional-refresh",scope:"https://www.googleapis.com/auth/gmail.metadata"}):Response.json({emailAddress:"wrong@example.test",historyId:"100"}));vi.stubGlobal("fetch",fetch);
