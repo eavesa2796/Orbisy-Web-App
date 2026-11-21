@@ -1,5 +1,5 @@
 import "server-only";
-import { and, asc, desc, eq, ilike, isNull, ne, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, ilike, isNull, lte, ne, or, sql } from "drizzle-orm";
 import { requireAdmin } from "@/lib/auth";
 import { getDb } from "@/lib/db";
 import {
@@ -245,7 +245,7 @@ export async function getAgencyDashboard() {
       .from(leads)
       .where(
         and(
-          sql`${leads.followUpAt} <= ${now}`,
+          lte(leads.followUpAt, now),
           sql`${leads.status} not in ('won','lost','suppressed')`,
         ),
       )
