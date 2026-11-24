@@ -48,6 +48,7 @@ function assistantUnavailable() {
 }
 
 export async function POST(request: Request) {
+  let failureStage = "visitor_rate_limit";
   const origin = request.headers.get("origin");
   if (origin) {
     try {
@@ -82,10 +83,12 @@ export async function POST(request: Request) {
     if (!visitorAllowed)
       return NextResponse.json({ error: "You’ve reached the chat limit for now. Please use the project request form." }, { status: 429, headers: { "Cache-Control": "no-store" } });
 
+    failureStage = "daily_rate_limit";
     const dailyAllowed = await checkGlobalRateLimit("public-project-assistant", 75, 86_400);
     if (!dailyAllowed)
       return NextResponse.json({ error: "The assistant is taking a break for today. Please use the project request form." }, { status: 429, headers: { "Cache-Control": "no-store" } });
 
+    failureStage = "content_retrieval";
     const passages = await getAssistantPassages();
     const matches = findAssistantSources(passages, parsed.data.message, parsed.data.pagePath);
     if (isHumanRequest(parsed.data.message) || matches.length === 0 || matches[0].score < 3)
@@ -97,9 +100,14 @@ export async function POST(request: Request) {
     }));
     const sourceIds = selected.map(({ id }) => id);
     const allowedSourceIds = new Set(sourceIds);
+    failureStage = "gateway_auth";
     const gatewayToken = process.env.VERCEL_OIDC_TOKEN;
-    if (!gatewayToken) return assistantUnavailable();
+    if (!gatewayToken) {
+      console.error("[project-assistant] request unavailable", { stage: failureStage, code: "missing_oidc_token" });
+      return assistantUnavailable();
+    }
 
+    failureStage = "gateway_request";
     const gatewayResponse = await fetch("https://ai-gateway.vercel.sh/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -165,21 +173,36 @@ export async function POST(request: Request) {
       }),
     });
 
-    if (!gatewayResponse.ok) return assistantUnavailable();
+    if (!gatewayResponse.ok) {
+      const errorPayload: unknown = await gatewayResponse.json().catch(() => null);
+      const gatewayError = (errorPayload as { error?: { code?: unknown; type?: unknown } } | null)?.error;
+      const codeValue = gatewayError?.code ?? gatewayError?.type;
+      const allowedCodes = new Set(["invalid_api_key", "insufficient_funds", "quota_for_entity_exceeded", "no_providers_available", "invalid_request_error", "model_not_found", "rate_limit_exceeded", "server_error"]);
+      const code = typeof codeValue === "string" && allowedCodes.has(codeValue) ? codeValue : "other";
+      console.error("[project-assistant] gateway request failed", { status: gatewayResponse.status, code });
+      return assistantUnavailable();
+    }
+    failureStage = "gateway_response";
     const gatewayPayload: unknown = await gatewayResponse.json().catch(() => null);
     const rawAnswer = (gatewayPayload as { choices?: Array<{ message?: { content?: unknown } }> } | null)
       ?.choices?.[0]?.message?.content;
-    if (typeof rawAnswer !== "string") return assistantUnavailable();
+    if (typeof rawAnswer !== "string") {
+      console.error("[project-assistant] response unavailable", { stage: failureStage, code: "missing_answer" });
+      return assistantUnavailable();
+    }
 
     let parsedAnswer: unknown;
     try {
       parsedAnswer = JSON.parse(rawAnswer);
     } catch {
+      console.error("[project-assistant] response unavailable", { stage: failureStage, code: "invalid_json" });
       return assistantUnavailable();
     }
     const answer = modelAnswerSchema.safeParse(parsedAnswer);
-    if (!answer.success || answer.data.sourceIds.some((id) => !allowedSourceIds.has(id)))
+    if (!answer.success || answer.data.sourceIds.some((id) => !allowedSourceIds.has(id))) {
+      console.error("[project-assistant] response unavailable", { stage: failureStage, code: "invalid_schema" });
       return assistantUnavailable();
+    }
 
     const citedSources = [...new Map(
       answer.data.sourceIds.map((id) => {
@@ -196,6 +219,7 @@ export async function POST(request: Request) {
       handoff: answer.data.handoff,
     }, { headers: { "Cache-Control": "no-store" } });
   } catch {
+    console.error("[project-assistant] request failed", { stage: failureStage });
     return assistantUnavailable();
   }
 }
