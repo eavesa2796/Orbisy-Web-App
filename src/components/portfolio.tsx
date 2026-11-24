@@ -4,6 +4,25 @@ import { rescueTowRedesign } from "@/components/rescue-tow-comparison";
 import { PortfolioCarousel } from "@/components/portfolio-carousel";
 export const projects = [
   {
+    id: "association-website-concept",
+    kind: "concept",
+    width: 1672,
+    height: 941,
+    name: "Association website concept",
+    image: "/orbisy-association-concept.webp",
+    url: "/work/association-website-concept",
+    alt: "Illustrative Orbisy association website concept artwork; sample design, not client work",
+    tag: "Association website · Illustrative concept",
+    summary: "A sample path from public information to member resources.",
+    details:
+      "A clickable design concept for prospective members, current members, event attendees, and staff. It demonstrates how an association website could organize common journeys before real content, account access, and system connections are scoped.",
+    points: [
+      "Help prospective members understand membership and next steps",
+      "Give members a clear starting point for events and resources",
+      "Make portal and system handoffs explicit before connecting services",
+    ],
+  },
+  {
     id: "rescue-battery-shop",
     kind: "website",
     width: 1348,
@@ -107,7 +126,7 @@ export function Portfolio({
             </h2>
           </div>
           <p>
-            Two client website projects demonstrate navigation, responsive design, and clear user journeys. They are local-service projects, not association case studies. Concepts are labeled separately.
+            Two client website projects show completed work. The association website concept is illustrative, not client work; software concepts are labeled separately.
           </p>
         </div>
         {carousel ? (
@@ -120,7 +139,7 @@ export function Portfolio({
         <p className="portfolio-note">
           Original live-site references captured October 3, 2026; the Rescue Tow
           Truck comparison and redesign preview were captured October 29, 2026.
-          Website content may change after capture. The design-process artwork and work-in-progress dashboard are illustrative; dashboard data is sample data.
+          Website content may change after capture. The association website concept and design-process artwork are illustrative; dashboard data is sample data and the dashboard is not a live product.
         </p>
       </div>
     </section>
