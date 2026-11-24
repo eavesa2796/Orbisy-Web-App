@@ -10,6 +10,15 @@ export type ToolGuide = {
   terms: [string, string][];
 };
 export const adminToolGuides = {
+  outreach: {
+    title: "Reviewed email outreach", href: "/admin-portal/outreach", role: "Optional",
+    purpose: "Prepare relevant association introductions and send a short, individually approved sequence from the connected business mailbox.",
+    fit: "Use this when you have a verified business contact, a specific reason to reach out, and time to handle replies personally.",
+    skip: "Website inquiries belong in Follow-up inbox. Do not enroll unsolicited mass lists or contacts who asked not to hear from Orbisy.",
+    steps: ["Connect outreach sending with Google. This connection is separate from inbound inquiry follow-ups.","Create a campaign, then add a prospect with its source, actual contact basis, and relevance notes. Existing records are not enrolled automatically.","Open each prospect, personalize all three drafts, and approve the complete sequence. Activate the campaign and enable sending only when ready.","Review Gmail replies and mailbox notifications. Sending stops on replies; add anyone who objects to the shared Do-not-contact list.","Use the lead and client workspace to record discovery, proposals, and won/lost outcomes. Pause sending whenever capacity is full."],
+    outcome: "A controlled sending queue and activity history. Gmail acceptance does not prove inbox delivery. Failed or uncertain attempts need a manual Gmail review and do not retry automatically.",
+    terms: [["Approved sequence","One reviewed introduction and up to two follow-ups. Both campaign activation and global sending must also be enabled."],["Daily limit","A maximum of five emails by default, counting introductions, follow-ups, and attempted sends across all campaigns."],["Uncertain","The provider response was interrupted or ambiguous. Check Gmail Sent before further contact; the original message will not retry blindly."]],
+  },
   clients: {
     title: "Client workspaces",
     href: "/admin-portal/clients",
