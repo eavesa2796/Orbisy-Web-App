@@ -34,6 +34,22 @@ async function healthyGmail(){await getFollowupSettings();await mocks.db.update(
 function mockedProvider(resendStatuses=[200]){const payloads:Array<{body:string;key:string}>=[];let count=0;const request=vi.fn(async(input:RequestInfo|URL,init?:RequestInit)=>{const url=String(input);if(url==="https://api.resend.com/emails"){payloads.push({body:String(init?.body),key:String((init?.headers as Record<string,string>)["Idempotency-Key"])});const status=resendStatuses[Math.min(count++,resendStatuses.length-1)];return new Response(JSON.stringify({id:`provider-${count}`}),{status});}if(url==="https://oauth2.googleapis.com/token")return Response.json({access_token:"fictional-access"});if(url.endsWith("/profile"))return Response.json({emailAddress:"info@orbisy.com",historyId:"101"});if(url.includes("/history?"))return Response.json({historyId:"101"});throw Error("Unexpected external request in test");});vi.stubGlobal("fetch",request);return {request,payloads};}
 async function enableDigest(now="2026-11-19T00:00:00Z"){vi.setSystemTime(new Date(now));await healthyGmail();await mocks.db.update(schema.followupSettings).set({digestEnabled:true,digestHour:18}).where(eq(schema.followupSettings.id,"main"));}
 describe("Private inbound follow-up workflow",()=>{
+ it("identifies the Gmail request stage and HTTP status without storing provider response bodies",async()=>{
+  await healthyGmail();const provider=mockedProvider();const logs=vi.spyOn(console,"error").mockImplementation(()=>{});
+  vi.stubGlobal("fetch",vi.fn(async(input:RequestInfo|URL,init?:RequestInit)=>String(input).includes("/history?")?Response.json({error:"PRIVATE_PROVIDER_DETAILS"},{status:404}):provider.request(input,init)));
+  expect(await syncGmail()).toBe(false);const settings=await getFollowupSettings();
+  expect(settings.gmailError).toContain("mailbox history: Gmail history request failed (HTTP 404)");
+  expect(JSON.stringify([settings.gmailError,logs.mock.calls])).not.toContain("PRIVATE_PROVIDER_DETAILS");
+ });
+ it("keeps token refresh failures distinct from metadata failures and redacts raw exception text",async()=>{
+  await healthyGmail();const provider=mockedProvider();const logs=vi.spyOn(console,"error").mockImplementation(()=>{});
+  vi.stubGlobal("fetch",vi.fn(async()=>Response.json({error:"PRIVATE_TOKEN_RESPONSE"},{status:400})));
+  expect(await syncGmail()).toBe(false);expect((await getFollowupSettings()).gmailError).toContain("token refresh: Gmail token request failed (HTTP 400)");
+  vi.stubGlobal("fetch",vi.fn(async(input:RequestInfo|URL,init?:RequestInit)=>String(input).includes("/history?")?Promise.reject(Error("PRIVATE_DATABASE_PARAMETERS",{cause:{code:"ERR_INVALID_ARG_TYPE"}})):provider.request(input,init)));
+  expect(await syncGmail()).toBe(false);expect((await getFollowupSettings()).gmailError).toContain("mailbox history: ERR_INVALID_ARG_TYPE");
+  expect(JSON.stringify(logs.mock.calls)).not.toMatch(/PRIVATE_TOKEN_RESPONSE|PRIVATE_DATABASE_PARAMETERS/);
+ });
+
  it("delivers branded customer emails and freezes the HTML, address, and preference link across retries",async()=>{
   const {message}=await enroll();await healthyGmail();await approve(message.id);
   vi.stubEnv("FOLLOWUP_POSTAL_ADDRESS","123 Example St\nExample City, IL 60000");
