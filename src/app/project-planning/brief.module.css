@@ -1,0 +1,265 @@
+.page {
+  background: radial-gradient(ellipse at 85% 0, rgba(101, 214, 255, .08), transparent 42%);
+}
+.hero {
+  padding: 55px 0 65px;
+}
+.breadcrumb {
+  display: inline-flex;
+  margin-bottom: 36px;
+  color: var(--muted);
+  font-size: .84rem;
+}
+.breadcrumb:hover {
+  color: var(--text);
+}
+.hero h1 {
+  max-width: 900px;
+  margin-top: 16px;
+  font-size: clamp(2.8rem, 6vw, 5.1rem);
+  line-height: 1;
+}
+.lede {
+  max-width: 760px;
+  margin-top: 23px;
+  color: var(--muted);
+  font-size: 1.12rem;
+  line-height: 1.75;
+}
+.notice {
+  max-width: 780px;
+  margin-top: 28px;
+  padding: 14px 17px;
+  border: 1px solid rgba(101, 214, 255, .3);
+  border-left: 3px solid var(--accent);
+  border-radius: 8px;
+  color: #d7e5f4;
+  background: rgba(101, 214, 255, .05);
+  font-size: .86rem;
+  line-height: 1.6;
+}
+.shareNote {
+  margin-top: 16px;
+  color: #aab4d0;
+  font-size: .82rem;
+}
+.brief {
+  padding: 0 0 100px;
+}
+.decision {
+  display: grid;
+  grid-template-columns: 1fr .8fr;
+  align-items: end;
+  gap: 54px;
+  padding: 30px;
+  border: 1px solid var(--border-bright);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(120deg, rgba(101, 214, 255, .075), rgba(161, 255, 206, .03));
+}
+.decision h2,
+.section h2,
+.nextStep h2 {
+  font-size: clamp(1.8rem, 3.4vw, 2.8rem);
+  line-height: 1.08;
+}
+.decision > p,
+.sectionLede {
+  color: var(--muted);
+  line-height: 1.75;
+}
+.section {
+  padding-top: 84px;
+  scroll-margin-top: 100px;
+}
+.section > h2 {
+  max-width: 780px;
+}
+.sectionLede {
+  max-width: 780px;
+  margin-top: 16px;
+}
+.projectGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 30px;
+}
+.projectCard,
+.costGrid article {
+  padding: 24px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, .025);
+}
+.projectCard h3,
+.costGrid h3,
+.phaseList h3 {
+  font-size: 1.18rem;
+}
+.projectCard p,
+.costGrid p,
+.phaseList p,
+.notIncluded p,
+.nextStep > div > p:last-child {
+  color: var(--muted);
+  font-size: .88rem;
+  line-height: 1.72;
+}
+.projectCard p {
+  margin-top: 13px;
+}
+.projectCard .question {
+  min-height: 50px;
+  color: #d8e0f5;
+  font-weight: 650;
+}
+.projectCard strong {
+  color: var(--accent-2);
+  font-size: .8rem;
+}
+.costGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 26px;
+}
+.costGrid h3 {
+  margin-bottom: 10px;
+}
+.caveat {
+  margin-top: 18px;
+  padding: 18px 20px;
+  border-radius: 10px;
+  color: var(--muted);
+  background: rgba(255, 255, 255, .025);
+  font-size: .82rem;
+  line-height: 1.7;
+}
+.phaseList {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 15px;
+  margin-top: 26px;
+  list-style: none;
+  counter-reset: phases;
+}
+.phaseList li {
+  padding: 22px;
+  border-top: 1px solid var(--border-bright);
+  background: rgba(255, 255, 255, .02);
+}
+.phaseList h3 {
+  color: var(--accent-2);
+}
+.phaseList p {
+  margin-top: 12px;
+}
+.questionList {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 11px 32px;
+  margin-top: 24px;
+  list-style: none;
+}
+.questionList li {
+  position: relative;
+  padding: 0 0 12px 22px;
+  border-bottom: 1px solid var(--border);
+  color: #d3dbef;
+  font-size: .9rem;
+  line-height: 1.6;
+}
+.questionList li::before {
+  position: absolute;
+  left: 0;
+  top: .54em;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  content: "";
+}
+.notIncluded {
+  margin-top: 72px;
+  padding: 25px 28px;
+  border: 1px solid rgba(255, 143, 156, .23);
+  border-radius: 14px;
+  background: rgba(255, 143, 156, .035);
+}
+.notIncluded h2 {
+  font-size: 1.35rem;
+}
+.notIncluded p {
+  margin-top: 10px;
+}
+.nextStep {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 30px;
+  margin-top: 50px;
+  padding: 32px;
+  border: 1px solid var(--border-bright);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(120deg, rgba(101, 214, 255, .08), rgba(161, 255, 206, .035));
+}
+.nextStep > div {
+  max-width: 660px;
+}
+.nextStep > div > p:last-child {
+  margin-top: 12px;
+}
+@media (max-width: 920px) {
+  .projectGrid { grid-template-columns: 1fr; }
+  .projectCard .question { min-height: 0; }
+  .phaseList { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 680px) {
+  .hero { padding-top: 38px; }
+  .decision { grid-template-columns: 1fr; gap: 14px; padding: 22px; }
+  .costGrid,
+  .questionList,
+  .phaseList { grid-template-columns: 1fr; }
+  .nextStep { align-items: flex-start; flex-direction: column; padding: 24px; }
+}
+@media print {
+  :global(body) { color: #111 !important; background: #fff !important; }
+  :global(.site-header),
+  :global(.site-footer) { display: none !important; }
+  .page { color: #111; background: #fff; }
+  .hero { padding: 0 0 18px; }
+  .hero h1,
+  .decision h2,
+  .section h2,
+  .nextStep h2,
+  .projectCard h3,
+  .costGrid h3,
+  .phaseList h3,
+  .notIncluded h2 { color: #111 !important; }
+  .brief { padding-bottom: 0; }
+  .decision,
+  .projectCard,
+  .costGrid article,
+  .phaseList li,
+  .notIncluded,
+  .nextStep { break-inside: avoid; color: #111; background: #fff !important; border-color: #ccc; }
+  .lede,
+  .decision > p,
+  .sectionLede,
+  .projectCard p,
+  .costGrid p,
+  .phaseList p,
+  .questionList li,
+  .notIncluded p,
+  .nextStep > div > p:last-child,
+  .shareNote { color: #333 !important; }
+  .notice { color: #111; background: #fff; border-color: #888; }
+  .nextStep a { display: none; }
+  .section { padding-top: 28px; }
+  .projectGrid,
+  .costGrid,
+  .phaseList,
+  .questionList { gap: 8px; }
+  .notIncluded { margin-top: 28px; }
+  .nextStep { margin-top: 28px; }
+}
