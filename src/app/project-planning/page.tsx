@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PublicFooter, PublicHeader } from "@/components/public-site-shell";
+import { discoveryOffer, publicPackages } from "@/lib/public-pricing";
 import styles from "./brief.module.css";
 
 export const metadata: Metadata = {
@@ -115,6 +116,29 @@ export default function ProjectPlanningPage() {
                   </article>
                 ))}
               </div>
+            </section>
+
+            <section className={styles.section} aria-labelledby="range-title">
+              <p className="eyebrow">Initial budget ranges</p>
+              <h2 id="range-title">Use these figures to frame the conversation.</h2>
+              <p className={styles.sectionLede}>One-time USD planning ranges, not fixed quotes. The proposal confirms the fee after scope, content, access, and dependencies are reviewed.</p>
+              <div className={styles.costGrid}>
+                {publicPackages.map((offer) => (
+                  <article key={offer.id}>
+                    <h3>{offer.name}</h3>
+                    <p><strong>{offer.price}</strong> · {offer.billing}</p>
+                    <p>{offer.description}</p>
+                    <p>{offer.scope}</p>
+                  </article>
+                ))}
+                <article>
+                  <h3>{discoveryOffer.name}</h3>
+                  <p><strong>{discoveryOffer.price}</strong> · {discoveryOffer.billing}</p>
+                  <p>{discoveryOffer.description}</p>
+                  <p>{discoveryOffer.scope}</p>
+                </article>
+              </div>
+              <p className={styles.caveat}>Recurring hosting, licenses, vendor fees, content work, and ongoing support may add separate costs. Discovery is only commissioned when useful and agreed in advance.</p>
             </section>
 
             <section className={styles.section} aria-labelledby="proposal-title">
