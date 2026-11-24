@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getAssistantPassages, findAssistantSources } from "@/lib/project-assistant-knowledge";
@@ -5,7 +6,22 @@ import { checkGlobalRateLimit, checkRateLimit } from "@/lib/rate-limit";
 
 export const maxDuration = 15;
 
+
 const MODEL = "openai/gpt-5-mini";
+const previewRateBuckets = new Map<string, { count: number; startedAt: number }>();
+
+function checkPreviewRateLimit(namespace: string, identity: string, limit: number, windowSeconds: number) {
+  const key = namespace + ":" + identity;
+  const now = Date.now();
+  const bucket = previewRateBuckets.get(key);
+  if (!bucket || bucket.startedAt + windowSeconds * 1000 <= now) {
+    previewRateBuckets.set(key, { count: 1, startedAt: now });
+    return true;
+  }
+  if (bucket.count >= limit) return false;
+  bucket.count += 1;
+  return true;
+}
 const requestSchema = z.object({
   message: z.string().trim().min(1).max(800),
   pagePath: z.string().max(140).regex(/^\/[a-z0-9\-/#]*$/i).optional().default(""),
@@ -75,18 +91,31 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Please shorten your message and try again." }, { status: 400, headers: { "Cache-Control": "no-store" } });
 
   try {
-    const visitorAllowed = await checkRateLimit(request, {
-      namespace: "public-project-assistant",
-      limit: 12,
-      windowSeconds: 3600,
-    });
-    if (!visitorAllowed)
-      return NextResponse.json({ error: "You’ve reached the chat limit for now. Please use the project request form." }, { status: 429, headers: { "Cache-Control": "no-store" } });
+    const isPreview = process.env.VERCEL_ENV === "preview";
+    if (isPreview) {
+      const address = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
+        || request.headers.get("x-real-ip")
+        || "unknown";
+      const visitorKey = createHash("sha256").update(address).digest("hex").slice(0, 40);
+      if (!checkPreviewRateLimit("visitor", visitorKey, 12, 3600))
+        return NextResponse.json({ error: "You’ve reached the chat limit for now. Please use the project request form." }, { status: 429, headers: { "Cache-Control": "no-store" } });
+      failureStage = "daily_rate_limit";
+      if (!checkPreviewRateLimit("global", "all", 75, 86_400))
+        return NextResponse.json({ error: "The assistant is taking a break for today. Please use the project request form." }, { status: 429, headers: { "Cache-Control": "no-store" } });
+    } else {
+      const visitorAllowed = await checkRateLimit(request, {
+        namespace: "public-project-assistant",
+        limit: 12,
+        windowSeconds: 3600,
+      });
+      if (!visitorAllowed)
+        return NextResponse.json({ error: "You’ve reached the chat limit for now. Please use the project request form." }, { status: 429, headers: { "Cache-Control": "no-store" } });
 
-    failureStage = "daily_rate_limit";
-    const dailyAllowed = await checkGlobalRateLimit("public-project-assistant", 75, 86_400);
-    if (!dailyAllowed)
-      return NextResponse.json({ error: "The assistant is taking a break for today. Please use the project request form." }, { status: 429, headers: { "Cache-Control": "no-store" } });
+      failureStage = "daily_rate_limit";
+      const dailyAllowed = await checkGlobalRateLimit("public-project-assistant", 75, 86_400);
+      if (!dailyAllowed)
+        return NextResponse.json({ error: "The assistant is taking a break for today. Please use the project request form." }, { status: 429, headers: { "Cache-Control": "no-store" } });
+    }
 
     failureStage = "content_retrieval";
     const passages = await getAssistantPassages();
