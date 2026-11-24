@@ -55,3 +55,28 @@ export async function checkAdminMutationLimit(identity: string, namespace: strin
   `);
   return Number(result[0]?.count ?? limit + 1) <= limit;
 }
+
+export async function checkGlobalRateLimit(
+  namespace: string,
+  limit: number,
+  windowSeconds: number,
+) {
+  const key = `${namespace}:global`;
+  const result = await getDb().execute<{ count: number }>(sql`
+    INSERT INTO rate_limit_buckets ("key", "count", "window_started_at")
+    VALUES (${key}, 1, NOW())
+    ON CONFLICT ("key") DO UPDATE SET
+      "count" = CASE
+        WHEN rate_limit_buckets."window_started_at" < NOW() - (${windowSeconds} * INTERVAL '1 second')
+          THEN 1
+        ELSE rate_limit_buckets."count" + 1
+      END,
+      "window_started_at" = CASE
+        WHEN rate_limit_buckets."window_started_at" < NOW() - (${windowSeconds} * INTERVAL '1 second')
+          THEN NOW()
+        ELSE rate_limit_buckets."window_started_at"
+      END
+    RETURNING "count"
+  `);
+  return Number(result[0]?.count ?? limit + 1) <= limit;
+}

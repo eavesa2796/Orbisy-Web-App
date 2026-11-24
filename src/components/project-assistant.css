@@ -1,0 +1,242 @@
+.project-assistant {
+  position: fixed;
+  z-index: 80;
+  right: 24px;
+  bottom: 22px;
+  font-family: var(--font-sans), sans-serif;
+}
+.project-assistant-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-height: 50px;
+  padding: 0 19px;
+  border: 1px solid rgba(101, 214, 255, .6);
+  border-radius: 999px;
+  color: #f3f7ff;
+  background: linear-gradient(135deg, #14243a, #0c1525);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, .34), 0 0 20px rgba(101, 214, 255, .12);
+  font-size: .9rem;
+  font-weight: 650;
+  cursor: pointer;
+  transition: border-color .18s, transform .18s, box-shadow .18s;
+}
+.project-assistant-trigger:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent-2);
+  box-shadow: 0 10px 34px rgba(0, 0, 0, .38), 0 0 22px rgba(101, 214, 255, .17);
+}
+.project-assistant-trigger svg { color: var(--accent); }
+.project-assistant-trigger:focus-visible,
+.project-assistant-close:focus-visible,
+.project-assistant-form button:focus-visible,
+.project-assistant-starters button:focus-visible {
+  outline: 2px solid var(--accent-2);
+  outline-offset: 3px;
+}
+.project-assistant-panel {
+  position: absolute;
+  right: 0;
+  bottom: 64px;
+  display: flex;
+  flex-direction: column;
+  width: min(430px, calc(100vw - 40px));
+  height: min(620px, calc(100dvh - 110px));
+  min-height: 340px;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid rgba(101, 214, 255, .35);
+  border-radius: 20px;
+  color: var(--text);
+  background: linear-gradient(160deg, #111a2b, #090f1d 75%);
+  box-shadow: 0 24px 75px rgba(0, 0, 0, .58), 0 0 30px rgba(101, 214, 255, .08);
+  animation: project-assistant-enter .2s ease-out;
+}
+@keyframes project-assistant-enter {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.project-assistant-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--border);
+}
+.project-assistant-header .eyebrow { font-size: .69rem; }
+.project-assistant-header h2 {
+  margin-top: 5px;
+  font-size: 1.2rem;
+  letter-spacing: -.025em;
+}
+.project-assistant-close {
+  display: grid;
+  flex: 0 0 40px;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border: 1px solid var(--border-bright);
+  border-radius: 50%;
+  color: var(--text);
+  background: rgba(255,255,255,.035);
+  cursor: pointer;
+}
+.project-assistant-messages {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 13px;
+  min-height: 0;
+  padding: 17px;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+.project-assistant-message {
+  max-width: 92%;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px 14px 14px 4px;
+  background: rgba(255, 255, 255, .045);
+}
+.project-assistant-message.user {
+  align-self: flex-end;
+  border-color: rgba(101, 214, 255, .3);
+  border-radius: 14px 14px 4px 14px;
+  background: rgba(101, 214, 255, .075);
+}
+.project-assistant-message > p {
+  color: #e6ecf8;
+  font-size: .9rem;
+  line-height: 1.65;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.project-assistant-sources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 11px;
+}
+.project-assistant-sources a {
+  display: inline-flex;
+  padding: 6px 9px;
+  border: 1px solid rgba(131, 245, 199, .24);
+  border-radius: 999px;
+  color: var(--accent-2);
+  font-size: .76rem;
+  line-height: 1.4;
+  text-decoration: none;
+  background: rgba(131, 245, 199, .045);
+}
+.project-assistant-sources a:hover { border-color: var(--accent-2); }
+.project-assistant-handoff {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 13px;
+  margin-top: 12px;
+}
+.project-assistant-handoff .button {
+  min-height: 40px;
+  padding: 0 14px;
+  font-size: .82rem;
+}
+.project-assistant-handoff > a:not(.button) {
+  color: var(--accent-2);
+  font-size: .83rem;
+}
+.project-assistant-starters {
+  display: grid;
+  gap: 8px;
+  margin-top: 3px;
+}
+.project-assistant-starters button {
+  padding: 10px 12px;
+  border: 1px solid var(--border-bright);
+  border-radius: 11px;
+  color: #d9e9fb;
+  background: rgba(255, 255, 255, .025);
+  text-align: left;
+  font-size: .84rem;
+  line-height: 1.5;
+  cursor: pointer;
+}
+.project-assistant-starters button:hover {
+  border-color: var(--accent);
+  background: rgba(101, 214, 255, .06);
+}
+.project-assistant-loading {
+  color: var(--muted);
+  font-size: .84rem;
+}
+.project-assistant-form {
+  display: flex;
+  align-items: flex-end;
+  gap: 9px;
+  padding: 12px 15px;
+  border-top: 1px solid var(--border);
+  background: rgba(5, 9, 17, .64);
+}
+.project-assistant-form textarea {
+  box-sizing: border-box;
+  flex: 1;
+  min-height: 48px;
+  max-height: 112px;
+  resize: vertical;
+  padding: 12px;
+  border: 1px solid var(--border-bright);
+  border-radius: 12px;
+  color: var(--text);
+  background: rgba(255, 255, 255, .045);
+  font: inherit;
+  font-size: .88rem;
+  line-height: 1.45;
+}
+.project-assistant-form textarea::placeholder { color: #aab4c7; }
+.project-assistant-form textarea:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.project-assistant-form button {
+  display: grid;
+  flex: 0 0 45px;
+  width: 45px;
+  height: 45px;
+  place-items: center;
+  border: 1px solid rgba(101, 214, 255, .55);
+  border-radius: 13px;
+  color: #09101c;
+  background: var(--accent);
+  cursor: pointer;
+}
+.project-assistant-form button:disabled {
+  opacity: .45;
+  cursor: default;
+}
+.project-assistant-disclosure {
+  padding: 9px 16px 13px;
+  color: var(--muted);
+  font-size: .72rem;
+  line-height: 1.55;
+  background: rgba(5, 9, 17, .64);
+}
+.project-assistant-disclosure a { color: var(--accent-2); }
+@media (max-width: 680px) {
+  .project-assistant { right: 12px; bottom: 12px; }
+  .project-assistant-trigger { min-height: 48px; padding-inline: 15px; }
+  .project-assistant-panel {
+    position: fixed;
+    right: 12px;
+    bottom: 72px;
+    width: calc(100vw - 24px);
+    height: min(72dvh, 620px);
+    min-height: 320px;
+    border-radius: 18px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .project-assistant-trigger { transition: none; }
+  .project-assistant-panel { animation: none; }
+}
