@@ -1,494 +1,274 @@
-# Orbisy — Agency Website & Private Lead Workspace
+# Orbisy — Association Websites & Business Operations
 
-The public site now presents Orbisy LLC’s web design, Google Ads/PPC, local SEO,
-and custom development services. Towing and roadside assistance have a dedicated
-service page at `/towing-marketing`; the homepage also welcomes other service
-businesses. Public inquiries reuse the existing project-request API and private
-lead workspace. This revision requires the additive migration
-`0008_agency_pricing_notifications.sql` for private pricing, saved notification
-status, and optional inquiry attribution. The Orbisy production database was
-migrated and verified on October 6, 2026 UTC; the agency website deployment is pending.
-See [agency refresh operations](docs/agency-refresh-operations.md) for exact target
-inspection, Preview configuration, and migration steps.
+[Website](https://www.orbisy.com) · [Portfolio](https://www.orbisy.com/work) · [Project planning](https://www.orbisy.com/project-planning)
 
-The previous records-service homepage, restaurant/hauler pages, supporting
-components, metadata, policies, and concept images are preserved in
-`archive/records-service-2026-10-02/`. See that folder’s README for restoration.
+Orbisy is a production full-stack application for Orbisy LLC's development business.
+The public website presents custom association websites, member portals, scoped
+integrations, and ongoing development services. A private administrator workspace
+manages inquiries, leads, client projects, pricing, knowledge articles, and email
+workflows.
 
-Google Ads conversion tags are not configured by this brand update. Before an
-Orbisy advertising launch, supply the account’s tag/conversion identifiers,
-configure the applicable privacy choices and security-policy permissions, and
-verify that a successful saved inquiry records one conversion. Existing
-Google Analytics now measures consented public interactions; the separate Orbisy event collector is retired.
+The public site and internal tools share one Next.js codebase, backed by
+PostgreSQL and Supabase Auth. The application currently supports one allowlisted
+administrator. The association member-area example is an illustrative concept;
+the working administrator portal supports Orbisy's own operations.
 
-Public service pages now include `/web-design`, `/google-ads`, `/local-seo`, and
-`/custom-development`. `/work` presents real Rescue portfolio screenshots.
-The existing authenticated portal adds Pricing and Notifications without replacing
-its lead, import, audit, suppression, or manual outreach workflows.
+## What the application includes
 
-The architecture and operational notes below describe the existing private
-workspace; public-facing product messaging has been superseded by the agency site.
+- **Public website:** association-focused services, project pricing and planning,
+  real website portfolio work, a labeled association website concept, and inquiry
+  forms. Earlier records-service pages and assets remain archived.
+- **Lead and client management:** saved inquiries, received timestamps, source
+  attribution, pipeline history, notes, follow-up dates, client workspaces,
+  discovery briefs, milestones, and sales reporting.
+- **Private pricing catalog:** editable services, packages, deliverables, billing
+  details, internal notes, and draft/active/archived states. Public pricing is
+  separately defined in source configuration.
+- **Knowledge publishing:** draft, publish, unpublish, and archive controls;
+  version checks; and a public published snapshot that excludes internal notes.
+- **Inquiry follow-up:** reviewed acknowledgments and reminder workflows,
+  Gmail metadata-based reply detection, Resend delivery reconciliation,
+  preference handling, and optional owner digests.
+- **Reviewed outreach:** separate Gmail sending authorization, per-prospect
+  message review, campaign controls, weekday sending limits, reply/opt-out stops,
+  and persisted attempt/error history.
+- **Supporting tools:** bounded CSV imports, normalization, duplicate review,
+  suppression records, and administrator-reviewed website preflight/audit tools.
 
-## Phase Five
+These are commissioned services and business tools. The association concept is
+not a completed client member portal, and the repository does not implement
+MemberClicks, Whova, Cadmium, or eShow connectors. A RAG chatbot is future work;
+the knowledge base already provides an explicit public-passage projection for
+a possible retriever.
 
-Orbisy is Anthony Eaves’s Chicago-based software-development business. This
-MVP combines a public service website, secure inbound forms, a
-single-administrator lead workspace, manual outreach preparation,
-consent-controlled Google Analytics, saved-inquiry sales reporting, and an administrator-reviewed
-business-import workflow.
+## Technology stack
 
-Phase Five turns administrator-approved audit evidence into private outreach
-briefs for manual use, strengthens pipeline history, adds safe dashboard search
-for businesses already stored in Orbisy, and applies the approved Orbisy brand
-assets across the public site and administrator authentication experience. It
-does not discover external businesses, generate public reports, send email,
-calculate revenue loss, or run automatically.
+| Area | Technology |
+| --- | --- |
+| Framework | Next.js 16 App Router, React 19 |
+| Language | TypeScript with strict compiler checking |
+| UI | Semantic HTML, CSS/CSS Modules, Lucide icons, Embla Carousel |
+| Images and typography | Next.js image/font facilities; DM Sans and Manrope |
+| Server | Node.js, Next.js Route Handlers and Server Actions |
+| Validation | Zod |
+| Persistence | PostgreSQL, Drizzle ORM, Postgres.js |
+| Schema management | Drizzle Kit and versioned SQL migrations |
+| Authentication | Supabase Auth with browser/server SSR clients |
+| Supporting tools | Cheerio, csv-parse, tldts, ipaddr.js |
+| Testing | Vitest, React Testing Library, jest-dom, jsdom, PGlite |
+| Quality and delivery | ESLint, TypeScript, GitHub pull requests, Vercel previews/production builds |
 
-## Phase Five architecture
+Exact dependency versions are recorded in [package.json](package.json) and
+[package-lock.json](package-lock.json).
 
-An outreach brief is available only for an inbound request or a lead whose
-latest completed audit is explicitly marked Phase Five-ready. Audit-based
-briefs require one or two findings verified in that exact audit run. The brief
-stores the audit reference, selected finding IDs, reviewed wording, context,
-qualified potential-impact language, a suggested improvement, personalization
-notes, recommended next action, subject, body, review identity, and status.
+## Architecture and reliability
 
-Saving a draft never sends or publishes it. Explicit administrator approval is
-required before copy controls appear. Approval moves an appropriate lead to
-`contact_planned` and records a pipeline event; separately recording manual
-contact moves it to `contacted` and records both the attempt and status history.
-Changing reviewed audit evidence, reopening the audit, or suppressing the lead
-invalidates or blocks the brief. Unsupported monetary and revenue-loss claims
-are rejected server-side.
+React Server Components provide server-rendered data and pages; Client
+Components handle interactions such as forms, navigation, carousels, and consent.
+Protected dashboard mutations use Server Actions, while public intake, provider
+callbacks, exports, and worker triggers use Route Handlers.
 
-The dashboard company search delegates to the existing server-authorized lead
-search and covers saved business names, domains, contacts, phones, cities, and
-source identifiers. It is not a discovery engine and does not scrape external
-sites. Manual entry and permitted CSV import remain the only business-data
-sources.
+Application data is read and written on the server through Drizzle/Postgres.js.
+Supabase Auth validates the signed-in user, and server-side authorization checks
+the configured administrator email. Database constraints, transactions, private
+table access controls, and migration checks complement those application checks.
 
-Brand files use Next.js file-based favicon, application-icon, Apple-icon, and
-manifest conventions. The public header/footer, administrator shell, sign-in,
-and password-reset experience use the approved Orbisy logo kit. Administrator
-authorization, route hiding, noindex behavior, and authentication flow are
-unchanged.
+### Inquiry flow
 
-## Phase Four architecture
+1. A public form submits to `POST /api/submissions/[type]`.
+2. The server validates the payload, checks rate limits, and verifies Turnstile.
+3. One transaction saves the inquiry, associated lead, and pending notification.
+   A submission token prevents duplicate records.
+4. The server returns a saved confirmation. Consented lead measurement follows a
+   confirmed nonduplicate save.
+5. Notification delivery is attempted after the response. A provider failure
+   leaves the inquiry saved and the notification available for review/retry.
 
-An administrator explicitly queues a Phase Three-eligible or administrator-
-approved lead. Separate PostgreSQL audit jobs are atomically claimed with a
-bounded lease and concurrency lock. Suppression, exact duplicates, existing
-relationships, operating switches, daily limits, and re-audit intervals are
-checked before work; suppression is checked again before network activity and
-between selected pages.
+### Background email work
 
-The worker inspects the final Phase Three homepage and at most a conservative
-number of useful same-registrable-domain pages. Page discovery favors contact,
-services, about, and booking pages. Every initial URL, discovered link, and
-redirect passes the Phase Three DNS validation, address pinning, SSRF blocking,
-timeout, redirect, content-type, and streamed byte-limit pipeline. Robots rules
-are applied by path. Remote JavaScript is never executed, forms are never
-submitted, and full response bodies are not stored.
+Email state and event history persist in PostgreSQL. Atomic claims, expiring
+leases, suppression checks, and immutable first-attempt payloads coordinate work
+across requests. The deployed email scheduler uses Supabase Cron to invoke the
+protected worker every five minutes, with its bearer credential held in Vault.
+Scheduler installation is an operational step, not an automatic migration or
+application-build side effect.
 
-Independently testable analyzers record objective HTML indicators for
-reliability, mobile foundations, contact paths, technical SEO, accessibility
-fundamentals, links, and images. Findings store bounded evidence, severity,
-confidence, source, analyzer version, affected URL, and verification history.
-They are informational—not penetration testing, SEO forecasting, WCAG/legal
-certification, or a guarantee of business results.
+Inquiry and outreach workflows have separate mailbox records, settings, and
+approvals. Resend work uses stable idempotency keys and bounded retries. Gmail
+outreach pauses ambiguous attempts for review because its send API does not
+provide an application idempotency key. Provider acceptance is recorded
+separately from evidence of delivery; inbox placement is not guaranteed.
 
-`website-improvement-v1` remains separate from Business Fit. Each awarded point
-maps to a fixed finding rule and retained finding ID, with category caps of 20
-mobile, 20 conversion, 15 performance, 15 SEO, 10 accessibility, 10 reliability,
-and 10 administrator-supported manual opportunity. Missing or unavailable
-checks add no points. Rejected findings are excluded only from a new reviewed
-score; earlier scores are preserved.
+New installations start with email sending disabled. A deployment flag alone
+does not approve a campaign, enroll contacts, or enable customer sending. Live
+mailbox health and activation state must be checked in the private workspace.
 
-Audit Confidence is separately versioned from the opportunity score and records
-analyzer coverage, page coverage, optional provider availability, failures,
-conflicts, and manual-review coverage. Phase Five readiness requires a completed
-run, the configured confidence level, no pending findings, no suppression or
-blocking error, and explicit administrator review completion.
+## Integrations and HTTP interfaces
 
-### Local deep-audit worker
+| Integration | Purpose |
+| --- | --- |
+| Supabase Auth / PostgreSQL | Administrator authentication and durable application data |
+| Google OAuth / Gmail API | Business mailbox authorization, selected message metadata, and reviewed outreach sending |
+| Resend API and signed webhooks | Inquiry notifications, acknowledgments, reminders, digests, and delivery-event reconciliation |
+| Cloudflare Turnstile | Public form spam verification |
+| Google Analytics 4 | Consent-controlled public audience and interaction measurement via `gtag.js` |
+| Google PageSpeed Insights | Optional, separately configured performance input for supporting audit tools |
+| Selected public websites | Bounded HTTP inspection with DNS/IP, redirect, robots, timeout, and size controls |
 
-After applying migrations to a development database, set a development-only
-`DEEP_AUDIT_WORKER_SECRET` of at least 24 random characters. Enable both Phase
-Four switches in the local Settings page, queue one controlled eligible lead,
-and invoke:
+Google Analytics does not require a Tag Manager container in this implementation.
+Internal sales reporting uses saved business records rather than an embedded
+GA reporting API. The retired `/api/analytics` collector returns 204 and preserves
+historical records without collecting new visitor events.
 
-```bash
-curl -X POST http://localhost:3000/api/internal/deep-audit-worker \
-  -H "Authorization: Bearer $DEEP_AUDIT_WORKER_SECRET"
-```
+| Route or interface | Role |
+| --- | --- |
+| `/api/submissions/[type]` | Public `project-request` and `homepage-review` intake |
+| Server Actions under `/admin-portal` | Authenticated lead, client, pricing, publishing, and workflow operations |
+| `/api/admin/imports` and companion routes | Protected CSV staging, template, and rejected-row export |
+| `/api/admin/discovery/[id]` | Protected Markdown discovery-brief export |
+| `/api/admin/followups/gmail/start`, `/api/admin/outreach/gmail/start` | Separate Gmail authorization entry points |
+| `/api/admin/followups/gmail/callback` | Shared Google callback with validated flow-specific state |
+| `/api/internal/followups` | Secret-protected inquiry and outreach worker trigger |
+| `/api/followups/delivery` | Signed Resend delivery webhook |
+| `/api/followups/unsubscribe`, `/api/outreach/unsubscribe` | Signed preference endpoints |
+| `/email-preferences`, `/outreach-preferences` | Standalone preference confirmation pages |
+| `/api/internal/preflight-worker`, `/api/internal/deep-audit-worker` | Separately protected supporting-tool workers |
 
-The endpoint URL is not a security boundary. No Vercel Cron or other production
-scheduler is included. Keep both production deep-audit switches off until a
-separate controlled rollout is approved.
+## Local development
 
-## Phase Three architecture
-
-Administrators queue a bounded set of non-suppressed leads. PostgreSQL stores
-idempotent jobs and workers claim them atomically with `FOR UPDATE SKIP LOCKED`.
-A partial unique index prevents multiple active jobs for one lead/version.
-Retries are bounded with backoff, and the global/worker kill switches plus
-suppression are rechecked before network activity.
-
-The server-only transport accepts only HTTP(S), resolves DNS before connecting,
-rejects mixed or prohibited answers, and pins a validated address through the
-request lookup callback. It blocks loopback, private, link-local, carrier-grade
-NAT, multicast, unspecified, reserved/documentation, IPv4-mapped IPv6, and
-metadata destinations. Every redirect is parsed, resolved, revalidated, and
-pinned. Byte limits apply while streaming; redirect, connection, and overall
-timeouts are bounded. Remote code is never executed and response bodies are
-not stored.
-
-`robots.txt` uses the same controls. An explicit homepage disallow stops the
-homepage request; missing or unreachable robots data is recorded truthfully.
-Only robots policy and the homepage are checked—there is no broad crawl.
-
-Business Fit `business-fit-v1` weights target industry 35, target location 30,
-public business contact path 15, and current-service suitability 20. Gates,
-inputs, factors, points, versions, and explanations are retained. Suppression,
-exact duplicates, and existing relationships are gates rather than hidden
-deductions. Audit eligibility is a separate decision that permits an explicit
-Phase Four queue action; it never starts a deep audit automatically.
-
-### Local worker execution
-
-After applying migrations to a development database, configure a strong
-`PREFLIGHT_WORKER_SECRET` and enable both switches in Settings:
+Requirements: Node.js 24.x, npm, a PostgreSQL development database, and Supabase
+Auth configuration to use the private workspace. Read [AGENTS.md](AGENTS.md)
+before changing the application.
 
 ```bash
-curl -X POST http://localhost:3000/api/internal/preflight-worker \
-  -H "Authorization: Bearer $PREFLIGHT_WORKER_SECRET"
-```
-
-Use a trusted scheduler only. The secret is compared using constant-time
-digests; the route URL is not a security boundary. Production scheduling is
-intentionally not enabled.
-
-## Architecture
-
-- Next.js 16 App Router, React 19, TypeScript, and plain CSS
-- PostgreSQL with Drizzle ORM and versioned SQL migrations
-- Supabase Auth for one allowlisted administrator
-- Route Handlers for public submissions and anonymous analytics
-- Database-backed rate limits suitable for a single-region MVP
-- Optional Cloudflare Turnstile and optional Resend inbound notifications
-- Bounded CSV parsing, deterministic normalization, source attribution,
-  duplicate review, and suppression checks
-
-Public forms create both an immutable contact submission and a prioritized
-lead. Admin authorization is enforced in every protected page and Server
-Action using Supabase’s server-validated `getUser()` result plus an
-`ADMIN_EMAIL` allowlist. The `/admin-portal` URL is deliberately absent from
-public navigation and the sitemap, but the URL itself is not considered a
-security boundary.
-
-## Local setup
-
-Requirements: Node.js 20.9 or newer, npm, and PostgreSQL.
-
-```bash
-npm install
+npm ci
 cp .env.example .env.local
+```
+
+Configure `.env.local` using development values. Set `DATABASE_URL` to the
+intended development database before running migrations; do not copy production
+secrets into a development checkout.
+
+```bash
+npm run db:target
 npm run db:migrate
 npm run dev
 ```
 
-Open `http://localhost:3000`. Visit `/admin-portal` directly for administrator
-sign-in.
+Open `http://localhost:3000`. The private sign-in page is `/admin-portal`.
+Create the intended administrator in Supabase Auth, set `ADMIN_EMAIL` to that
+account, and configure the appropriate site/auth-recovery redirect URLs for the
+environment. A valid session for a different account does not grant admin access.
 
-## Environment variables
+### Configuration groups
 
-| Variable | Required | Purpose |
-| --- | --- | --- |
-| `DATABASE_URL` | Yes | PostgreSQL connection string |
-| `NEXT_PUBLIC_SUPABASE_URL` | Yes | Supabase project URL |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes | Public Supabase browser key |
-| `ADMIN_EMAIL` | Yes | Sole authorized administrator; set your approved administrator email |
-| `NEXT_PUBLIC_SITE_URL` | Production | Canonical origin, such as `https://orbisy.com` |
-| `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | Production | Public Turnstile widget key |
-| `TURNSTILE_SECRET_KEY` | Production | Server-side Turnstile verification |
-| `RATE_LIMIT_SECRET` | Production | Secret salt used to hash request IPs |
-| `INQUIRY_ATTRIBUTION_ENABLED` | No | Set to `false` to omit optional source/campaign details from saved inquiries |
-| `ANALYTICS_ENABLED` | Legacy | A value of `false` still disables inquiry attribution; it cannot re-enable the retired event collector |
-| `ANALYTICS_RETENTION_DAYS` | Retired | No longer used; historical event rows are preserved |
-| `RESEND_API_KEY` | No | Optional notification for new inbound forms only |
-| `RESEND_FROM_EMAIL` | With Resend | Verified sender |
-| `NOTIFICATION_EMAIL` | No | Required destination when notifications are enabled; no default recipient |
-| `PREFLIGHT_WORKER_SECRET` | For workers | Dedicated secret of at least 24 random characters |
-| `ORBISY_FETCHER_USER_AGENT` | No | Identifiable fetcher user-agent override |
-| `DEEP_AUDIT_WORKER_SECRET` | For Phase 4 workers | Separate secret of at least 24 random characters |
-| `PAGESPEED_API_KEY` | No | Optional Google PageSpeed provider; absence is recorded as unavailable |
+| Group | Environment variables |
+| --- | --- |
+| Database and admin authentication | `DATABASE_URL`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `ADMIN_EMAIL` |
+| Site origin and form protection | `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY`, `RATE_LIMIT_SECRET` |
+| Inquiry attribution | `INQUIRY_ATTRIBUTION_ENABLED`; legacy `ANALYTICS_ENABLED=false` also disables source capture |
+| Resend notifications and inquiry email | `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `NOTIFICATION_EMAIL` |
+| Gmail authorization | `GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET`, `FOLLOWUP_TOKEN_ENCRYPTION_KEY` |
+| Email workers and preferences | `FOLLOWUP_CRON_SECRET`, `FOLLOWUP_RESEND_WEBHOOK_SECRET`, `FOLLOWUP_UNSUBSCRIBE_SECRET`, `FOLLOWUP_POSTAL_ADDRESS` |
+| Independent deployment gates | `FOLLOWUP_SEND_ENABLED`, `OUTREACH_SEND_ENABLED` — unset/false during setup |
+| Supporting tools | `PREFLIGHT_WORKER_SECRET`, `DEEP_AUDIT_WORKER_SECRET`, optional `ORBISY_FETCHER_USER_AGENT` and `PAGESPEED_API_KEY` |
 
-Never commit `.env.local` or production secrets.
+[.env.example](.env.example) contains the base template. The email guides below
+document feature-specific keys, secret formats, provider setup, and activation.
+`OUTREACH_SEND_ENABLED` is an additional gate documented in the outreach guide;
+leave it unset or false in a development/preview environment.
 
-## PostgreSQL and migrations
+The Gmail flows currently target Orbisy's canonical production origin and
+business mailbox. They are not generic multi-account connectors. Production
+OAuth and email/preference mutation routes enforce deployment restrictions.
+Read-only `/preview/*` pages use fictional data in development/preview and are
+unavailable in production.
 
-Create a PostgreSQL database locally or with a managed provider, set
-`DATABASE_URL`, then run:
+Only intentionally public configuration uses the `NEXT_PUBLIC_` prefix. Keep
+database credentials, OAuth secrets, refresh tokens, signing keys, mailing
+configuration, and scheduler credentials out of Git and client bundles.
+
+## Database changes and verification
+
+The schema is in [src/lib/db/schema.ts](src/lib/db/schema.ts); versioned SQL and
+Drizzle metadata are in [drizzle/](drizzle/). Generate migrations after schema
+changes, review the SQL, and apply it against a verified database target.
 
 ```bash
-npm run db:generate  # after changing src/lib/db/schema.ts
+npm run db:generate
+npm run db:target
 npm run db:migrate
 ```
 
-The generated migration is in `drizzle/`. Production migrations should run as
-a controlled release step, not from a public request.
-
-Phase Two adds migrations `0001_parallel_vampiro.sql` and
-`0002_bouncy_madame_masque.sql`. They add tables, enum types, indexes, foreign
-keys, and nullable/defaulted columns without dropping or rewriting Phase One
-records. The migration test applies Phase One, inserts a fixture lead, applies
-Phase Two, and verifies the original record remains.
-
-Phase Three adds `0003_foamy_vulture.sql`: four enums, versioned preflight
-job/run/check, Business Fit and eligibility tables, indexes, foreign keys, and
-bounded settings columns. It contains no drops or data rewrites. The migration
-compatibility test preserves representative Phase One and Phase Two fixtures
-through Phase Three. Do not apply it to production without explicit
-authorization, verified backups, and a controlled release.
-
-Phase Four adds `0004_glamorous_doctor_spectrum.sql` and
-`0005_nifty_vindicator.sql`. They add separate audit job/run/page/finding,
-score-version, Website Improvement Score, confidence, and review-history tables;
-conservative disabled settings; indexes and foreign keys; RLS with no public
-policies; and database-level safety bounds. They contain no drops, renames,
-deletes, or rewrites. The migration test preserves representative Phase One,
-Two, and Three records through both migrations. Do not apply these migrations
-to production as part of development.
-
-Phase Five adds `0006_rich_shadow_king.sql` and
-`0007_pale_madelyne_pryor.sql`. They preserve existing outreach drafts while
-adding their audit reference, structured brief fields, selected finding IDs,
-review state, indexes, constraints, and RLS with no public policies. They do not
-drop, rename, delete, or rewrite existing records. Apply them only through the
-same controlled development and production review process.
-
-Before a production migration:
-
-1. Confirm the provider backup or point-in-time recovery setting.
-2. Run `npm test` and `npm run db:migrate` against a development database.
-3. Record current row counts for `leads`, `contact_submissions`, and
-   `analytics_events`.
-4. Run the migration once in a controlled release step.
-5. Verify old row counts and the new import tables.
-
-Recovery guidance: do not blindly edit the Drizzle journal. The verified production
-baseline procedure for already-applied migrations is documented in
-`docs/agency-refresh-operations.md`; it guards the complete schema and existing
-hashes before recording missing entries. If a migration
-fails, stop application promotion, preserve the database error, and restore
-from the provider backup when a partial change cannot be safely completed.
-
-## Supabase authentication
-
-1. Create a Supabase project and enable email/password authentication.
-2. Create the administrator user `admin@example.com` in the Supabase
-   dashboard. Do not enable public registration in this application.
-3. Add the site origin and
-   `https://your-domain.example/auth/callback?next=/auth/reset-password` to the
-   permitted redirect URLs.
-4. Configure the three Supabase/admin environment variables above.
-5. Keep Supabase’s built-in authentication rate limits enabled.
-
-Only the exact normalized `ADMIN_EMAIL` can access protected pages. A valid
-Supabase session for any other account is rejected.
-
-## Forms, spam protection, and notifications
-
-Both public forms have browser validation and authoritative Zod validation on
-the server. They use a honeypot, idempotency token, request-size limit,
-database-backed rate limit, and Turnstile in production.
-
-Without Resend, submissions are still safely stored and shown in the admin
-portal; notification failure never discards a submission. Resend is
-inbound-notification-only. There is no outbound prospect email delivery.
-
-## Analytics and sales reporting
-
-GA4 is the audience reporting system, loaded only after explicit Google permission and subject to browser privacy signals and the existing global opt-out. Controlled page views remain manual with send_page_view=false. Disable enhanced browser-history page views and automatic form interactions to avoid overlaps with the site’s controlled events. Keep automatic site search off unless a separately reviewed privacy-safe configuration is introduced. Successful inquiries map to generate_lead only after a confirmed nonduplicate save; the event excludes inquiry contents and identifiers.
-
-Orbisy no longer POSTs page views, clicks, scrolls, or other public events to its own database. The retired /api/analytics endpoint returns 204 without reading the request body, writing events, or deleting historical records, including requests from old open tabs. There is no runtime switch that re-enables it. Old event rows remain in the read-only admin archive at /admin-portal/analytics/history. Its totals are historical, not GA4 data.
-
-/admin-portal/sales counts actual saved inquiries, requested services, available sources/campaigns, current lead statuses, and due follow-ups. Inquiry metrics use submission dates; current lead status may have changed later. It does not join visitor identities with business records or present a website conversion rate. Existing /admin-portal/analytics bookmarks redirect to Sales overview.
-
-Optional inquiry attribution retains the same bounded paths, referring domains, campaign labels, opt-out behavior, and DNT/GPC checks. Google permission and source-attribution permission remain separate. No extra Orbisy reporting session identifier is created. No new environment variable is required for the change; INQUIRY_ATTRIBUTION_ENABLED=false optionally disables source capture on the server, and legacy ANALYTICS_ENABLED=false continues to do so.
-
-## Phase Two lead imports
-
-The administrator can open `/admin-portal/imports`, download a template, select
-a permitted CSV, map its columns, and create a preview. The preview stores
-original source values separately from normalized comparison values. Ready
-rows are imported only after explicit confirmation; invalid, uncertain,
-duplicate, and suppressed rows remain out of the active pipeline.
-
-Default limits are 1 MB and 500 data rows. Both are stored in PostgreSQL and
-can be adjusted conservatively in Settings. Files beyond the configured
-synchronous limit are rejected rather than attempted in a normal request.
-
-Supported mappings:
-
-- Business name (required)
-- Category and industry
-- Street address, city, state, postal code, and general location
-- Website URL
-- Public business email and phone
-- Contact name when legitimately available
-- Source name, URL, identifier, and date discovered
-
-The CSV parser supports quoted fields and rejects malformed structures, null
-bytes, unsupported UTF-8, oversized records, excessive rows, unsupported file
-types, and missing business-name mappings. Rejected-row downloads prefix
-formula-like values before CSV encoding.
-
-Duplicate classifications are explainable: new record, exact duplicate, likely
-duplicate, possible duplicate, existing suppressed, or manual review required.
-Exact source identifiers, domains, public emails, and phone numbers are checked
-first. Similar business-name/location matches require an administrator
-decision. Filling an existing lead only populates missing values; it does not
-replace higher-quality existing information.
-
-Suppression checks cover normalized email, domain, phone, source identifier,
-and lead-level suppression. Standalone suppression entries can be created at
-`/admin-portal/suppressions`. They do not automatically expire.
-
-Provider adapters currently exist only for manual entry and CSV. A future
-licensed provider must implement the same validation, normalization, source
-identifier, and attribution contract. Scraping Google, LinkedIn, Yelp,
-Facebook, or prohibited directories is outside the supported workflow.
-
-## Quality checks
+Existing production databases require a controlled migration step with schema
+and history inspection, backups/recovery planning, and existing-record checks.
+An already-applied migration must not be replayed or recorded with an invented
+hash. The [agency release operations guide](docs/agency-refresh-operations.md)
+documents the verified baseline procedure for earlier migration history.
 
 ```bash
 npm run lint
 npm run typecheck
 npm test
 npm run build
-# or all at once
+# Run the checks in sequence:
 npm run verify
+# Bound test concurrency when the local environment has limited resources:
+npm test -- --maxWorkers=2
 ```
 
-Tests cover submission validation, the analytics allowlist, CSV parsing,
-normalization, export formula-injection protection, administrator email policy,
-import confirmation policy, suppression matching, and additive migration
-behavior. Before release, manually test signed-out and signed-in import routes,
-column mapping, confirmation, review decisions, and downloads against a
-development database.
+Tests include components, validation, authentication boundaries, migrations,
+publishing, database-backed workflows, timing, suppression, and provider failure
+behavior. PGlite supplies the test database; external providers are mocked in
+automated tests. Real delivery, OAuth, and opt-out behavior need separately
+controlled end-to-end verification.
 
-## Deployment guidance
+Vercel creates preview/production builds from the GitHub workflow. The complete
+lint/type/test/build command is explicit; the repository does not currently
+include a GitHub Actions workflow running that full suite on every PR.
 
-Vercel is the simplest host for this Next.js application but is not required;
-any Node.js 20 host that supports Next.js and HTTPS works. A practical starter
-setup is:
+## Security and operating boundaries
 
-- Vercel Hobby for the application (review its current commercial-use terms)
-- Supabase free tier for authentication
-- Neon or Supabase Postgres free tier for the database
-- Cloudflare Turnstile for spam protection
-- Resend free tier only if inbound notification emails are desired
+- Private pages, Server Actions, and protected APIs enforce administrator access
+  on the server. Hidden navigation and `noindex` are additional privacy measures.
+- Public forms use authoritative validation, a honeypot, bounded requests,
+  Turnstile, idempotency, and database-backed rate limits.
+- OAuth state and webhook signatures are verified. Refresh tokens are encrypted;
+  incoming Gmail bodies/attachments are not copied into Orbisy.
+- Preference GET requests are read-only. Confirmation POSTs save suppression and
+  stop pending messages. Existing do-not-contact records remain authoritative.
+- GA4 is restricted to consented public activity and honors browser privacy
+  signals. Private routes and inquiry contents are excluded from its events.
+- Website inspection blocks prohibited network destinations and revalidates
+  redirects. It does not run a remote site's JavaScript or submit its forms.
+- Preflight, deep-audit, and PageSpeed switches are separate from email controls.
+  Worker code alone does not establish an active production schedule.
+- These controls do not establish security/accessibility certification,
+  association-vendor partnerships, proven marketing results, or enterprise scale.
 
-Free tiers and provider terms change. Confirm current quotas, commercial-use
-rules, data regions, backups, and overage behavior before launch. Add the
-domain only after the preview environment passes verification.
+## Source and documentation map
 
-## Security and operational considerations
+| Location | Contents |
+| --- | --- |
+| `src/app` | Public/admin pages, API handlers, and Server Actions |
+| `src/components` | Public and private interface components/styles |
+| `src/lib/data` | Server-side data access for pages and dashboards |
+| `src/lib/db`, `drizzle` | Typed PostgreSQL schema, connection, and migrations |
+| `src/lib/followups`, `src/lib/outreach` | Separate inquiry and reviewed-outreach workflows |
+| `src/lib/imports`, `src/lib/preflight`, `src/lib/audits` | Supporting data and website-inspection tools |
+| `archive/records-service-2026-10-02` | Preserved earlier records-service pages and assets |
 
-- Security headers and a restrictive Content Security Policy are configured.
-- Admin routes and auth utility routes use `noindex`; robots and the sitemap
-  exclude private areas and APIs.
-- Rate limits are database-backed. Multi-region production should move them to
-  an atomic globally shared store such as managed Redis.
-- PostgreSQL access should use TLS, least-privilege credentials, provider
-  backups, and tested restores.
-- Privacy Policy and Terms are drafts requiring owner and legal review.
-- Consent language covers responding to an inbound request, not marketing
-  subscriptions or automated outreach.
-- Monitor form abuse, auth logs, database capacity, and notification failures.
+Feature guides and release notes:
 
-## Preflight failure behavior and limitations
+- [Client workspaces](docs/client-workspace-release.md) and [admin workflow](docs/admin-workflow-cleanup.md)
+- [Knowledge publishing](docs/knowledge-base-release.md)
+- [Pricing and inquiry timestamps](docs/admin-pricing-and-inquiry-times.md)
+- [Inbound email follow-up](docs/inbound-followups.md)
+- [Reviewed Gmail outreach](docs/outbound-outreach.md)
+- [Google Analytics](docs/google-analytics-release.md), [measurement](docs/campaign-measurement.md), and [sales reporting](docs/sales-reporting-release.md)
+- [Supporting tools](docs/supporting-tools-guide.md)
+- [Earlier README and phase notes](docs/archive/readme-before-association-overview.md)
 
-- One administrator only
-- CSV uploads are bounded and processed synchronously; no original file blob is retained
-- The database worker must be invoked by a trusted scheduler; no production
-  schedule is enabled in this repository.
-- Failed jobs retain safe error categories and use bounded retry/backoff. Prior
-  successful runs and scores are never overwritten by later failures.
-- Per-domain delay is bounded configuration for worker/scheduler coordination;
-  each run claims only the configured concurrency-sized batch.
-- Robots parsing is deliberately bounded to homepage policy.
-- No licensed discovery provider or Google Places integration. Phase Four deep
-  audits remain separate from preflight and never begin from eligibility alone.
-- No automatic email outreach or email sequencing
-- No analytics session replay or individual visitor profiles
-- Portfolio cards and links are explicitly labeled placeholders
-- Possible-duplicate thresholds are stored for future scoring refinement; the
-  MVP uses deterministic exact and name/location rules
-- Import correction is performed by fixing and re-uploading rejected rows
-
-## Recommended next step
-
-### Failure recovery and retention
-
-- Retryable network failures use bounded exponential backoff and a fixed attempt
-  limit. Permanent policy failures are blocked or failed with safe categories.
-- A five-minute lease returns abandoned work to the bounded queue or exhausts it
-  safely. PostgreSQL coordination prevents simultaneous claims above the
-  configured concurrency.
-- Later failures never delete earlier successful audits, scores, findings, or
-  review decisions. Rejected findings remain in history.
-- Audit retention defaults to `0`, meaning indefinite retention. Phase Four has
-  no automatic deletion task. Any future retention process requires an explicit
-  migration and operational review.
-
-### Optional PageSpeed
-
-PageSpeed is server-only and disabled by default. It runs only when both the
-stored switch and `PAGESPEED_API_KEY` are present, uses the already validated
-public homepage URL, requests mobile performance only, and stores provider,
-score, availability, duration, and safe error classification. Missing,
-rate-limited, malformed, or unavailable provider data adds no opportunity
-points and does not fail the audit. No billing is enabled by this repository.
-
-### Current limitations and Phase Six boundary
-
-- Objective static HTML inspection cannot judge visual quality, persuasive
-  writing, comprehensive mobile usability, search rankings, legal compliance,
-  or complete accessibility.
-- Client-rendered content is not executed and may therefore be unavailable.
-- PageSpeed is optional; no local Lighthouse, browser, screenshot, Chromium,
-  Puppeteer, or Playwright audit runs in production.
-- Crawling, internal-link checks, evidence, pages, redirects, bytes, time,
-  retries, concurrency, and daily work are strictly bounded.
-- Phase Five creates no private/public report, public audit page, proposal,
-  revenue-loss calculation, email delivery, sequence, payment, Google Places
-  discovery, or automatic publication.
-- Browser screenshots, revocable private reports, report expiration, and any
-  licensed external discovery provider remain Phase Six decisions.
-- Phase Five-ready state permits a private draft workflow only. It never sends,
-  publishes, or contacts a business automatically.
-
-### Development and production rollout checklist
-
-1. Keep production migrations, secrets, switches, workers, and schedulers unchanged.
-2. Apply Phase Five migrations only to a separate development database first.
-3. Keep all preflight, deep-audit, and PageSpeed switches off unless a separate
-   controlled worker test requires them.
-4. Run `npm ci`, lint, type checking, tests, build, and `git diff --check`.
-5. Manually verify the public brand, favicon, responsive sign-in and password
-   reset, homepage portrait/copy, dashboard company search, inbound drafting,
-   Phase Five-ready brief creation, approval, copying, contact history, audit
-   reopening, and suppression invalidation.
-6. Review the generated Phase Five SQL, outreach-draft RLS state, dependency audit, and pull
-   request before authorizing any merge.
-7. After a separately approved database backup decision, apply production SQL
-   in a controlled step and verify existing lead, audit, and outreach-draft data.
-8. Deploy with every worker switch off and verify public and private pages before
-   approving any real outreach brief.
-9. Do not configure a production scheduler or outbound email provider during Phase Five.
-
-The next development step is local acceptance testing on the feature branch.
-Request explicit authorization before pushing, opening a pull request, applying
-production migrations, configuring secrets, deploying, or invoking production.
+Release notes describe their original implementation/release boundaries.
+Historical activation statements are not a live status report; use the current
+administrator workspace and verified deployment/database state for operations.
