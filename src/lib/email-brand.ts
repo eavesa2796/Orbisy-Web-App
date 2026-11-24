@@ -14,19 +14,19 @@ function bodyHtml(value: string) {
   ).join("");
 }
 
-export function preferencePageUrl(stopUrl: string) {
+export function preferencePageUrl(stopUrl: string, path: "/email-preferences" | "/outreach-preferences" = "/email-preferences") {
   const url = new URL(stopUrl);
-  url.pathname = "/email-preferences";
+  url.pathname = path;
   return url.href;
 }
 
 /** Render only before the first delivery attempt; retries reuse the stored payload. */
-export function renderBrandedEmail({subject, body, postalAddress, stopUrl}: {
-  subject: string; body: string; postalAddress?: string; stopUrl?: string | null;
+export function renderBrandedEmail({subject, body, postalAddress, stopUrl, preferencePath, commercial = false}: {
+  subject: string; body: string; postalAddress?: string; stopUrl?: string | null; preferencePath?: "/email-preferences" | "/outreach-preferences"; commercial?: boolean;
 }) {
   const address = (postalAddress || "").replace(/\r\n/g, "\n").trim();
-  const preferences = stopUrl ? preferencePageUrl(stopUrl) : null;
-  const text = [body, "Orbisy LLC", address, ...(preferences ? [`Stop These Follow Ups: ${preferences}`] : []), homeUrl].filter(Boolean).join("\n\n");
+  const preferences = stopUrl ? preferencePageUrl(stopUrl, preferencePath) : null;
+  const text = [body, ...(commercial ? ["Business solicitation from Orbisy LLC."] : []), "Orbisy LLC", address, ...(preferences ? [`Stop These Follow Ups: ${preferences}`] : []), homeUrl].filter(Boolean).join("\n\n");
   const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(subject)}</title></head>
 <body style="margin:0;padding:0;background-color:#eef3f6;font-family:Arial,Helvetica,sans-serif;color:#172c3d">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#eef3f6"><tr><td align="center" style="padding:28px 12px">
@@ -34,6 +34,7 @@ export function renderBrandedEmail({subject, body, postalAddress, stopUrl}: {
 <tr><td style="padding:22px 28px;background-color:#091625;border-bottom:3px solid #5be7cf"><span style="font-size:13px;letter-spacing:2px;font-weight:bold;color:#91f5df">ORBISY</span></td></tr>
 <tr><td style="padding:30px 28px;font-size:16px;line-height:1.7;overflow-wrap:anywhere">${bodyHtml(body)}</td></tr>
 <tr><td style="padding:24px 28px;background-color:#091625;color:#c1cfdd;font-size:13px;line-height:1.8">
+${commercial ? '<p style="margin:0 0 12px">Business solicitation from Orbisy LLC.</p>' : ""}
 <p style="margin:0 0 12px"><strong style="color:#ffffff">Orbisy LLC</strong>${address ? `<br>${escapeHtml(address).replace(/\n/g, "<br>")}` : ""}</p>
 ${preferences ? `<p style="margin:0 0 20px"><a href="${escapeHtml(preferences)}" style="color:#91f5df;text-decoration:underline">Stop These Follow Ups</a></p>` : ""}
 <a href="${homeUrl}" style="display:inline-block"><img src="${logoUrl}" width="150" height="70" alt="Orbisy — visit our website" style="display:block;width:150px;height:70px;border:0"></a>

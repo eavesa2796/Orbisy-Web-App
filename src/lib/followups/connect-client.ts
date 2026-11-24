@@ -1,7 +1,7 @@
-export async function getGmailAuthorizationUrl(): Promise<string> {
+export async function getGmailAuthorizationUrl(path: "/api/admin/followups/gmail/start" | "/api/admin/outreach/gmail/start" = "/api/admin/followups/gmail/start"): Promise<string> {
   let response: Response;
   try {
-    response = await fetch("/api/admin/followups/gmail/start", {
+    response = await fetch(path, {
       method: "POST",
       headers: {Accept: "application/json"},
       credentials: "same-origin",

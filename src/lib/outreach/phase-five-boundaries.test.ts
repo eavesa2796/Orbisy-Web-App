@@ -15,7 +15,7 @@ describe("Phase Five authorization and scope boundaries", () => {
     expect(actions).toContain("verificationStatus");
   });
 
-  it("contains no outbound delivery provider or production scheduler", async () => {
+  it("keeps the legacy manual-audit draft actions separate from outbound sending", async () => {
     const actions = await readFile(
       join(process.cwd(), "src/app/admin-portal/actions.ts"),
       "utf8",
