@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Check } from "lucide-react";
 import { AgencyContact } from "@/components/agency-contact";
 import { PublicFooter, PublicHeader } from "@/components/public-site-shell";
+import { ProjectAssistant } from "@/components/project-assistant";
 import { discoveryOffer, findPublicPackage, pricingAddOns, publicPackages, supportingOffers } from "@/lib/public-pricing";
 import "./pricing.css";
 export const metadata: Metadata = {
@@ -18,5 +19,5 @@ export default async function PricingPage({searchParams}: {searchParams: Promise
  <section className="section pricing-support" aria-labelledby="support-heading"><div className="container"><div className="section-heading"><p className="eyebrow">After launch</p><h2 id="support-heading">Routine care and development are separate.</h2><p>Choose a maintenance scope for the existing site, or agree on capacity for improvements. Neither is automatically included in a project quote.</p></div><div className="pricing-support-list">{supportingOffers.map(offer=><article className="pricing-support-row" key={offer.id}><div><h3>{offer.name}</h3><p>{offer.description}</p><Link className="text-link" href={offer.detailHref}>Explore ongoing support →</Link></div><div><ul className="pricing-features">{offer.features.map(feature=><li key={feature}><Check size={17} aria-hidden="true"/><span>{feature}</span></li>)}</ul><p className="pricing-scope">{offer.scope}</p></div><div className="pricing-support-price"><strong>{offer.price}</strong><span>{offer.billing}</span><a className="text-link" href={`/pricing?package=${offer.id}#contact`}>Discuss your project<span className="sr-only">: {offer.name}</span> →</a></div></article>)}</div></div></section>
  <section className="section pricing-extras"><div className="container pricing-extras-layout"><div><p className="eyebrow">Dependencies & additions</p><h2>Agree on the details before they become extra work.</h2><p>Changes to scope are reviewed and priced before they are added. Your proposal also confirms ownership, access, handover, and any ongoing terms.</p></div><dl>{pricingAddOns.map(([title,copy])=><div key={title}><dt>{title}<span>Scoped separately</span></dt><dd>{copy}</dd></div>)}</dl></div></section>
  <AgencyContact key={selected?.id ?? "general"} service={selected?.service} inquiryContext={selected ? `Requested scope: ${selected.name} (${selected.priceSummary}).` : undefined}/>
- </main><PublicFooter/></>;
+ </main><PublicFooter/><ProjectAssistant/></>;
 }

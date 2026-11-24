@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Check } from "lucide-react";
 import { PublicHeader, PublicFooter } from "@/components/public-site-shell";
 import { AgencyContact } from "@/components/agency-contact";
+import { ProjectAssistant } from "@/components/project-assistant";
 import { AssociationServices, AssociationProcess } from "@/components/association-sections";
 import type { AssociationService } from "@/lib/association-services";
 export function AssociationServicePage({ service }: { service: AssociationService }) {
@@ -10,5 +11,5 @@ export function AssociationServicePage({ service }: { service: AssociationServic
     <section className="section"><div className="container"><div className="scope-notes"><article><h2>What we need from you</h2><p>{service.responsibilities}</p></article><article><h2>How pricing works</h2><p>{service.scope}</p><Link href="/pricing" className="text-link">Project quotes & ongoing support →</Link><Link href="/project-planning" className="text-link">Prepare a board-ready project decision →</Link></article></div><p className="association-fineprint"><Check size={16} aria-hidden="true"/>Features, access, deliverables, and responsibilities are agreed before implementation.</p></div></section>
     <AssociationProcess/><section className="section faq-section"><div className="container faq-layout"><div><p className="eyebrow">Before you decide</p><h2>Useful details.</h2></div><div className="faq-list">{service.faq.map(([q,a])=><details key={q}><summary>{q}<span aria-hidden="true">+</span></summary><p>{a}</p></details>)}</div></div></section>
     <AgencyContact service={service.title}/><section className="section"><div className="container"><div className="section-heading"><p className="eyebrow">Other ways to work with Orbisy</p><h2>Build on the right foundation.</h2></div><AssociationServices exclude={service.slug}/></div></section>
-  </main><PublicFooter/></>;
+  </main><PublicFooter/><ProjectAssistant/></>;
 }

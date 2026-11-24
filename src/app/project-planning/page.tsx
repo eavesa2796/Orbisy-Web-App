@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PublicFooter, PublicHeader } from "@/components/public-site-shell";
+import { ProjectAssistant } from "@/components/project-assistant";
 import { discoveryOffer, publicPackages } from "@/lib/public-pricing";
 import styles from "./brief.module.css";
 
@@ -219,6 +220,7 @@ export default function ProjectPlanningPage() {
         </section>
       </main>
       <PublicFooter />
+      <ProjectAssistant />
     </>
   );
 }
