@@ -174,6 +174,9 @@ export function PublicNavigation({
           </div>
         </details>
       ))}
+      <Link href="/pricing" onClick={closeAll}>
+        Pricing &amp; planning
+      </Link>
       <Link href="/work" onClick={closeAll}>
         Our Work
       </Link>
