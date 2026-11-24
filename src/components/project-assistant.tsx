@@ -32,7 +32,7 @@ export function ProjectAssistant() {
   const [messages, setMessages] = useState<Turn[]>([
     {
       role: "assistant",
-      content: "Hi, I can help you explore Orbisy’s services, project planning ranges, and what a scoped project involves. Ask me a question and I’ll point you to the relevant page.",
+      content: "Hi, I can answer questions about Orbisy’s services and project planning using published website information. Your question and relevant public excerpts are sent to OpenAI’s GPT-5 mini through Vercel AI Gateway to prepare a reply. This chat isn’t saved as an inquiry in Orbisy. Please don’t share confidential information.",
     },
   ]);
 
@@ -174,7 +174,7 @@ export function ProjectAssistant() {
           </form>
 
           <p id="project-assistant-disclosure" className="project-assistant-disclosure">
-            Answers are matched to Orbisy’s public pages. Don’t share passwords, API keys, or confidential member data. <Link href="/privacy">Privacy</Link>
+            Replies use public Orbisy pages and OpenAI’s GPT-5 mini through Vercel AI Gateway. Don’t share passwords, API keys, or confidential member data. <Link href="/privacy">Privacy</Link>
           </p>
         </section>
       )}
