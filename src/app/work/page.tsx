@@ -6,7 +6,7 @@ import { AgencyContact } from "@/components/agency-contact";
 export const metadata: Metadata = {
   title: "Website work & custom software concepts",
   description:
-    "Explore Orbisy’s Rescue Tow Truck before-and-after redesign comparison, live website work, design process, and a custom software dashboard concept.",
+    "Explore Orbisy’s Rescue Tow Truck before-and-after redesign comparison, live website work, an illustrative association website concept, design process, and a custom software dashboard concept.",
   alternates: { canonical: "/work" },
   openGraph: { url: "/work" },
 };
@@ -21,7 +21,7 @@ export default function Page() {
             <h1>Real website work. Clearly labeled concepts.</h1>
             <p className="hero-lede">
               Explore live website projects for towing and mobile battery
-              service, an illustrative design process, and a dashboard concept in progress. These projects show design and development capabilities; Orbisy does not yet have association case studies or a finished association software product.
+              service, an illustrative association website concept, a design-process concept, and a dashboard concept in progress. Orbisy does not yet have association case studies or a finished association software product.
             </p>
           </div>
         </section>
