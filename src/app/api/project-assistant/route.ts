@@ -101,7 +101,7 @@ export async function POST(request: Request) {
     const sourceIds = selected.map(({ id }) => id);
     const allowedSourceIds = new Set(sourceIds);
     failureStage = "gateway_auth";
-    const gatewayToken = process.env.VERCEL_OIDC_TOKEN;
+    const gatewayToken = request.headers.get("x-vercel-oidc-token") || process.env.VERCEL_OIDC_TOKEN;
     if (!gatewayToken) {
       console.error("[project-assistant] request unavailable", { stage: failureStage, code: "missing_oidc_token" });
       return assistantUnavailable();
