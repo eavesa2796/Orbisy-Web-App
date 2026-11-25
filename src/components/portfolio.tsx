@@ -2,6 +2,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { rescueTowRedesign } from "@/components/rescue-tow-comparison";
 import { PortfolioCarousel } from "@/components/portfolio-carousel";
+import {
+  AssociationDashboardGraphic,
+  AssociationOfferBanner,
+  DesignProcessBanner,
+} from "@/components/portfolio-graphics";
 export const projects = [
   {
     id: "association-website-concept",
@@ -13,9 +18,9 @@ export const projects = [
     url: "/work/association-website-concept",
     alt: "Illustrative Orbisy association website concept artwork; sample design, not client work",
     tag: "Association website · Illustrative concept",
-    summary: "A sample path from public information to member resources.",
+    summary: "A clear route from public information to member services.",
     details:
-      "A clickable design concept for prospective members, current members, event attendees, and staff. It demonstrates how an association website could organize common journeys before real content, account access, and system connections are scoped.",
+      "An illustrative association concept that shows how a public website, member portal, and connected systems can support different member and staff needs. The right scope depends on your content, workflows, access rules, and existing platforms.",
     points: [
       "Help prospective members understand membership and next steps",
       "Give members a clear starting point for events and resources",
@@ -65,7 +70,7 @@ export const projects = [
     kind: "concept",
     width: 1586,
     height: 992,
-    name: "The Orbisy design process",
+    name: "Your idea, taking shape",
     image: "/work/orbisy-design-process.webp",
     url: "/association-websites",
     alt: "Illustrative Orbisy website design process showing wireframes, visual design, and refinement on desktop and mobile",
@@ -85,18 +90,18 @@ export const projects = [
     kind: "work-in-progress",
     width: 1600,
     height: 1000,
-    name: "Orbisy operations dashboard",
+    name: "Association operations dashboard",
     image: "/work/orbisy-operations-dashboard.svg",
     url: "/member-portals",
-    alt: "Work-in-progress Orbisy custom software dashboard concept showing sample inquiries, projects, follow-ups, and workflow activity",
-    tag: "Custom software · Work in progress",
-    summary: "A dashboard concept for keeping work in view.",
+    alt: "Illustrative association dashboard showing sample membership, renewal, event, and application numbers",
+    tag: "Association software · Illustrative dashboard concept",
+    summary: "A sample view of the member and event work an association manages.",
     details:
-      "The spreadsheet you keep updating. The inquiry that gets lost between tools. The follow-up you have to remember. Orbisy builds custom software around the overlooked parts of running an organization. This work-in-progress dashboard concept explores bringing inquiries, project progress, and next steps into one useful workspace. It is an illustrative direction with sample data; the features shown are not live.",
+      "This illustrative dashboard concept explores how an association team could keep membership renewals, applications, event registrations, and member resources in view. All numbers are sample data. This is a design concept, not a live Orbisy product or a completed client project.",
     points: [
-      "Start with the friction: repeated tasks, scattered information, and missed handoffs",
-      "Design around your team’s workflow, with only the features you need",
-      "Scope dashboards, client portals, integrations, and automation around the problem",
+      "See membership and renewal activity at a glance",
+      "Keep applications, events, and member resources easier to track",
+      "Scope roles, data sources, and integrations around the association’s workflow",
     ],
   },
 ] as const;
@@ -188,12 +193,20 @@ export function PortfolioProject({
           {image}
         </a>
       ) : (
-        <figure className="process-artwork">
-          {image}
+        <figure className={`process-artwork process-artwork-${p.id}`}>
+          {p.id === "association-website-concept" ? (
+            <AssociationOfferBanner />
+          ) : p.id === "orbisy-design-process" ? (
+            <DesignProcessBanner />
+          ) : p.id === "orbisy-operations-dashboard" ? (
+            <AssociationDashboardGraphic />
+          ) : image}
           <figcaption>
             {p.kind === "work-in-progress"
-              ? "Work in progress · Visual dashboard concept with sample data. Not a live application or completed client project."
-              : "Illustrative design concept — not a live website or completed client project."}
+              ? "Illustrative dashboard concept with sample data · Not a live product or completed client project."
+              : p.id === "association-website-concept"
+                ? "Illustrative overview of association website, member portal, and integration services — not client work."
+                : "Illustrative design process — not a live website or completed client project."}
           </figcaption>
         </figure>
       )}
