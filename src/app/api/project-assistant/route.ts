@@ -209,27 +209,7 @@ export async function POST(request: Request) {
             }),
           },
         ],
-        response_format: {
-          type: "json_schema",
-          json_schema: {
-            name: "orbisy_project_assistant_answer",
-            strict: true,
-            schema: {
-              type: "object",
-              additionalProperties: false,
-              properties: {
-                answer: { type: "string" },
-                handoff: { type: "boolean" },
-                sourceIds: {
-                  type: "array",
-                  maxItems: 2,
-                  items: { type: "string", enum: sourceIds },
-                },
-              },
-              required: ["answer", "handoff", "sourceIds"],
-            },
-          },
-        },
+        response_format: { type: "json_object" },
         providerOptions: {
           gateway: {
             only: ["openai"],
