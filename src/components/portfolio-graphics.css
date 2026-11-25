@@ -98,7 +98,7 @@
 
 .association-dashboard-graphic { border-color: rgba(101, 214, 255, .25); background: #0a101c; }
 .association-dashboard-header { display: flex; min-height: 85px; align-items: center; gap: 22px; padding: 14px 22px; border-bottom: 1px solid rgba(255, 255, 255, .09); background: #0e1524; }
-.association-dashboard-header > img { width: 125px; height: auto; flex: 0 0 auto; }
+.association-dashboard-header > img { width: 140px; max-height: 54px; height: auto; flex: 0 0 auto; object-fit: contain; object-position: left center; }
 .association-dashboard-header-title { padding-left: 22px; border-left: 1px solid rgba(255, 255, 255, .12); }
 .association-dashboard-header-title > span { font-size: .64rem; }
 .association-dashboard-header-title strong { display: block; margin-top: 5px; color: var(--text); font-size: 1rem; }
@@ -107,8 +107,7 @@
 .association-dashboard-nav { display: flex; flex-direction: column; gap: 8px; padding: 22px 13px; border-right: 1px solid rgba(255, 255, 255, .09); background: #0c1321; }
 .association-dashboard-nav span { display: flex; align-items: center; gap: 11px; padding: 10px 11px; border-radius: 9px; color: #9ca9c3; font-size: .88rem; }
 .association-dashboard-nav span.is-current { border: 1px solid rgba(101, 214, 255, .19); color: #aaf6db; background: rgba(101, 214, 255, .08); }
-.association-dashboard-nav i { width: 14px; height: 14px; border: 1.5px solid currentColor; border-radius: 4px; opacity: .85; }
-.association-dashboard-nav span:nth-child(2) i { border-radius: 50%; }
+.association-dashboard-nav svg { width: 15px; height: 15px; flex: 0 0 auto; stroke-width: 1.8; opacity: .9; }
 .association-dashboard-main { min-width: 0; padding: 23px; }
 .association-dashboard-title-row { display: flex; align-items: center; justify-content: space-between; gap: 15px; margin-bottom: 19px; }
 .association-dashboard-title-row > div > span { font-size: .62rem; }
@@ -160,7 +159,7 @@
   .design-process-stages article { grid-template-columns: 86px minmax(0, 1fr); min-height: 112px; }
   .design-process-stages article:not(:last-child)::after { top: auto; right: auto; bottom: -16px; left: 42px; width: 1px; height: 16px; }
   .association-dashboard-header { gap: 13px; padding: 13px; }
-  .association-dashboard-header > img { width: 96px; }
+  .association-dashboard-header > img { width: 112px; max-height: 44px; }
   .association-dashboard-header-title { padding-left: 13px; }
   .association-dashboard-header-title > span { font-size: .55rem; }
   .association-dashboard-header-title strong { font-size: .83rem; }

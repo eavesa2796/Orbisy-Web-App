@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { BookOpen, CalendarDays, ClipboardCheck, LayoutDashboard, UsersRound } from "lucide-react";
 import type { CSSProperties } from "react";
 import "./portfolio-graphics.css";
 
@@ -80,11 +81,11 @@ export function AssociationDashboardGraphic() {
       </header>
       <div className="association-dashboard-body">
         <nav className="association-dashboard-nav" aria-hidden="true">
-          <span className="is-current"><i />Overview</span>
-          <span><i />Members</span>
-          <span><i />Events</span>
-          <span><i />Applications</span>
-          <span><i />Resources</span>
+          <span className="is-current"><LayoutDashboard />Overview</span>
+          <span><UsersRound />Members</span>
+          <span><CalendarDays />Events</span>
+          <span><ClipboardCheck />Applications</span>
+          <span><BookOpen />Resources</span>
         </nav>
         <div className="association-dashboard-main">
           <div className="association-dashboard-title-row">
