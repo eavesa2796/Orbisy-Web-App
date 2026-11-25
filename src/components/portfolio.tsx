@@ -108,11 +108,14 @@ export const projects = [
 export function Portfolio({
   full = false,
   carousel = false,
+  excludeProjectIds = [],
 }: {
   full?: boolean;
   carousel?: boolean;
+  excludeProjectIds?: ReadonlyArray<(typeof projects)[number]["id"]>;
 }) {
-  const cards = projects.map((p) => (
+  const visibleProjects = projects.filter((p) => !excludeProjectIds.includes(p.id));
+  const cards = visibleProjects.map((p) => (
     <PortfolioProject key={p.name} project={p} full={full} />
   ));
   return (
@@ -135,7 +138,7 @@ export function Portfolio({
           </p>
         </div>
         {carousel ? (
-          <PortfolioCarousel names={projects.map((p) => p.name)}>
+          <PortfolioCarousel names={visibleProjects.map((p) => p.name)}>
             {cards}
           </PortfolioCarousel>
         ) : (
@@ -146,6 +149,20 @@ export function Portfolio({
           Truck comparison and redesign preview were captured October 29, 2026.
           Website content may change after capture. The association website concept and design-process artwork are illustrative; dashboard data is sample data and the dashboard is not a live product.
         </p>
+      </div>
+    </section>
+  );
+}
+
+export function PortfolioDashboardFeature() {
+  const project = projects.find((p) => p.id === "orbisy-operations-dashboard");
+
+  if (!project) return null;
+
+  return (
+    <section className="section portfolio-section" aria-label="Association dashboard concept">
+      <div className="container">
+        <PortfolioProject project={project} full />
       </div>
     </section>
   );
