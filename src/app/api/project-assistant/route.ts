@@ -184,7 +184,7 @@ export async function POST(request: Request) {
       signal: AbortSignal.timeout(12_000),
       body: JSON.stringify({
         model: MODEL,
-        max_tokens: 350,
+        max_tokens: 800,
         messages: [
           {
             role: "system",
