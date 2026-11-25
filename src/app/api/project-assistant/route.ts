@@ -209,7 +209,6 @@ export async function POST(request: Request) {
             }),
           },
         ],
-        response_format: { type: "json_object" },
         providerOptions: {
           gateway: {
             only: ["openai"],
@@ -242,8 +241,12 @@ export async function POST(request: Request) {
     try {
       parsedAnswer = parseAssistantJson(rawAnswer);
     } catch {
-      console.error("[project-assistant] response unavailable", { stage: failureStage, code: "invalid_json" });
-      return assistantUnavailable();
+      const plainText = rawAnswer.trim();
+      if (!plainText || plainText.length > 1_600 || /^[{[`]/.test(plainText)) {
+        console.error("[project-assistant] response unavailable", { stage: failureStage, code: "invalid_json" });
+        return assistantUnavailable();
+      }
+      parsedAnswer = { answer: plainText, handoff: false, sourceIds };
     }
     const answer = modelAnswerSchema.safeParse(parsedAnswer);
     if (!answer.success || answer.data.sourceIds.some((id) => !allowedSourceIds.has(id))) {
