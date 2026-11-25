@@ -55,6 +55,44 @@ function excerpt(text: string, limit = 700) {
   return candidate.slice(0, lastSentence > limit / 2 ? lastSentence + 1 : limit - 3).trimEnd() + (lastSentence > limit / 2 ? "" : "…");
 }
 
+function parseAssistantJson(value: string): unknown {
+  const normalized = value.trim().replace(/^\uFEFF/, "");
+  const fenced = normalized.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i)?.[1];
+  const candidates = fenced ? [normalized, fenced] : [normalized];
+
+  for (const candidate of candidates) {
+    try {
+      return JSON.parse(candidate);
+    } catch {
+      // Try extracting a JSON object below; schema validation still gates the result.
+    }
+  }
+
+  const start = normalized.indexOf("{");
+  if (start < 0) throw new SyntaxError("No JSON object in assistant response");
+
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+  for (let index = start; index < normalized.length; index += 1) {
+    const character = normalized[index];
+    if (inString) {
+      if (escaped) escaped = false;
+      else if (character === "\\") escaped = true;
+      else if (character === '"') inString = false;
+      continue;
+    }
+    if (character === '"') inString = true;
+    else if (character === "{") depth += 1;
+    else if (character === "}") {
+      depth -= 1;
+      if (depth === 0) return JSON.parse(normalized.slice(start, index + 1));
+    }
+  }
+
+  throw new SyntaxError("Incomplete JSON object in assistant response");
+}
+
 function assistantUnavailable() {
   return NextResponse.json({
     answer: "The assistant is temporarily unavailable. Please use the project request form or email info@orbisy.com.",
@@ -222,7 +260,7 @@ export async function POST(request: Request) {
 
     let parsedAnswer: unknown;
     try {
-      parsedAnswer = JSON.parse(rawAnswer);
+      parsedAnswer = parseAssistantJson(rawAnswer);
     } catch {
       console.error("[project-assistant] response unavailable", { stage: failureStage, code: "invalid_json" });
       return assistantUnavailable();
