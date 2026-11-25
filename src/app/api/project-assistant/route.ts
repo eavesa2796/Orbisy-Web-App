@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getAssistantPassages, findAssistantSources } from "@/lib/project-assistant-knowledge";
+import { discoveryOffer, publicPackages, supportingOffers } from "@/lib/public-pricing";
 import { checkGlobalRateLimit, checkRateLimit } from "@/lib/rate-limit";
 
 export const maxDuration = 15;
@@ -45,6 +46,22 @@ function handoffResponse() {
 
 function isHumanRequest(message: string) {
   return /\b(custom|fixed|exact)\s+(quote|price|estimate)\b|\b(talk|speak|meet|call|email)\s+(to|with)\s+(a\s+)?(person|human|developer|orbisy)\b|\bwhat would .{0,50} cost for us\b|\bcan you build (our|a custom)\b|\b(can|will|does|could)\b.{0,90}\b(integrate|connect|sync|sso)\b/i.test(message);
+}
+
+function isPricingQuestion(message: string) {
+  return /\b(price|prices|pricing|cost|costs|budget|range|ranges|quote|quotes)\b/i.test(message);
+}
+
+function publishedPricingAnswer() {
+  const projectRanges = publicPackages
+    .map((offer) => `${offer.name}: ${offer.price} ${offer.billing}`)
+    .join("; ");
+  const ongoingRanges = supportingOffers
+    .map((offer) => `${offer.name}: ${offer.price} ${offer.billing}`)
+    .join("; ");
+  const discoveryRange = `${discoveryOffer.name}: ${discoveryOffer.price} ${discoveryOffer.billing}`;
+
+  return `Published planning ranges in USD: ${projectRanges}. ${discoveryRange}. ${ongoingRanges}. These are planning ranges, not fixed quotes. A written proposal confirms scope, dependencies, deliverables, and final fees before paid implementation. Ongoing development is scoped separately.`;
 }
 
 function excerpt(text: string, limit = 700) {
@@ -158,7 +175,18 @@ export async function POST(request: Request) {
     failureStage = "content_retrieval";
     const passages = await getAssistantPassages();
     const matches = findAssistantSources(passages, parsed.data.message, parsed.data.pagePath);
-    if (isHumanRequest(parsed.data.message) || matches.length === 0 || matches[0].score < 3)
+    if (isHumanRequest(parsed.data.message))
+      return NextResponse.json(handoffResponse(), { headers: { "Cache-Control": "no-store" } });
+
+    if (isPricingQuestion(parsed.data.message)) {
+      return NextResponse.json({
+        answer: publishedPricingAnswer(),
+        sources: [{ title: "Project pricing & ongoing support", href: "/pricing" }],
+        handoff: false,
+      }, { headers: { "Cache-Control": "no-store" } });
+    }
+
+    if (matches.length === 0 || matches[0].score < 3)
       return NextResponse.json(handoffResponse(), { headers: { "Cache-Control": "no-store" } });
 
     const selected = matches.slice(0, 2).map(({ passage }) => ({
