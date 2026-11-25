@@ -3,14 +3,14 @@
 .tow-comparison-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
 .tow-comparison-panel { margin: 0; min-width: 0; padding: 22px; border: 1px solid var(--border); border-radius: 20px; background: linear-gradient(145deg, #131b2c, #0a101e); }
 .tow-comparison-after { border-color: #83f5c766; box-shadow: 0 0 38px #65d6ff09; }
-.tow-comparison-featured { max-width: 1020px; margin-inline: auto; border-color: #83f5c744; box-shadow: 0 0 42px #65d6ff0c; }
+.tow-comparison-featured { max-width: 1000px; margin-inline: auto; border-color: #83f5c744; box-shadow: 0 0 42px #65d6ff0c; }
 .tow-comparison-heading { display: flex; align-items: center; justify-content: space-between; gap: 15px; margin-bottom: 20px; }
 .tow-stage { display: block; color: var(--muted); text-transform: uppercase; font-size: 0.68rem; letter-spacing: 0.15em; font-weight: 700; }
 .tow-comparison-after .tow-stage { color: var(--accent-2); }
 .tow-comparison-heading h3 { font-size: 1.02rem; line-height: 1.6; margin-top: 6px; }
 .tow-reference, .tow-preview-status { font-size: 0.65rem; border: 1px solid var(--border); border-radius: 30px; padding: 7px 10px; white-space: nowrap; color: var(--muted); }
 .tow-preview-status { color: var(--accent-2); border-color: #83f5c744; background: #83f5c708; }
-.tow-screenshot-link { display: block; overflow: hidden; border: 1px solid #65d6ff22; border-radius: 10px; background: #070c15; }
+.tow-screenshot-link { display: block; width: min(100%, 920px); margin-inline: auto; overflow: hidden; border: 1px solid #65d6ff22; border-radius: 10px; background: #070c15; }
 .tow-screenshot-link img { display: block; width: 100%; height: auto; }
 .tow-screenshot-link > span { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; font-size: 0.72rem; color: var(--accent); border-top: 1px solid var(--border); }
 .tow-screenshot-link:hover { border-color: var(--accent-2); }
