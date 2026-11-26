@@ -230,11 +230,12 @@ describe("Association prospecting migration", () => {
     );
     await db.exec(await migration("0015_association_alternate_name.sql"));
     await db.exec(await migration("0016_association_manual_contact_details.sql"));
-    const preserved = await db.query<{ name: string; alternate_name: string | null; manual_contacts: unknown[]; outreach_reason: string | null }>(
-      "select name, alternate_name, manual_contacts, outreach_reason from association_prospects where id=$1",
+    await db.exec(await migration("0017_association_sales_pipeline.sql"));
+    const preserved = await db.query<{ name: string; alternate_name: string | null; manual_contacts: unknown[]; outreach_reason: string | null; sales_stage: string; sales_next_action_date: string | null }>(
+      "select name, alternate_name, manual_contacts, outreach_reason, sales_stage, sales_next_action_date from association_prospects where id=$1",
       [prospect.rows[0]?.id],
     );
-    expect(preserved.rows).toEqual([{ name: "Sample Chamber", alternate_name: null, manual_contacts: [], outreach_reason: null }]);
+    expect(preserved.rows).toEqual([{ name: "Sample Chamber", alternate_name: null, manual_contacts: [], outreach_reason: null, sales_stage: "needs_review", sales_next_action_date: null }]);
     await db.query(
       `insert into association_scan_jobs (kind, source_state, sample_limit, created_by)
        values ('irs_sample', 'IL', 5, 'admin@example.com')`,
@@ -256,6 +257,16 @@ describe("Association prospecting migration", () => {
       `insert into association_prospects (ein, name, state)
        values ('010000002', 'Invalid State Chamber', 'XX')`,
     )).rejects.toThrow();
+    await db.query(
+      "update association_prospects set sales_stage='follow_up', sales_next_action='Call the office', sales_next_action_date='2026-11-28' where id=$1",
+      [prospect.rows[0]?.id],
+    );
+    await db.query("update association_prospects set website_condition='scan_failed' where id=$1", [prospect.rows[0]?.id]);
+    const salesPlan = await db.query<{ sales_stage: string; sales_next_action: string; due: string }>(
+      "select sales_stage, sales_next_action, sales_next_action_date::text as due from association_prospects where id=$1",
+      [prospect.rows[0]?.id],
+    );
+    expect(salesPlan.rows).toEqual([{ sales_stage: "follow_up", sales_next_action: "Call the office", due: "2026-11-28" }]);
     const security = await db.query<{ relname: string; relrowsecurity: boolean }>(
       "select relname, relrowsecurity from pg_class where relname in ('association_prospects','association_scan_jobs') order by relname",
     );

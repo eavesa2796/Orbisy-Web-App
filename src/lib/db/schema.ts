@@ -859,6 +859,10 @@ export const associationScanJobStatus = pgEnum("association_scan_job_status", [
   "cancelled",
 ]);
 export const associationJobKind = pgEnum("association_job_kind", ["website_scan", "irs_sample"]);
+export const associationSalesStage = pgEnum("association_sales_stage", [
+  "needs_review", "ready_to_contact", "contacted", "follow_up", "skip",
+]);
+
 export const associationProspects = pgTable("association_prospects", {
   id: uuid("id").defaultRandom().primaryKey(),
   ein: varchar("ein", { length: 9 }).notNull(),
@@ -875,6 +879,10 @@ export const associationProspects = pgTable("association_prospects", {
   publicContacts: jsonb("public_contacts").$type<Array<{ type: "email" | "phone"; value: string; sourceUrl: string }>>().default([]).notNull(),
   manualContacts: jsonb("manual_contacts").$type<import("../association-prospects/manual-contacts").ManualAssociationContact[]>().default([]).notNull(),
   outreachReason: text("outreach_reason"),
+  salesStage: associationSalesStage("sales_stage").default("needs_review").notNull(),
+  salesNextAction: varchar("sales_next_action", { length: 300 }),
+  salesNextActionDate: date("sales_next_action_date"),
+  salesLastInteraction: varchar("sales_last_interaction", { length: 600 }),
   evidence: jsonb("evidence").$type<Array<{ kind: string; summary: string; sourceUrl?: string; checkedAt?: string; confidence?: "low" | "medium" | "high" }>>().default([]).notNull(),
   sourceName: varchar("source_name", { length: 120 }).default("IRS Exempt Organizations Business Master File").notNull(),
   sourceUrl: text("source_url"),

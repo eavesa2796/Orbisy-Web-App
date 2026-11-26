@@ -1,13 +1,15 @@
 import { preferredBusinessContacts } from "@/lib/association-prospects/manual-contacts";
-import { and, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, ilike, inArray, lte, ne, or, sql } from "drizzle-orm";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { requireAdmin } from "@/lib/auth";
 import { getDb } from "@/lib/db";
-import { associationProspects, associationScanJobs } from "@/lib/db/schema";
+import { associationProspects, associationSalesStage, associationScanJobs } from "@/lib/db/schema";
 import { selectedAssociationWebsite } from "@/lib/association-prospects/worker";
 import { AssociationJobRefresh } from "@/components/admin/association-job-refresh";
 import { addAssociationProspectAction, queueAssociationIrsSampleAction, queueAssociationScansAction, retryAssociationScanAction, reviewAssociationProspectAction } from "./actions";
-import { AssociationContactForm } from "./contact-form";
+import { AssociationProspectForm } from "./prospect-form";
+import { associationStageLabels } from "@/lib/association-prospects/pipeline";
+import { chicagoParts } from "@/lib/followups/model";
 
 const conditions = [
   ["unassessed", "Not assessed"],
@@ -34,16 +36,20 @@ function reviewCues(record: typeof associationProspects.$inferSelect) {
   return cues;
 }
 
-export default async function AssociationProspectsPage({ searchParams }: { searchParams: Promise<{ q?: string; state?: string; classification?: string; condition?: string; review?: string; contact?: string }> }) {
+export default async function AssociationProspectsPage({ searchParams }: { searchParams: Promise<{ q?: string; state?: string; classification?: string; condition?: string; review?: string; contact?: string; stage?: string; due?: string }> }) {
   const admin = await requireAdmin();
   const prospectingEnabled = process.env.ASSOCIATION_PROSPECTING_ENABLED === "true";
   const scanningEnabled = prospectingEnabled && Boolean(process.env.BRAVE_SEARCH_API_KEY?.trim());
   const params = await searchParams;
+  const today = chicagoParts(new Date()).date;
+  const dueOnly = params.due === "1";
+  const selectedStage = associationSalesStage.enumValues.find((stage) => stage === params.stage);
   let records: typeof associationProspects.$inferSelect[] = [];
   let latestJobs = new Map<string, typeof associationScanJobs.$inferSelect>();
   let recentJobs: typeof associationScanJobs.$inferSelect[] = [];
   let totals = { total: 0, assessed: 0, notConfirmed: 0, healthy: 0, manual: 0, problems: 0, unassessed: 0, failed: 0, blocked: 0 };
   let loadError = false;
+  let pipelineCounts = { due: 0, ready: 0 };
   try {
     const db = getDb();
     const filters = [];
@@ -63,11 +69,18 @@ export default async function AssociationProspectsPage({ searchParams }: { searc
     } else if (params.contact === "any") {
       filters.push(sql`(jsonb_array_length(${associationProspects.publicContacts}) + jsonb_array_length(${associationProspects.manualContacts})) > 0`);
     }
+    if (selectedStage) filters.push(eq(associationProspects.salesStage, selectedStage));
+    if (dueOnly) filters.push(and(ne(associationProspects.salesStage, "skip"), lte(associationProspects.salesNextActionDate, today)));
     const where = filters.length ? and(...filters) : undefined;
     const [rows, [stats]] = await Promise.all([
-      db.select().from(associationProspects).where(where).orderBy(desc(associationProspects.updatedAt)).limit(100),
+      db.select().from(associationProspects).where(where).orderBy(
+        ...(dueOnly ? [asc(associationProspects.salesNextActionDate)] : []),
+        desc(associationProspects.updatedAt),
+      ).limit(100),
       db.select({
         total: sql<number>`count(*)::int`,
+        due: sql<number>`count(*) filter (where sales_stage <> 'skip' and sales_next_action_date <= ${today}::date)::int`,
+        ready: sql<number>`count(*) filter (where sales_stage = 'ready_to_contact')::int`,
         assessed: sql<number>`count(*) filter (where website_condition in ('website_not_confirmed','no_major_issues_detected','needs_manual_review','significant_problems'))::int`,
         notConfirmed: sql<number>`count(*) filter (where website_condition = 'website_not_confirmed')::int`,
         healthy: sql<number>`count(*) filter (where website_condition = 'no_major_issues_detected')::int`,
@@ -79,6 +92,7 @@ export default async function AssociationProspectsPage({ searchParams }: { searc
       }).from(associationProspects),
     ]);
     records = rows;
+    pipelineCounts = { due: Number(stats?.due || 0), ready: Number(stats?.ready || 0) };
     recentJobs = await db.select().from(associationScanJobs).orderBy(desc(associationScanJobs.createdAt)).limit(15);
     if (rows.length) {
       const jobs = await db.select().from(associationScanJobs).where(inArray(associationScanJobs.prospectId, rows.map((row) => row.id))).orderBy(desc(associationScanJobs.createdAt));
@@ -133,8 +147,13 @@ export default async function AssociationProspectsPage({ searchParams }: { searc
         <td>{["failed", "blocked"].includes(job.status) && (job.attemptCount < job.maxAttempts ? <form action={retryAssociationScanAction}><input type="hidden" name="jobId" value={job.id} /><button className="button button-secondary" disabled={!prospectingEnabled || (job.kind === "website_scan" && !scanningEnabled)}>Retry</button></form> : <span className="field-help">Attempt limit reached</span>)}</td>
       </tr>)}</tbody></table></div>
     </section>}
-    <section className="admin-card">
+    <section className="admin-card" id="prospect-list">
       <div className="card-heading"><div><p className="eyebrow">Saved records</p><h2>Review association prospects</h2></div><div className="button-row"><a className="button button-secondary" href="/admin-portal/association-prospects/export">Export CSV</a><span className="status-pill">{totals.total} total</span></div></div>
+      <div className="button-row">
+        <a className="button button-secondary" href="?due=1#prospect-list">Due today or overdue ({pipelineCounts.due})</a>
+        <a className="button button-secondary" href="?stage=ready_to_contact#prospect-list">Ready to contact ({pipelineCounts.ready})</a>
+        {(dueOnly || selectedStage) && <a className="button button-secondary" href="?#prospect-list">All prospects</a>}
+      </div>
       <form method="get" className="filter-bar association-prospect-filter">
         <label>Organization<input name="q" defaultValue={params.q} placeholder="Search name" /></label>
         <label>State<input name="state" defaultValue={params.state} maxLength={2} placeholder="Any" /></label>
@@ -142,9 +161,11 @@ export default async function AssociationProspectsPage({ searchParams }: { searc
         <label>Website condition<select name="condition" defaultValue={params.condition || ""}><option value="">Any condition</option>{conditions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
         <label>Review status<select name="review" defaultValue={params.review || ""}><option value="">Any status</option><option value="needs_review">Needs review</option><option value="confirmed">Confirmed</option><option value="rejected">Rejected</option></select></label>
         <label>Public contact<select name="contact" defaultValue={params.contact || ""}><option value="">Any</option><option value="any">Any saved contact</option><option value="phone">Has phone</option><option value="email">Has email</option><option value="form">Has saved contact form</option></select></label>
+        <label>Sales stage<select name="stage" defaultValue={selectedStage || ""}><option value="">Any stage</option>{associationSalesStage.enumValues.map((stage) => <option key={stage} value={stage}>{associationStageLabels[stage]}</option>)}</select></label>
+        <label>Next action due<select name="due" defaultValue={dueOnly ? "1" : ""}><option value="">Any date</option><option value="1">Today or overdue</option></select></label>
         <button className="button button-secondary">Filter</button>
       </form>
-      {!records.length ? <div className="empty-state"><h3>No prospects in this view</h3><p>Start with a small set of organizations and preserve the source links used to identify them.</p></div> : <div className="association-prospect-list">{records.map((record) => {
+      {!records.length ? <div className="empty-state"><h3>No prospects in this view</h3><p>{dueOnly ? "There are no due actions that match these filters." : "Change the filters to see more prospects."}</p></div> : <div className="association-prospect-list">{records.map((record) => {
         const selectedUrl = selectedAssociationWebsite(record);
         const candidate = record.evidence.find((item) => item.kind === "website_candidate" || item.kind === "search_review" && record.websiteUrl === item.sourceUrl);
         const job = latestJobs.get(record.id);
@@ -171,6 +192,22 @@ export default async function AssociationProspectsPage({ searchParams }: { searc
           {contactPage && <> {(phone || email) && " · "}<a href={contactPage} target="_blank" rel="noreferrer">{form ? "Contact form" : "Contact page"}</a></>}
         </p>}
         {record.outreachReason && <p><strong>Why contact them? </strong>{record.outreachReason}</p>}
+        <p><strong>Sales stage: </strong>{associationStageLabels[record.salesStage]}</p>
+        {record.salesNextAction && <p><strong>Next action: </strong>{record.salesNextAction}
+          {record.salesNextActionDate && <> · <time dateTime={record.salesNextActionDate}>{record.salesNextActionDate}</time>{record.salesStage !== "skip" && record.salesNextActionDate <= today && (record.salesNextActionDate === today ? " · Due today" : " · Overdue")}</>}
+        </p>}
+        {record.salesLastInteraction && <p><strong>Last interaction: </strong>{record.salesLastInteraction}</p>}
+        <details>
+          <summary>Edit sales plan</summary>
+          <AssociationProspectForm kind="sales" disabled={!prospectingEnabled}>
+            <input type="hidden" name="id" value={record.id} />
+            <label>Sales stage<select name="stage" defaultValue={record.salesStage}>{associationSalesStage.enumValues.map((stage) => <option key={stage} value={stage}>{associationStageLabels[stage]}</option>)}</select></label>
+            <label>Due date (Chicago)<input type="date" name="dueDate" defaultValue={record.salesNextActionDate || ""} /></label>
+            <label className="span-two">Next action<input name="action" maxLength={300} defaultValue={record.salesNextAction || ""} placeholder="Call the membership office" /></label>
+            <label className="span-two">Last interaction<textarea name="lastInteraction" rows={2} maxLength={600} defaultValue={record.salesLastInteraction || ""} placeholder="What happened on the last call or email?" /></label>
+            <p className="field-help span-two">To mark a prospect ready, confirm the record and save a sourced contact and a reason.</p>
+          </AssociationProspectForm>
+        </details>
         <details>
           <summary>Edit public contacts and reason</summary>
           {record.manualContacts.length > 0 && <ul>
@@ -180,7 +217,7 @@ export default async function AssociationProspectsPage({ searchParams }: { searc
               {" · "}<a href={contact.sourceUrl} target="_blank" rel="noreferrer">Source</a>
             </li>)}
           </ul>}
-          <AssociationContactForm disabled={!prospectingEnabled}>
+          <AssociationProspectForm kind="contacts" disabled={!prospectingEnabled}>
             <input type="hidden" name="id" value={record.id} />
             <label>Public phone<input name="phone" type="tel" maxLength={40} defaultValue={savedPhone?.value || ""} /></label>
             <label>Phone source URL<input name="phoneSource" type="url" maxLength={2000} defaultValue={savedPhone?.sourceUrl || ""} /></label>
@@ -189,7 +226,7 @@ export default async function AssociationProspectsPage({ searchParams }: { searc
             <label className="span-two">Public contact form URL<input name="formUrl" type="url" maxLength={2000} defaultValue={form?.value || ""} /></label>
             <label className="span-two">Why contact them?<textarea name="outreachReason" rows={3} maxLength={1000} defaultValue={record.outreachReason || ""} placeholder="What did you observe, and what could Orbisy help improve?" /></label>
             <p className="field-help span-two">Save contact details you verified on a public page. Saved details take priority over scan results. Clear a contact and its source to remove your entry.</p>
-          </AssociationContactForm>
+          </AssociationProspectForm>
         </details>
         <p className="field-help"><strong>Review cues (not a lead score):</strong> {reviewCues(record).join(" ") || "No evidence-based priority cue has been recorded yet."}</p>
         {(record.publicContacts.length > 0 || record.evidence.length > 0) && <details className="association-evidence"><summary>Public contacts and supporting evidence ({record.publicContacts.length} contacts, {record.evidence.length} notes)</summary>

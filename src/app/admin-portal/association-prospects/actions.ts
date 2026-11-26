@@ -8,6 +8,7 @@ import { getDb } from "@/lib/db";
 import { associationProspects, associationScanJobs } from "@/lib/db/schema";
 import { lockAssociationScanQueue, queueAssociationIrsSample, queueAssociationScanJobs, queueAssociationScansInTransaction, retryAssociationScanJob } from "@/lib/association-prospects/worker";
 import { parseAssociationContactDetails, stampManualContacts } from "@/lib/association-prospects/manual-contacts";
+import { associationPipelineInput } from "@/lib/association-prospects/pipeline";
 import { checkAdminMutationLimit } from "@/lib/rate-limit";
 
 const states = "AL AK AS AZ AR CA CO CT DE DC FL GA GU HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO MP MT NE NV NH NJ NM NY NC ND OH OK OR PW PA PR RI SC SD TN TX UT VT VI VA WA WV WI WY FM MH".split(" ");
@@ -121,6 +122,47 @@ export async function saveAssociationContactDetailsAction(_previous: { success: 
 
   revalidatePath("/admin-portal/association-prospects");
   return { success: true, message: "Contact details saved." };
+}
+
+export async function saveAssociationPipelineAction(_previous: { success: boolean; message: string }, form: FormData) {
+  const admin = await authorize();
+  const id = z.uuid().parse(form.get("id"));
+  const parsed = associationPipelineInput.safeParse(Object.fromEntries(form));
+  if (!parsed.success) return { success: false, message: parsed.error.issues[0]?.message || "Check the sales plan and try again." };
+  const { stage, action, dueDate, lastInteraction } = parsed.data;
+
+  const error = await getDb().transaction(async (tx) => {
+    const [record] = await tx.select({
+      reviewStatus: associationProspects.reviewStatus,
+      outreachReason: associationProspects.outreachReason,
+      manualContacts: associationProspects.manualContacts,
+      publicContacts: associationProspects.publicContacts,
+      previousStage: associationProspects.salesStage,
+    }).from(associationProspects).where(eq(associationProspects.id, id)).for("update");
+    if (!record) return "Association prospect not found.";
+    if (stage === "ready_to_contact" && (
+      record.reviewStatus !== "confirmed" || !record.outreachReason?.trim()
+      || ![...record.manualContacts, ...record.publicContacts].some((contact) => contact.value && contact.sourceUrl)
+    )) {
+      return "Confirm the record, save a sourced contact, and add a reason before marking it ready.";
+    }
+
+    await tx.update(associationProspects).set({
+      salesStage: stage,
+      salesNextAction: action || null,
+      salesNextActionDate: dueDate || null,
+      salesLastInteraction: lastInteraction || null,
+      updatedAt: new Date(),
+    }).where(eq(associationProspects.id, id));
+    await tx.execute(sql`insert into admin_activity_logs (admin_email, action, entity_type, entity_id, metadata)
+      values (${admin.email}, 'association_prospect.sales_plan_saved', 'association_prospect', ${id}::uuid,
+      ${JSON.stringify({ previousStage: record.previousStage, stage, dueDate: dueDate || null })}::jsonb)`);
+    return null;
+  });
+
+  if (error) return { success: false, message: error };
+  revalidatePath("/admin-portal/association-prospects");
+  return { success: true, message: "Sales plan saved." };
 }
 
 export async function queueAssociationScansAction(form: FormData) {
