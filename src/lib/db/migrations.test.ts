@@ -228,6 +228,12 @@ describe("Association prospecting migration", () => {
       `insert into association_prospects (ein, name, state, source_url)
        values ('010000001', 'Sample Chamber', 'IL', 'https://www.irs.gov/') returning id`,
     );
+    await db.exec(await migration("0015_association_alternate_name.sql"));
+    const preserved = await db.query<{ name: string; alternate_name: string | null }>(
+      "select name, alternate_name from association_prospects where id=$1",
+      [prospect.rows[0]?.id],
+    );
+    expect(preserved.rows).toEqual([{ name: "Sample Chamber", alternate_name: null }]);
     await db.query(
       `insert into association_scan_jobs (kind, source_state, sample_limit, created_by)
        values ('irs_sample', 'IL', 5, 'admin@example.com')`,

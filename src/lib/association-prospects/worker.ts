@@ -31,33 +31,82 @@ function normalizeText(value: string) {
   return value.toLowerCase().replace(/&amp;/g, "and").replace(/[^a-z0-9]+/g, " ").trim();
 }
 
-function meaningfulTokens(value: string) {
-  return normalizeText(value).split(/\s+/).filter((token) => token.length > 2 && !["inc", "the", "and", "for", "association", "associations", "society", "organization", "chamber", "commerce", "foundation", "corporation", "corporation", "national", "state"].includes(token));
+const directoryDomains = [
+  "facebook.com", "linkedin.com", "instagram.com", "x.com", "youtube.com",
+  "mapquest.com", "chamberofcommerce.com", "buzzfile.com", "causeiq.com",
+  "guidestar.org", "opencorporates.com", "yahoo.com", "yelp.com", "yellowpages.com",
+  "propublica.org", "bbb.org", "manta.com", "dnb.com", "crunchbase.com",
+];
+const genericNameTokens = new Set(["inc", "the", "and", "for", "of", "association", "associations",
+  "society", "organization", "chamber", "commerce", "foundation", "corporation", "national", "state"]);
+
+type WebsiteIdentity = { name: string; alternateName: string | null; city: string | null; state: string | null };
+
+function nameTokens(value: string) {
+  return [...new Set(normalizeText(value).split(" ").filter((word) => word.length >= 2 && !genericNameTokens.has(word)))];
 }
 
-function candidateMatchScore(name: string, state: string | null, candidate: SearchResult) {
-  const tokens = [...new Set(meaningfulTokens(name))];
-  if (!tokens.length) return 0;
-  const haystack = normalizeText(`${candidate.title} ${candidate.description} ${new URL(candidate.url).hostname}`);
-  const matched = tokens.filter((token) => haystack.includes(token)).length;
-  const nameRatio = matched / tokens.length;
-  const stateSignal = state && normalizeText(`${candidate.title} ${candidate.description}`).includes(normalizeText(state)) ? 0.1 : 0;
-  const officialSignal = /official|website/i.test(`${candidate.title} ${candidate.description}`) ? 0.05 : 0;
-  return Math.max(0, Math.min(1, nameRatio * 0.85 + stateSignal + officialSignal));
+export function associationSearchQuery(identity: WebsiteIdentity) {
+  return [...new Set([identity.name, identity.alternateName, identity.city, identity.state].filter(Boolean))].join(" ");
 }
 
-export function chooseLikelyOfficialWebsite(name: string, state: string | null, results: SearchResult[]) {
-  return results
-    .filter((result) => /^https?:\/\//i.test(result.url))
-    .filter((result) => {
-      try {
-        const host = new URL(result.url).hostname.toLowerCase().replace(/^www\./, "");
-        return !["facebook.com", "linkedin.com", "instagram.com", "x.com", "youtube.com", "mapquest.com", "chamberofcommerce.com", "buzzfile.com", "causeiq.com", "guidestar.org", "opencorporates.com"].some((domain) => host === domain || host.endsWith(`.${domain}`));
-      } catch { return false; }
-    })
-    .map((result) => ({ ...result, matchScore: candidateMatchScore(name, state, result) }))
-    .filter((result) => result.matchScore >= 0.42)
-    .sort((a, b) => b.matchScore - a.matchScore)[0] || null;
+export function chooseLikelyOfficialWebsite(identity: WebsiteIdentity, results: SearchResult[]) {
+  const legalTokens = nameTokens(identity.name);
+  const initials = normalizeText(identity.name).split(" ")
+    .filter((word) => !["the", "for", "of", "and", "inc", "corporation"].includes(word))
+    .map((word) => word[0]).join("");
+  const alternate = identity.alternateName && normalizeText(identity.alternateName) !== normalizeText(identity.name)
+    ? nameTokens(identity.alternateName) : [];
+  const city = identity.city ? normalizeText(identity.city) : "";
+  const candidates = new Map<string, { url: string; host: string; canScan: boolean; reason: string; score: number }>();
+
+  for (const result of results) {
+    let url: URL;
+    try { url = new URL(result.url); } catch { continue; }
+    if (!["http:", "https:"].includes(url.protocol) || url.username || url.password) continue;
+    const host = url.hostname.replace(/^www\./, "");
+    if (directoryDomains.some((domain) => host === domain || host.endsWith(`.${domain}`))) continue;
+    const title = new Set(normalizeText(result.title).split(" "));
+    const path = new Set(normalizeText(url.pathname).split(" "));
+    const domain = (registrableDomain(url)?.split(".")[0] || "").replace(/[^a-z0-9]/g, "");
+    const legalMatches = legalTokens.filter((token) => title.has(token) || domain.includes(token)).length;
+    const fullTitle = legalTokens.length > 0 && legalTokens.every((token) => title.has(token));
+    const namedDomain = legalTokens.filter((token) => token.length >= 4 && domain.includes(token)).length >= 2;
+    const acronymDomain = initials.length >= 4 && domain === initials && title.has(initials);
+    const alternateMatch = alternate.length > 0 && alternate.every((token) => title.has(token) || path.has(token));
+    if (legalMatches === 0 && !alternateMatch && !acronymDomain) continue;
+
+    const locationText = ` ${normalizeText(`${result.title} ${result.description}`)} `;
+    const matchesCity = Boolean(city && locationText.includes(` ${city} `));
+    const description = new Set(normalizeText(result.description).split(" "));
+    const supportsAcronym = acronymDomain && (matchesCity || legalTokens.every((token) => description.has(token)));
+    const rootPage = url.pathname === "/";
+    const supported = alternate.length
+      ? alternateMatch && (fullTitle || matchesCity || namedDomain)
+      : supportsAcronym || (fullTitle && (namedDomain || (rootPage && matchesCity)));
+    const reason = alternate.length && !alternateMatch
+      ? "The source names a local organization, but the result does not identify it."
+      : supported
+        ? alternate.length ? "The result identifies the alternate or chapter name with supporting organization or location evidence."
+          : "The organization name and website domain or filing city agree."
+        : "The search result needs more evidence to confirm the organization or chapter.";
+    url.hash = "";
+    if (supported && !alternate.length && (namedDomain || supportsAcronym)) {
+      url.pathname = "/";
+      url.search = "";
+    }
+    const score = (supported ? 100 : 0) + legalMatches * 2 + Number(matchesCity) + Number(rootPage);
+    const previous = candidates.get(host);
+    if (!previous || score > previous.score) candidates.set(host, { url: url.href, host, canScan: supported, reason, score });
+  }
+
+  const ranked = [...candidates.values()].sort((a, b) => b.score - a.score);
+  const [best, second] = ranked;
+  if (!best) return null;
+  if (best.canScan && second?.canScan) {
+    return { ...best, canScan: false, reason: "More than one website had strong matching evidence. Confirm the official site before scanning." };
+  }
+  return best;
 }
 
 export function mapEoBmfRow(row: string[], expectedState: string) {
@@ -72,6 +121,7 @@ export function mapEoBmfRow(row: string[], expectedState: string) {
   return {
     ein,
     name: name.slice(0, 200),
+    alternateName: row[27]?.trim().slice(0, 200) || null,
     city: row[4]?.trim().slice(0, 120) || null,
     state,
     classificationCode: row[10]?.trim().slice(0, 4) || null,
@@ -79,10 +129,10 @@ export function mapEoBmfRow(row: string[], expectedState: string) {
   };
 }
 
-async function searchWeb(name: string, state: string | null) {
+async function searchWeb(identity: WebsiteIdentity) {
   const key = process.env.BRAVE_SEARCH_API_KEY?.trim();
   if (!key) throw new Error("search_not_configured");
-  const query = `${name}${state ? ` ${state}` : ""} association official website`;
+  const query = associationSearchQuery(identity);
   let response: Response;
   try {
     response = await fetch(`${BRAVE_ENDPOINT}?${new URLSearchParams({ q: query, count: String(SEARCH_LIMIT), country: "US", search_lang: "en" })}`, {
@@ -220,7 +270,7 @@ async function processIrsSampleJob(job: typeof associationScanJobs.$inferSelect)
   let bytes = 0;
   let scannedRows = 0;
   let populationCount = 0;
-  const reservoir: Array<{ ein: string; name: string; city: string | null; state: string; classificationCode: string | null; organizationStatusCode: string }> = [];
+  const reservoir: Array<{ ein: string; name: string; alternateName: string | null; city: string | null; state: string; classificationCode: string | null; organizationStatusCode: string }> = [];
   const limiter = new Transform({ transform(chunk: Buffer, _encoding, callback) {
     bytes += chunk.length;
     if (bytes > IRS_SOURCE_MAX_BYTES) callback(new Error("irs_source_too_large"));
@@ -266,6 +316,11 @@ async function processIrsSampleJob(job: typeof associationScanJobs.$inferSelect)
   return { status: "completed", step: "complete", populationCount, selectedCount: reservoir.length, importedCount };
 }
 
+export function selectedAssociationWebsite(record: Pick<typeof associationProspects.$inferSelect, "websiteUrl" | "reviewStatus" | "evidence">) {
+  if (record.reviewStatus !== "confirmed" && record.evidence.some((item) => item.kind === "search_review")) return null;
+  return record.websiteUrl;
+}
+
 export async function processAssociationScanJob(job: typeof associationScanJobs.$inferSelect) {
   if (!job.prospectId) throw new Error("prospect_record_missing");
   const db = getDb();
@@ -273,16 +328,35 @@ export async function processAssociationScanJob(job: typeof associationScanJobs.
   if (!prospect) throw new Error("prospect_record_missing");
   const now = new Date();
   const checkedAt = now.toISOString();
-  const evidence: Evidence[] = [...prospect.evidence];
-  const result = prospect.websiteUrl ? null : await searchWeb(prospect.name, prospect.state);
-  const candidate = prospect.websiteUrl
-    ? { url: prospect.websiteUrl, title: prospect.name, description: "Administrator-provided website URL.", matchScore: 1 }
-    : chooseLikelyOfficialWebsite(prospect.name, prospect.state, result?.results || []);
+  const submittedUrl = selectedAssociationWebsite(prospect);
+  const result = submittedUrl ? null : await searchWeb(prospect);
+  const candidate = submittedUrl
+    ? { url: submittedUrl, canScan: true, reason: "Website URL supplied by the administrator." }
+    : chooseLikelyOfficialWebsite(prospect, result?.results || []);
   const searchSourceUrl = result ? `https://search.brave.com/search?q=${encodeURIComponent(result.query)}` : undefined;
-  evidence.push({ kind: prospect.websiteUrl ? "admin_provided_website" : "search_review", summary: prospect.websiteUrl ? "The administrator supplied this URL; confirm that it belongs to the organization." : candidate ? `Search found a possible organization website. Match score: ${Math.round(candidate.matchScore * 100)}%. Confirm the match manually before treating it as official.` : "Search did not return a sufficiently likely official-site match. This does not prove that the organization has no website.", sourceUrl: candidate?.url || searchSourceUrl, checkedAt, confidence: candidate && candidate.matchScore >= 0.7 ? "medium" : "low" });
+  const evidence: Evidence[] = [{
+    kind: submittedUrl ? "admin_provided_website" : candidate ? "website_candidate" : "website_discovery",
+    summary: candidate?.reason || "Search returned no suitable official-site candidate. The website remains unresolved.",
+    sourceUrl: candidate?.url || searchSourceUrl,
+    checkedAt,
+    confidence: candidate?.canScan ? "medium" : "low",
+  }];
 
-  if (!candidate) {
-    await db.update(associationProspects).set({ websiteCondition: "website_not_confirmed", evidence, lastCheckedAt: now, updatedAt: now }).where(eq(associationProspects.id, prospect.id));
+  if (candidate && searchSourceUrl) {
+    evidence.push({ kind: "search_query", summary: "Search used the saved organization name, alternate name and location when available.", sourceUrl: searchSourceUrl, checkedAt });
+  }
+
+  // Keep discovery evidence even when the eventual HTTP request fails.
+  await db.update(associationProspects).set({
+    websiteUrl: submittedUrl,
+    websiteCondition: candidate?.canScan ? "unassessed" : "website_not_confirmed",
+    publicContacts: [],
+    evidence,
+    lastCheckedAt: now,
+    updatedAt: now,
+  }).where(eq(associationProspects.id, prospect.id));
+
+  if (!candidate?.canScan) {
     await db.update(associationScanJobs).set({ status: "completed", step: "complete", completedAt: now, lastError: null, errorClassification: null, updatedAt: now }).where(eq(associationScanJobs.id, job.id));
     return { status: "completed", step: "complete" };
   }
@@ -303,7 +377,7 @@ export async function processAssociationScanJob(job: typeof associationScanJobs.
   }
   if (robotsBlocked) {
     evidence.push({ kind: "robots_policy", summary: "The site's robots.txt disallows the homepage path; content fetching stopped.", sourceUrl: new URL("/robots.txt", normalizedUrl).toString(), checkedAt, confidence: "high" });
-    await db.update(associationProspects).set({ websiteUrl, websiteCondition: "blocked", reviewStatus: "needs_review", evidence, lastCheckedAt: now, updatedAt: now }).where(eq(associationProspects.id, prospect.id));
+    await db.update(associationProspects).set({ websiteCondition: "blocked", evidence, lastCheckedAt: now, updatedAt: now }).where(eq(associationProspects.id, prospect.id));
     await db.update(associationScanJobs).set({ status: "blocked", step: "blocked", completedAt: now, lastError: "Website scan stopped by robots policy.", errorClassification: "website_blocked_by_robots", updatedAt: now }).where(eq(associationScanJobs.id, job.id));
     return { status: "blocked", step: "blocked" };
   }
@@ -330,8 +404,8 @@ export async function processAssociationScanJob(job: typeof associationScanJobs.
     : analysis.findings.length === 0 ? "no_major_issues_detected" : "needs_manual_review";
   const contacts = extractPublicContacts(site.body, site.finalUrl);
   const robotsCaveat = evidence.some((item) => item.kind === "robots_unavailable");
-  evidence.push({ kind: "automated_scope", summary: `This automated screen checked only the homepage. ${robotsCaveat ? "robots.txt was unavailable; manual review is recommended." : "A homepage check does not assess the entire site or confirm usability, current activity, budget, or buying intent."}`, sourceUrl: site.finalUrl, checkedAt, confidence: "low" });
-  await db.update(associationProspects).set({ websiteUrl, websiteCondition, reviewStatus: "needs_review", publicContacts: contacts, evidence: evidence.slice(-100), lastCheckedAt: now, updatedAt: now }).where(eq(associationProspects.id, prospect.id));
+  evidence.push({ kind: "automated_scope", summary: `This automated screen checked one public page. ${robotsCaveat ? "robots.txt was unavailable; manual review is recommended." : "A single-page check does not assess the entire site or confirm usability, current activity, budget, or buying intent."}`, sourceUrl: site.finalUrl, checkedAt, confidence: "low" });
+  await db.update(associationProspects).set({ websiteCondition, publicContacts: contacts, evidence: evidence.slice(-100), lastCheckedAt: now, updatedAt: now }).where(eq(associationProspects.id, prospect.id));
   await db.update(associationScanJobs).set({ status: "completed", step: "complete", completedAt: now, lastError: null, errorClassification: null, updatedAt: now }).where(eq(associationScanJobs.id, job.id));
   return { status: "completed", step: "complete" };
 }
@@ -355,26 +429,34 @@ export async function runAssociationProspectWorker(workerId: string) {
   }
 }
 
+type AssociationTransaction = Parameters<Parameters<ReturnType<typeof getDb>["transaction"]>[0]>[0];
+
+export async function lockAssociationScanQueue(tx: AssociationTransaction) {
+  await tx.execute(sql`select pg_advisory_xact_lock(hashtext('association_scan_daily_limit'))`);
+}
+
+export async function queueAssociationScansInTransaction(tx: AssociationTransaction, prospectIds: string[], actor: string) {
+  if (!process.env.BRAVE_SEARCH_API_KEY?.trim()) throw new Error("Website discovery is not configured.");
+  const ids = [...new Set(prospectIds)].slice(0, 5);
+  const prospects = await tx.select({ id: associationProspects.id }).from(associationProspects).where(inArray(associationProspects.id, ids));
+  const countResult = await tx.execute<{ count: number }>(sql`select count(*)::int as count from association_scan_jobs where kind = 'website_scan' and created_at >= date_trunc('day', now())`);
+  const remaining = Math.max(0, 20 - Number(countResult[0]?.count || 0));
+  if (!remaining) throw new Error("Daily association website-scan limit reached. Try again tomorrow.");
+  let added = 0;
+  for (const prospect of prospects.slice(0, remaining)) {
+    const inserted = await tx.insert(associationScanJobs).values({ prospectId: prospect.id, createdBy: actor, maxAttempts: 3 }).onConflictDoNothing().returning({ id: associationScanJobs.id });
+    added += inserted.length;
+  }
+  if (added) await tx.execute(sql`insert into admin_activity_logs (admin_email, action, entity_type, metadata) values (${actor}, 'association_scan.queued', 'association_scan_job', ${JSON.stringify({ count: added })}::jsonb)`);
+  return added;
+}
+
 export async function queueAssociationScanJobs(prospectIds: string[], actor: string) {
   if (process.env.ASSOCIATION_PROSPECTING_ENABLED !== "true") throw new Error("Association prospect scans are disabled until the admin has enabled the worker.");
-  if (!process.env.BRAVE_SEARCH_API_KEY?.trim()) throw new Error("Website discovery is not configured. Add the server-side search API key before queueing scans.");
-  const ids = [...new Set(prospectIds)].slice(0, 5);
-  if (!ids.length) return 0;
-  const db = getDb();
-  const prospects = await db.select({ id: associationProspects.id }).from(associationProspects).where(inArray(associationProspects.id, ids));
-  let added = 0;
-  await db.transaction(async (tx) => {
-    await tx.execute(sql`select pg_advisory_xact_lock(hashtext('association_scan_daily_limit'))`);
-    const countResult = await tx.execute<{ count: number }>(sql`select count(*)::int as count from association_scan_jobs where kind = 'website_scan' and created_at >= date_trunc('day', now())`);
-    const remaining = Math.max(0, 20 - Number(countResult[0]?.count || 0));
-    if (!remaining) throw new Error("Daily association website-scan limit reached. Try again tomorrow.");
-    for (const prospect of prospects.slice(0, remaining)) {
-      const inserted = await tx.insert(associationScanJobs).values({ prospectId: prospect.id, createdBy: actor, maxAttempts: 3 }).onConflictDoNothing().returning({ id: associationScanJobs.id });
-      added += inserted.length;
-    }
-    if (added) await tx.execute(sql`insert into admin_activity_logs (admin_email, action, entity_type, metadata) values (${actor}, 'association_scan.queued', 'association_scan_job', ${JSON.stringify({ count: added })}::jsonb)`);
+  return getDb().transaction(async (tx) => {
+    await lockAssociationScanQueue(tx);
+    return queueAssociationScansInTransaction(tx, prospectIds, actor);
   });
-  return added;
 }
 
 export async function queueAssociationIrsSample(state: string, sampleLimit: number, actor: string) {
@@ -401,6 +483,7 @@ export async function retryAssociationScanJob(id: string, actor: string) {
   if (process.env.ASSOCIATION_PROSPECTING_ENABLED !== "true") throw new Error("Association scans are not configured or enabled.");
   const db = getDb();
   await db.transaction(async (tx) => {
+    await lockAssociationScanQueue(tx);
     const [job] = await tx.select().from(associationScanJobs).where(eq(associationScanJobs.id, id)).limit(1);
     if (!job || !["failed", "blocked"].includes(job.status)) return;
     if (job.attemptCount >= job.maxAttempts) throw new Error("This scan has reached its maximum number of attempts.");

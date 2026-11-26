@@ -1,0 +1,1 @@
+ALTER TABLE "association_prospects" ADD COLUMN "alternate_name" varchar(200);
