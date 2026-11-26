@@ -1,3 +1,4 @@
+import { associationStageLabels } from "@/lib/association-prospects/pipeline";
 import { preferredBusinessContacts } from "@/lib/association-prospects/manual-contacts";
 import { desc } from "drizzle-orm";
 import { requireAdmin } from "@/lib/auth";
@@ -13,7 +14,7 @@ function csvCell(value: unknown) {
 export async function GET() {
   await requireAdmin();
   const rows = await getDb().select().from(associationProspects).orderBy(desc(associationProspects.updatedAt)).limit(50_000);
-  const header = ["name", "alternate_name", "ein", "city", "state", "subsection_code", "classification_code", "organization_status_code", "website_url", "website_condition", "review_status", "public_phone", "public_email", "public_contacts", "evidence", "source_name", "source_url", "source_checked_at", "last_checked_at", "review_note", "public_contact_form", "manual_contacts", "why_contact_them"];
+  const header = ["name", "alternate_name", "ein", "city", "state", "subsection_code", "classification_code", "organization_status_code", "website_url", "website_condition", "review_status", "public_phone", "public_email", "public_contacts", "evidence", "source_name", "source_url", "source_checked_at", "last_checked_at", "review_note", "public_contact_form", "manual_contacts", "why_contact_them", "sales_stage", "next_action", "next_action_date", "last_interaction"];
   const body = rows.map((row) => {
     const contacts = preferredBusinessContacts(row.manualContacts, row.publicContacts);
     const valuesFor = (type: "phone" | "email") => contacts.filter((item) => item.type === type).map((item) => item.value).join("; ");
@@ -24,7 +25,8 @@ export async function GET() {
       JSON.stringify(row.publicContacts), JSON.stringify(row.evidence), row.sourceName,
       row.sourceUrl, row.sourceCheckedAt?.toISOString(), row.lastCheckedAt?.toISOString(),
       row.reviewNote, row.manualContacts.find((contact) => contact.type === "form")?.value,
-      JSON.stringify(row.manualContacts), row.outreachReason,
+      JSON.stringify(row.manualContacts), row.outreachReason, associationStageLabels[row.salesStage],
+      row.salesNextAction, row.salesNextActionDate, row.salesLastInteraction,
     ].map(csvCell).join(",");
   });
   return new Response([header.map(csvCell).join(","), ...body].join("\r\n"), {
