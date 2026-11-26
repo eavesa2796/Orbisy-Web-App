@@ -5,11 +5,13 @@ import { Readable, Transform } from "node:stream";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { parse } from "csv-parse";
 import { load } from "cheerio";
+import { getDomain } from "tldts";
 import { getDb } from "@/lib/db";
 import { associationProspects, associationScanJobs } from "@/lib/db/schema";
 import { analyzeHtmlPage } from "@/lib/audits/analyzers";
 import { registrableDomain, robotsAllowsPath } from "@/lib/audits/discovery";
 import { safeFetch } from "@/lib/preflight/safe-fetch";
+import { discoverBusinessContactPages, extractPublicContacts, mergePublicContacts, sameContactHost } from "./contacts";
 
 const BRAVE_ENDPOINT = "https://api.search.brave.com/res/v1/web/search";
 const SEARCH_LIMIT = 5;
@@ -19,26 +21,26 @@ const VALID_STATES = new Set("AL AK AZ AR CA CO CT DE DC FL GA HI ID IL IN IA KS
 const SAFE_ERROR_CODES = new Set([
   "search_not_configured", "search_rate_limited", "search_provider_unavailable",
   "search_response_invalid", "no_likely_website_match", "website_blocked_by_robots",
-  "website_request_failed", "website_http_error", "website_unsupported_content", "cross_domain_redirect",
+  "website_request_failed", "website_http_error", "website_unsupported_content", "website_response_too_large", "cross_domain_redirect",
   "irs_source_unavailable", "irs_source_not_found", "irs_source_unexpected_type", "irs_source_too_large", "irs_source_parse_failed", "irs_job_configuration_invalid",
 ]);
 
 type SearchResult = { title: string; url: string; description: string };
-type Contact = { type: "email" | "phone"; value: string; sourceUrl: string };
 type Evidence = { kind: string; summary: string; sourceUrl?: string; checkedAt?: string; confidence?: "low" | "medium" | "high" };
 
 function normalizeText(value: string) {
-  return value.toLowerCase().replace(/&amp;/g, "and").replace(/[^a-z0-9]+/g, " ").trim();
+  return value.toLowerCase().replace(/&amp;/g, "and").replace(/[^a-z0-9]+/g, " ").trim()
+    .replace(/\bassn\b/g, "association").replace(/\bassoc\b/g, "association");
 }
 
 const directoryDomains = [
   "facebook.com", "linkedin.com", "instagram.com", "x.com", "youtube.com",
   "mapquest.com", "chamberofcommerce.com", "buzzfile.com", "causeiq.com",
   "guidestar.org", "opencorporates.com", "yahoo.com", "yelp.com", "yellowpages.com",
-  "propublica.org", "bbb.org", "manta.com", "dnb.com", "crunchbase.com",
+  "propublica.org", "bbb.org", "manta.com", "dnb.com", "crunchbase.com", "wikipedia.org", "wikidata.org",
 ];
 const genericNameTokens = new Set(["inc", "the", "and", "for", "of", "association", "associations",
-  "society", "organization", "chamber", "commerce", "foundation", "corporation", "national", "state"]);
+  "society", "organization", "chamber", "commerce", "foundation", "corporation", "national", "state", "council", "chapter", "section", "branch"]);
 
 type WebsiteIdentity = { name: string; alternateName: string | null; city: string | null; state: string | null };
 
@@ -46,19 +48,41 @@ function nameTokens(value: string) {
   return [...new Set(normalizeText(value).split(" ").filter((word) => word.length >= 2 && !genericNameTokens.has(word)))];
 }
 
+function organizationInitials(name: string) {
+  return normalizeText(name).split(" ")
+    .filter((word) => !["the", "for", "of", "and", "inc", "corporation"].includes(word))
+    .map((word) => word[0]).join("");
+}
+
+function alternateIdentity(identity: WebsiteIdentity) {
+  const alternate = identity.alternateName || "";
+  if (!alternate) return { tokens: [], localScope: false };
+  const legal = nameTokens(identity.name);
+  const alias = nameTokens(alternate);
+  const initials = organizationInitials(identity.name);
+  const explicitUnit = /\b(chapter|branch|section|district|affiliate|local)\b/i.test(alternate);
+  const sameName = !explicitUnit && (normalizeText(alternate) === normalizeText(identity.name)
+    || (alias.length > 0 && alias.every((token) => legal.includes(token)))
+    || (initials.length >= 3 && normalizeText(alternate).replaceAll(" ", "") === initials));
+  return { tokens: sameName ? [] : alias, localScope: !sameName };
+}
+
 export function associationSearchQuery(identity: WebsiteIdentity) {
-  return [...new Set([identity.name, identity.alternateName, identity.city, identity.state].filter(Boolean))].join(" ");
+  const alternate = alternateIdentity(identity);
+  return [...new Set([identity.name, alternate.localScope ? identity.alternateName : null, identity.city, identity.state].filter(Boolean))].join(" ");
+}
+
+function domainSupportsName(domain: string, tokens: string[]) {
+  const significant = tokens.filter((token) => token.length >= 3 && !/^\d+$/.test(token));
+  return significant.length >= 2 && significant.filter((token) => domain.includes(token)).length >= 2;
 }
 
 export function chooseLikelyOfficialWebsite(identity: WebsiteIdentity, results: SearchResult[]) {
   const legalTokens = nameTokens(identity.name);
-  const initials = normalizeText(identity.name).split(" ")
-    .filter((word) => !["the", "for", "of", "and", "inc", "corporation"].includes(word))
-    .map((word) => word[0]).join("");
-  const alternate = identity.alternateName && normalizeText(identity.alternateName) !== normalizeText(identity.name)
-    ? nameTokens(identity.alternateName) : [];
+  const initials = organizationInitials(identity.name);
+  const alternate = alternateIdentity(identity);
   const city = identity.city ? normalizeText(identity.city) : "";
-  const candidates = new Map<string, { url: string; host: string; canScan: boolean; reason: string; score: number }>();
+  const candidates = new Map<string, { url: string; canScan: boolean; reason: string; score: number }>();
 
   for (const result of results) {
     let url: URL;
@@ -66,38 +90,40 @@ export function chooseLikelyOfficialWebsite(identity: WebsiteIdentity, results: 
     if (!["http:", "https:"].includes(url.protocol) || url.username || url.password) continue;
     const host = url.hostname.replace(/^www\./, "");
     if (directoryDomains.some((domain) => host === domain || host.endsWith(`.${domain}`))) continue;
+    const publisher = getDomain(host, { allowPrivateDomains: true }) || host;
+    const domain = publisher.split(".")[0].replace(/[^a-z0-9]/g, "");
     const title = new Set(normalizeText(result.title).split(" "));
     const path = new Set(normalizeText(url.pathname).split(" "));
-    const domain = (registrableDomain(url)?.split(".")[0] || "").replace(/[^a-z0-9]/g, "");
     const legalMatches = legalTokens.filter((token) => title.has(token) || domain.includes(token)).length;
     const fullTitle = legalTokens.length > 0 && legalTokens.every((token) => title.has(token));
-    const namedDomain = legalTokens.filter((token) => token.length >= 4 && domain.includes(token)).length >= 2;
+    const namedDomain = domainSupportsName(domain, legalTokens);
     const acronymDomain = initials.length >= 4 && domain === initials && title.has(initials);
-    const alternateMatch = alternate.length > 0 && alternate.every((token) => title.has(token) || path.has(token));
+    const alternateMatch = alternate.tokens.length > 0 && alternate.tokens.every((token) => title.has(token) || path.has(token));
     if (legalMatches === 0 && !alternateMatch && !acronymDomain) continue;
 
     const locationText = ` ${normalizeText(`${result.title} ${result.description}`)} `;
     const matchesCity = Boolean(city && locationText.includes(` ${city} `));
     const description = new Set(normalizeText(result.description).split(" "));
-    const supportsAcronym = acronymDomain && (matchesCity || legalTokens.every((token) => description.has(token)));
+    const supportsAcronym = acronymDomain && (matchesCity || (legalTokens.length > 0 && legalTokens.every((token) => description.has(token))));
     const rootPage = url.pathname === "/";
-    const supported = alternate.length
-      ? alternateMatch && (fullTitle || matchesCity || namedDomain)
+    const namedAlternateDomain = domainSupportsName(domain, alternate.tokens);
+    const supported = alternate.localScope
+      ? alternateMatch && (fullTitle || (namedAlternateDomain && matchesCity))
       : supportsAcronym || (fullTitle && (namedDomain || (rootPage && matchesCity)));
-    const reason = alternate.length && !alternateMatch
-      ? "The source names a local organization, but the result does not identify it."
+    const reason = alternate.localScope && !alternateMatch
+      ? "The result does not identify the organization’s distinct alternate name or local unit."
       : supported
-        ? alternate.length ? "The result identifies the alternate or chapter name with supporting organization or location evidence."
-          : "The organization name and website domain or filing city agree."
-        : "The search result needs more evidence to confirm the organization or chapter.";
+        ? alternate.localScope ? "Search matched the distinct alternate name and organization or location."
+          : "Search matched the organization name and website domain or filing city."
+        : "The search result needs more evidence to confirm the organization.";
     url.hash = "";
-    if (supported && !alternate.length && (namedDomain || supportsAcronym)) {
+    if (supported && !alternate.localScope && (namedDomain || supportsAcronym)) {
       url.pathname = "/";
       url.search = "";
     }
     const score = (supported ? 100 : 0) + legalMatches * 2 + Number(matchesCity) + Number(rootPage);
-    const previous = candidates.get(host);
-    if (!previous || score > previous.score) candidates.set(host, { url: url.href, host, canScan: supported, reason, score });
+    const previous = candidates.get(publisher);
+    if (!previous || score > previous.score) candidates.set(publisher, { url: url.href, canScan: supported, reason, score });
   }
 
   const ranked = [...candidates.values()].sort((a, b) => b.score - a.score);
@@ -107,6 +133,29 @@ export function chooseLikelyOfficialWebsite(identity: WebsiteIdentity, results: 
     return { ...best, canScan: false, reason: "More than one website had strong matching evidence. Confirm the official site before scanning." };
   }
   return best;
+}
+
+export function pageSupportsAssociationIdentity(identity: WebsiteIdentity, html: string) {
+  const $ = load(html);
+  const headings = [
+    $("title").first().text(),
+    $("meta[property='og:site_name']").first().attr("content") || "",
+    ...$("h1").slice(0, 5).toArray().map((node) => $(node).text()),
+  ];
+  const identityText = new Set(normalizeText(headings.join(" ")).split(" "));
+  const alternate = alternateIdentity(identity);
+  const legal = nameTokens(identity.name);
+  if (alternate.localScope) {
+    return alternate.tokens.length > 0 && alternate.tokens.every((token) => identityText.has(token));
+  }
+
+  if (legal.length > 0 && legal.every((token) => identityText.has(token))) return true;
+  const initials = organizationInitials(identity.name);
+  const description = $("meta[name='description']").first().attr("content") || "";
+  const body = $("body").clone();
+  body.find("script,style,noscript,svg").remove();
+  const pageText = new Set(normalizeText(`${description} ${body.text().slice(0, 100_000)}`).split(" "));
+  return initials.length >= 3 && identityText.has(initials) && legal.length > 0 && legal.every((token) => pageText.has(token));
 }
 
 export function mapEoBmfRow(row: string[], expectedState: string) {
@@ -160,33 +209,6 @@ async function searchWeb(identity: WebsiteIdentity) {
   };
 }
 
-function extractPublicContacts(html: string, sourceUrl: string): Contact[] {
-  const $ = load(html);
-  const emailValues = new Set<string>();
-  const phoneValues = new Set<string>();
-  $("a[href^='mailto:' i]").each((_index, element) => {
-    const value = ($(element).attr("href") || "").replace(/^mailto:/i, "").split("?")[0]?.trim().toLowerCase();
-    if (value && value.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) emailValues.add(value);
-  });
-  const visibleBody = $("body").clone();
-  visibleBody.find("script,style,noscript,svg").remove();
-  const text = visibleBody.text().replace(/\s+/g, " ").slice(0, 200_000);
-  for (const match of text.matchAll(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi)) {
-    const email = match[0].toLowerCase();
-    if (email.length <= 254 && !/\.(png|jpg|jpeg|gif|svg|webp)$/i.test(email)) emailValues.add(email);
-    if (emailValues.size >= 10) break;
-  }
-  $("a[href^='tel:' i]").each((_index, element) => {
-    const value = ($(element).attr("href") || "").replace(/^tel:/i, "").trim();
-    const digits = value.replace(/\D/g, "");
-    if (digits.length >= 10 && digits.length <= 15) phoneValues.add(value.slice(0, 40));
-  });
-  return [
-    ...[...emailValues].slice(0, 10).map((value) => ({ type: "email" as const, value, sourceUrl })),
-    ...[...phoneValues].slice(0, 5).map((value) => ({ type: "phone" as const, value, sourceUrl })),
-  ];
-}
-
 function evidenceSignals(html: string, pageUrl: string, checkedAt: string): Evidence[] {
   const $ = load(html);
   const text = normalizeText($.root().text().slice(0, 200_000));
@@ -208,6 +230,7 @@ function evidenceSignals(html: string, pageUrl: string, checkedAt: string): Evid
 
 function safeClassification(error: unknown) {
   const code = error instanceof Error ? error.message : "";
+  if (code === "response_too_large") return "website_response_too_large";
   if (SAFE_ERROR_CODES.has(code)) return code;
   const networkCode = (error as { code?: unknown } | null)?.code;
   if (networkCode === "EAI_AGAIN" || networkCode === "ENOTFOUND") return "website_dns_unavailable";
@@ -363,14 +386,18 @@ export async function processAssociationScanJob(job: typeof associationScanJobs.
 
   const normalizedUrl = new URL(candidate.url);
   const websiteUrl = normalizedUrl.toString();
-  const safeOptions = { maxRedirects: 4, maxBytes: 350_000, dnsTimeoutMs: 4000, connectionTimeoutMs: 7000, overallTimeoutMs: 15_000, userAgent: "OrbisyAssociationResearch/1.0 (+https://www.orbisy.com)" };
+  const safeOptions = { maxRedirects: 4, maxBytes: 600_000, dnsTimeoutMs: 4000, connectionTimeoutMs: 7000, overallTimeoutMs: 15_000, userAgent: "OrbisyAssociationResearch/1.0 (+https://www.orbisy.com)" };
   let robotsBlocked = false;
+  let robotsRules: string | null = null;
   try {
     const robotsUrl = new URL("/robots.txt", normalizedUrl).toString();
     const robots = await safeFetch(robotsUrl, { ...safeOptions, maxBytes: 100_000, validateRedirect: (redirectUrl) => {
       if (registrableDomain(redirectUrl) !== registrableDomain(normalizedUrl)) throw new Error("cross_domain_redirect");
     } });
-    if (!robotsAllowsPath(robots.body, normalizedUrl.pathname, "OrbisyAssociationResearch")) robotsBlocked = true;
+    if (robots.status === 404 || robots.status === 410) robotsRules = "";
+    else if (robots.status >= 200 && robots.status < 300) robotsRules = robots.body;
+    else throw new Error("robots_unavailable");
+    if (!robotsAllowsPath(robotsRules, normalizedUrl.pathname, "OrbisyAssociationResearch")) robotsBlocked = true;
   } catch (error) {
     if (error instanceof Error && error.message === "cross_domain_redirect") throw error;
     evidence.push({ kind: "robots_unavailable", summary: "robots.txt could not be read; no permission inference was made from the failed request.", sourceUrl: new URL("/robots.txt", normalizedUrl).toString(), checkedAt, confidence: "low" });
@@ -388,9 +415,20 @@ export async function processAssociationScanJob(job: typeof associationScanJobs.
     ...safeOptions,
     validateRedirect: (redirectUrl) => {
       if (registrableDomain(redirectUrl) !== allowedDomain) throw new Error("cross_domain_redirect");
+      if (robotsRules !== null && !robotsAllowsPath(robotsRules, redirectUrl.pathname, "OrbisyAssociationResearch")) throw new Error("website_blocked_by_robots");
     },
   });
   if (site.status < 200 || site.status >= 400) throw new Error("website_http_error");
+  if (!/^(text\/html|application\/xhtml\+xml)(;|$)/.test(site.contentType)) throw new Error("website_unsupported_content");
+  if (!submittedUrl && !pageSupportsAssociationIdentity(prospect, site.body)) {
+    evidence.push({ kind: "identity_unverified", summary: "The site’s own title and headings did not corroborate the organization or its local unit.", sourceUrl: site.finalUrl, checkedAt, confidence: "low" });
+    await db.transaction(async (tx) => {
+      await tx.update(associationProspects).set({ websiteCondition: "website_not_confirmed", evidence }).where(eq(associationProspects.id, prospect.id));
+      await tx.update(associationScanJobs).set({ status: "completed", step: "complete", completedAt: new Date(), updatedAt: new Date() }).where(eq(associationScanJobs.id, job.id));
+    });
+    return { status: "completed", step: "complete" };
+  }
+
   const analysis = analyzeHtmlPage(site.finalUrl, site.body);
   const findings: Evidence[] = analysis.findings.map((finding) => ({ kind: finding.findingType, summary: finding.explanation, sourceUrl: finding.affectedUrl, checkedAt, confidence: finding.confidence }));
   const otherSignals = evidenceSignals(site.body, site.finalUrl, checkedAt);
@@ -402,7 +440,34 @@ export async function processAssociationScanJob(job: typeof associationScanJobs.
   const websiteCondition = highSignals >= 2 || (highSignals >= 1 && mediumSignals >= 3 && distinctCategories >= 2) || (mediumSignals >= 5 && distinctCategories >= 3)
     ? "significant_problems"
     : analysis.findings.length === 0 ? "no_major_issues_detected" : "needs_manual_review";
-  const contacts = extractPublicContacts(site.body, site.finalUrl);
+  const localScope = alternateIdentity(prospect).localScope;
+  const contactSources = [extractPublicContacts(site.body, site.finalUrl, localScope)];
+  const siteUrl = new URL(site.finalUrl);
+  // Never collect a national office's contacts from a local affiliate page.
+  // Only follow public same-site links when their paths can be checked against robots.txt.
+  if (!localScope && robotsRules !== null && sameContactHost(siteUrl, normalizedUrl)) {
+    const pages = discoverBusinessContactPages(site.body, site.finalUrl);
+    for (const pageUrl of pages) {
+      if (!robotsAllowsPath(robotsRules, new URL(pageUrl).pathname, "OrbisyAssociationResearch")) continue;
+      try {
+        const page = await safeFetch(pageUrl, {
+          ...safeOptions,
+          maxRedirects: 2,
+          overallTimeoutMs: 8_000,
+          validateRedirect: (url) => {
+            if (!sameContactHost(url, siteUrl)) throw new Error("cross_domain_redirect");
+            if (!robotsAllowsPath(robotsRules, url.pathname, "OrbisyAssociationResearch")) throw new Error("website_blocked_by_robots");
+          },
+        });
+        if (page.status < 200 || page.status >= 300 || !/^(text\/html|application\/xhtml\+xml)(;|$)/.test(page.contentType)) continue;
+        contactSources.push(extractPublicContacts(page.body, page.finalUrl));
+        evidence.push({ kind: "public_contact_page", summary: "Public contact page published by this organization.", sourceUrl: page.finalUrl, checkedAt, confidence: "medium" });
+      } catch {
+        evidence.push({ kind: "contact_page_unavailable", summary: "A linked contact page could not be checked.", sourceUrl: pageUrl, checkedAt, confidence: "low" });
+      }
+    }
+  }
+  const contacts = mergePublicContacts(...contactSources);
   const robotsCaveat = evidence.some((item) => item.kind === "robots_unavailable");
   evidence.push({ kind: "automated_scope", summary: `This automated screen checked one public page. ${robotsCaveat ? "robots.txt was unavailable; manual review is recommended." : "A single-page check does not assess the entire site or confirm usability, current activity, budget, or buying intent."}`, sourceUrl: site.finalUrl, checkedAt, confidence: "low" });
   await db.update(associationProspects).set({ websiteCondition, publicContacts: contacts, evidence: evidence.slice(-100), lastCheckedAt: now, updatedAt: now }).where(eq(associationProspects.id, prospect.id));
