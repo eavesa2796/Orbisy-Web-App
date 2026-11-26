@@ -219,3 +219,41 @@ describe("Phase Five migration", () => {
     await db.close();
   }, 30_000);
 });
+
+describe("Association prospecting migration", () => {
+  it("stores EIN-deduplicated prospects behind row-level security", async () => {
+    const db = new PGlite();
+    await db.exec(await migration("0014_association_prospects.sql"));
+    const prospect = await db.query<{ id: string }>(
+      `insert into association_prospects (ein, name, state, source_url)
+       values ('010000001', 'Sample Chamber', 'IL', 'https://www.irs.gov/') returning id`,
+    );
+    await db.query(
+      `insert into association_scan_jobs (kind, source_state, sample_limit, created_by)
+       values ('irs_sample', 'IL', 5, 'admin@example.com')`,
+    );
+    await expect(db.query(
+      `insert into association_scan_jobs (kind, source_state, sample_limit, created_by)
+       values ('irs_sample', 'IL', 10, 'admin@example.com')`,
+    )).rejects.toThrow();
+    await db.query(
+      `insert into association_scan_jobs (prospect_id, kind, created_by)
+       values ($1, 'website_scan', 'admin@example.com')`,
+      [prospect.rows[0]?.id],
+    );
+    await expect(db.query(
+      `insert into association_prospects (ein, name, state)
+       values ('010000001', 'Duplicate Chamber', 'IL')`,
+    )).rejects.toThrow();
+    await expect(db.query(
+      `insert into association_prospects (ein, name, state)
+       values ('010000002', 'Invalid State Chamber', 'XX')`,
+    )).rejects.toThrow();
+    const security = await db.query<{ relname: string; relrowsecurity: boolean }>(
+      "select relname, relrowsecurity from pg_class where relname in ('association_prospects','association_scan_jobs') order by relname",
+    );
+    expect(security.rows).toHaveLength(2);
+    expect(security.rows.every((row) => row.relrowsecurity)).toBe(true);
+    await db.close();
+  }, 20_000);
+});

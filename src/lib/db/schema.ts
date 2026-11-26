@@ -835,6 +835,88 @@ export const pricingCategory = pgEnum("pricing_category", [
   "add_on",
   "package",
 ]);
+
+export const associationWebsiteCondition = pgEnum("association_website_condition", [
+  "unassessed",
+  "website_not_confirmed",
+  "no_major_issues_detected",
+  "needs_manual_review",
+  "significant_problems",
+  "scan_failed",
+  "blocked",
+]);
+export const associationReviewStatus = pgEnum("association_review_status", [
+  "needs_review",
+  "confirmed",
+  "rejected",
+]);
+export const associationScanJobStatus = pgEnum("association_scan_job_status", [
+  "queued",
+  "running",
+  "completed",
+  "failed",
+  "blocked",
+  "cancelled",
+]);
+export const associationJobKind = pgEnum("association_job_kind", ["website_scan", "irs_sample"]);
+export const associationProspects = pgTable("association_prospects", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  ein: varchar("ein", { length: 9 }).notNull(),
+  name: varchar("name", { length: 200 }).notNull(),
+  city: varchar("city", { length: 120 }),
+  state: varchar("state", { length: 2 }),
+  subsectionCode: varchar("subsection_code", { length: 2 }).default("06").notNull(),
+  classificationCode: varchar("classification_code", { length: 4 }),
+  organizationStatusCode: varchar("organization_status_code", { length: 2 }),
+  websiteUrl: text("website_url"),
+  websiteCondition: associationWebsiteCondition("website_condition").default("unassessed").notNull(),
+  reviewStatus: associationReviewStatus("review_status").default("needs_review").notNull(),
+  publicContacts: jsonb("public_contacts").$type<Array<{ type: "email" | "phone"; value: string; sourceUrl: string }>>().default([]).notNull(),
+  evidence: jsonb("evidence").$type<Array<{ kind: string; summary: string; sourceUrl?: string; checkedAt?: string; confidence?: "low" | "medium" | "high" }>>().default([]).notNull(),
+  sourceName: varchar("source_name", { length: 120 }).default("IRS Exempt Organizations Business Master File").notNull(),
+  sourceUrl: text("source_url"),
+  sourceCheckedAt: timestamp("source_checked_at", { withTimezone: true }),
+  lastCheckedAt: timestamp("last_checked_at", { withTimezone: true }),
+  reviewNote: text("review_note"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  uniqueIndex("association_prospect_ein_unique").on(table.ein),
+  index("association_prospect_state_condition_idx").on(table.state, table.websiteCondition),
+  index("association_prospect_review_idx").on(table.reviewStatus, table.updatedAt),
+  check("association_prospect_ein_format", sql`${table.ein} ~ '^[0-9]{9}$'`),
+  check("association_prospect_subsection_06", sql`${table.subsectionCode} = '06'`),
+  check("association_prospect_state_code", sql`${table.state} is null or ${table.state} in ('AL','AK','AS','AZ','AR','CA','CO','CT','DE','DC','FL','GA','GU','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MP','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PW','PA','PR','RI','SC','SD','TN','TX','UT','VT','VI','VA','WA','WV','WI','WY','FM','MH')`),
+]).enableRLS();
+
+export const associationScanJobs = pgTable("association_scan_jobs", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  prospectId: uuid("prospect_id").references(() => associationProspects.id, { onDelete: "cascade" }),
+  kind: associationJobKind("kind").default("website_scan").notNull(),
+  sourceState: varchar("source_state", { length: 2 }),
+  sampleLimit: integer("sample_limit"),
+  sourcePopulationCount: integer("source_population_count"),
+  sourceImportedCount: integer("source_imported_count"),
+  status: associationScanJobStatus("status").default("queued").notNull(),
+  step: varchar("step", { length: 40 }).default("queued").notNull(),
+  attemptCount: integer("attempt_count").default(0).notNull(),
+  maxAttempts: integer("max_attempts").default(3).notNull(),
+  workerId: varchar("worker_id", { length: 120 }),
+  claimedAt: timestamp("claimed_at", { withTimezone: true }),
+  completedAt: timestamp("completed_at", { withTimezone: true }),
+  lastError: varchar("last_error", { length: 200 }),
+  errorClassification: varchar("error_classification", { length: 60 }),
+  createdBy: varchar("created_by", { length: 254 }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  index("association_scan_job_status_idx").on(table.status, table.createdAt),
+  index("association_scan_job_prospect_idx").on(table.prospectId, table.createdAt),
+  uniqueIndex("association_scan_job_active_unique").on(table.prospectId).where(sql`${table.prospectId} is not null and ${table.status} in ('queued','running')`),
+  uniqueIndex("association_irs_sample_active_unique").on(table.sourceState).where(sql`${table.kind} = 'irs_sample' and ${table.status} in ('queued','running')`),
+  check("association_scan_job_attempt_bound", sql`${table.attemptCount} >= 0 and ${table.maxAttempts} between 1 and 3`),
+  check("association_scan_job_kind_inputs", sql`(${table.kind} = 'website_scan' and ${table.prospectId} is not null and ${table.sourceState} is null) or (${table.kind} = 'irs_sample' and ${table.prospectId} is null and ${table.sourceState} is not null and ${table.sampleLimit} between 5 and 25)`),
+]).enableRLS();
 export const pricingStatus = pgEnum("pricing_status", [
   "draft",
   "active",
