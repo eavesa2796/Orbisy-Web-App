@@ -15,6 +15,7 @@ import {
   ShieldBan,
   UsersRound,
   BriefcaseBusiness,
+  Building2,
   Wrench,
   Menu,
   X,
@@ -38,6 +39,7 @@ const icons = {
   suppressions: ShieldBan,
   analytics: BarChart3,
   settings: Settings,
+  associations: Building2,
 };
 export function AdminNavigation({
   reviewMode = false,

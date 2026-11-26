@@ -11,6 +11,7 @@ export const adminNavigationGroups = [
       },
       { href: "/admin-portal/followups", label: "Follow-up inbox", icon: "notifications" },
       { href: "/admin-portal/outreach", label: "Outreach", icon: "leads" },
+      { href: "/admin-portal/association-prospects", label: "Association prospects", icon: "associations" },
       { href: "/admin-portal/pricing", label: "Pricing", icon: "pricing" },
       { href: "/admin-portal/knowledge-base", label: "Knowledge base", icon: "knowledge" },
       {

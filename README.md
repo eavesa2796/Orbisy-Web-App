@@ -132,7 +132,7 @@ historical records without collecting new visitor events.
 | `/api/followups/delivery` | Signed Resend delivery webhook |
 | `/api/followups/unsubscribe`, `/api/outreach/unsubscribe` | Signed preference endpoints |
 | `/email-preferences`, `/outreach-preferences` | Standalone preference confirmation pages |
-| `/api/internal/preflight-worker`, `/api/internal/deep-audit-worker` | Separately protected supporting-tool workers |
+| `/api/internal/preflight-worker`, `/api/internal/deep-audit-worker` | Protected supporting-tool workers; preflight trigger also runs one queued association website scan when enabled |
 
 ## Local development
 
@@ -172,6 +172,7 @@ environment. A valid session for a different account does not grant admin access
 | Email workers and preferences | `FOLLOWUP_CRON_SECRET`, `FOLLOWUP_RESEND_WEBHOOK_SECRET`, `FOLLOWUP_UNSUBSCRIBE_SECRET`, `FOLLOWUP_POSTAL_ADDRESS` |
 | Independent deployment gates | `FOLLOWUP_SEND_ENABLED`, `OUTREACH_SEND_ENABLED` — unset/false during setup |
 | Supporting tools | `PREFLIGHT_WORKER_SECRET`, `DEEP_AUDIT_WORKER_SECRET`, optional `ORBISY_FETCHER_USER_AGENT` and `PAGESPEED_API_KEY` |
+| Association prospect scans | `ASSOCIATION_PROSPECTING_ENABLED=false` by default; server-only `BRAVE_SEARCH_API_KEY` |
 
 [.env.example](.env.example) contains the base template. The email guides below
 document feature-specific keys, secret formats, provider setup, and activation.
