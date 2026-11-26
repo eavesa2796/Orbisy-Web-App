@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { associationSearchQuery, chooseLikelyOfficialWebsite, mapEoBmfRow, selectedAssociationWebsite } from "./worker";
+import { associationSearchQuery, chooseLikelyOfficialWebsite, mapEoBmfRow, pageSupportsAssociationIdentity, selectedAssociationWebsite } from "./worker";
 
 describe("association website discovery candidates", () => {
   it("prefers a name-matching organization domain and excludes directory profiles", () => {
@@ -81,6 +81,29 @@ describe("Illinois pilot website matches", () => {
     expect(selectedAssociationWebsite({ websiteUrl, evidence, reviewStatus: "needs_review" })).toBeNull();
     expect(selectedAssociationWebsite({ websiteUrl, evidence: [], reviewStatus: "needs_review" })).toBe(websiteUrl);
     expect(selectedAssociationWebsite({ websiteUrl, evidence, reviewStatus: "confirmed" })).toBe(websiteUrl);
+  });
+});
+
+describe("evidence from the organization's own site", () => {
+  it("treats the organization's acronym as an alternate name for the same entity", () => {
+    const identity = { name: "Organization for Associate Degree Nursing", alternateName: "OADN", city: "Edwardsville", state: "IL" };
+    expect(associationSearchQuery(identity)).not.toContain(" OADN ");
+    expect(pageSupportsAssociationIdentity(identity, "<title>Home | OADN</title><body>Organization for Associate Degree Nursing</body>")).toBe(true);
+  });
+
+  it("recognizes the Oak Street Council's branded website without requiring Council in the homepage title", () => {
+    const identity = { name: "Oak Street Council", alternateName: null, city: "Chicago", state: "IL" };
+    const result = chooseLikelyOfficialWebsite(identity, [
+      { title: "Oak Street Chicago", url: "https://oakstreetchicago.com/", description: "Oak Street Council and SSA" },
+    ]);
+    expect(result).toMatchObject({ url: "https://oakstreetchicago.com/", canScan: true });
+    expect(pageSupportsAssociationIdentity(identity, "<h1>Welcome to Oak Street.</h1>")).toBe(true);
+  });
+
+  it("rejects a statewide parent name even if chapter terms appear in the footer", () => {
+    const identity = { name: "Illinois Education Association", alternateName: "Signal Hill SD 181", city: "Edwardsville", state: "IL" };
+    expect(pageSupportsAssociationIdentity(identity, "<title>Illinois Education Association</title><footer>Signal Hill SD 181</footer>")).toBe(false);
+    expect(pageSupportsAssociationIdentity(identity, "<title>Signal Hill SD 181 | Illinois Education Association</title>")).toBe(true);
   });
 });
 

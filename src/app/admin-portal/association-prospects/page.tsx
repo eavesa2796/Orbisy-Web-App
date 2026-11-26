@@ -32,7 +32,7 @@ function reviewCues(record: typeof associationProspects.$inferSelect) {
   return cues;
 }
 
-export default async function AssociationProspectsPage({ searchParams }: { searchParams: Promise<{ q?: string; state?: string; classification?: string; condition?: string; review?: string }> }) {
+export default async function AssociationProspectsPage({ searchParams }: { searchParams: Promise<{ q?: string; state?: string; classification?: string; condition?: string; review?: string; contact?: string }> }) {
   const admin = await requireAdmin();
   const prospectingEnabled = process.env.ASSOCIATION_PROSPECTING_ENABLED === "true";
   const scanningEnabled = prospectingEnabled && Boolean(process.env.BRAVE_SEARCH_API_KEY?.trim());
@@ -53,6 +53,11 @@ export default async function AssociationProspectsPage({ searchParams }: { searc
     if (params.classification?.trim()) filters.push(eq(associationProspects.classificationCode, params.classification.trim().slice(0, 4).toUpperCase()));
     if (params.condition && conditions.some(([value]) => value === params.condition)) filters.push(eq(associationProspects.websiteCondition, params.condition as typeof associationProspects.$inferSelect.websiteCondition));
     if (params.review && ["needs_review", "confirmed", "rejected"].includes(params.review)) filters.push(eq(associationProspects.reviewStatus, params.review as typeof associationProspects.$inferSelect.reviewStatus));
+    if (params.contact === "phone" || params.contact === "email") {
+      filters.push(sql`${associationProspects.publicContacts} @> ${JSON.stringify([{ type: params.contact }])}::jsonb`);
+    } else if (params.contact === "any") {
+      filters.push(sql`jsonb_array_length(${associationProspects.publicContacts}) > 0`);
+    }
     const where = filters.length ? and(...filters) : undefined;
     const [rows, [stats]] = await Promise.all([
       db.select().from(associationProspects).where(where).orderBy(desc(associationProspects.updatedAt)).limit(100),
@@ -131,6 +136,7 @@ export default async function AssociationProspectsPage({ searchParams }: { searc
         <label>IRS classification<input name="classification" defaultValue={params.classification} maxLength={4} placeholder="Any" /></label>
         <label>Website condition<select name="condition" defaultValue={params.condition || ""}><option value="">Any condition</option>{conditions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
         <label>Review status<select name="review" defaultValue={params.review || ""}><option value="">Any status</option><option value="needs_review">Needs review</option><option value="confirmed">Confirmed</option><option value="rejected">Rejected</option></select></label>
+        <label>Public contact<select name="contact" defaultValue={params.contact || ""}><option value="">Any</option><option value="any">Phone or email</option><option value="phone">Has phone</option><option value="email">Has email</option></select></label>
         <button className="button button-secondary">Filter</button>
       </form>
       {!records.length ? <div className="empty-state"><h3>No prospects in this view</h3><p>Start with a small set of organizations and preserve the source links used to identify them.</p></div> : <div className="association-prospect-list">{records.map((record) => {
@@ -138,6 +144,9 @@ export default async function AssociationProspectsPage({ searchParams }: { searc
         const candidate = record.evidence.find((item) => item.kind === "website_candidate" || item.kind === "search_review" && record.websiteUrl === item.sourceUrl);
         const job = latestJobs.get(record.id);
         const active = job?.status === "queued" || job?.status === "running";
+        const phone = record.publicContacts.find((contact) => contact.type === "phone");
+        const email = record.publicContacts.find((contact) => contact.type === "email");
+        const contactPage = record.evidence.find((item) => item.kind === "public_contact_page")?.sourceUrl;
         return <article className="association-prospect-card" key={record.id}>
         <div className="association-prospect-summary"><div><h3>{record.name}</h3><p>{[record.city, record.state].filter(Boolean).join(", ") || "Location not available"} · EIN {record.ein}{record.classificationCode ? ` · IRS class ${record.classificationCode}` : ""}{record.organizationStatusCode ? ` · IRS status ${record.organizationStatusCode}` : ""}</p></div><span className="status-pill">{conditionLabel.get(record.websiteCondition)}</span></div>
         {record.alternateName && <p className="field-help">Alternate or chapter name: {record.alternateName}</p>}
@@ -145,6 +154,13 @@ export default async function AssociationProspectsPage({ searchParams }: { searc
         {!selectedUrl && candidate?.sourceUrl && <p>Suggested website: <a href={candidate.sourceUrl} target="_blank" rel="noreferrer">{candidate.sourceUrl}</a> · {candidate.summary}</p>}
         <p className="field-help">Review: {record.reviewStatus.replaceAll("_", " ")} · Last checked: {record.lastCheckedAt?.toLocaleDateString("en-US") || "not checked"}</p>
         {record.sourceUrl && <p className="field-help">Source: <a href={record.sourceUrl} target="_blank" rel="noreferrer">View source record</a>{record.sourceCheckedAt ? ` · imported ${record.sourceCheckedAt.toLocaleDateString("en-US")}` : ""}</p>}
+        {(phone || email || contactPage) && <p>
+          <strong>Public business contact: </strong>
+          {phone && <> <a href={`tel:${phone.value}`}>Call {phone.value}</a> (<a href={phone.sourceUrl} target="_blank" rel="noreferrer">source</a>)</>}
+          {phone && email && " · "}
+          {email && <> <a href={`mailto:${email.value}`}>Email {email.value}</a> (<a href={email.sourceUrl} target="_blank" rel="noreferrer">source</a>)</>}
+          {contactPage && <> {(phone || email) && " · "}<a href={contactPage} target="_blank" rel="noreferrer">Contact page</a></>}
+        </p>}
         <p className="field-help"><strong>Review cues (not a lead score):</strong> {reviewCues(record).join(" ") || "No evidence-based priority cue has been recorded yet."}</p>
         {(record.publicContacts.length > 0 || record.evidence.length > 0) && <details className="association-evidence"><summary>Public contacts and supporting evidence ({record.publicContacts.length} contacts, {record.evidence.length} notes)</summary>
           {record.publicContacts.length > 0 && <div><h4>Public business contacts</h4><ul>{record.publicContacts.map((contact, index) => <li key={`${contact.type}-${contact.value}-${index}`}><span>{contact.type === "email" ? "Email" : "Phone"}: </span><a href={`${contact.type === "email" ? "mailto:" : "tel:"}${contact.value}`}>{contact.value}</a> · <a href={contact.sourceUrl} target="_blank" rel="noreferrer">Source page</a></li>)}</ul></div>}
