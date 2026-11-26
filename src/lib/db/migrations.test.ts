@@ -229,11 +229,12 @@ describe("Association prospecting migration", () => {
        values ('010000001', 'Sample Chamber', 'IL', 'https://www.irs.gov/') returning id`,
     );
     await db.exec(await migration("0015_association_alternate_name.sql"));
-    const preserved = await db.query<{ name: string; alternate_name: string | null }>(
-      "select name, alternate_name from association_prospects where id=$1",
+    await db.exec(await migration("0016_association_manual_contact_details.sql"));
+    const preserved = await db.query<{ name: string; alternate_name: string | null; manual_contacts: unknown[]; outreach_reason: string | null }>(
+      "select name, alternate_name, manual_contacts, outreach_reason from association_prospects where id=$1",
       [prospect.rows[0]?.id],
     );
-    expect(preserved.rows).toEqual([{ name: "Sample Chamber", alternate_name: null }]);
+    expect(preserved.rows).toEqual([{ name: "Sample Chamber", alternate_name: null, manual_contacts: [], outreach_reason: null }]);
     await db.query(
       `insert into association_scan_jobs (kind, source_state, sample_limit, created_by)
        values ('irs_sample', 'IL', 5, 'admin@example.com')`,

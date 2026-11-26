@@ -873,6 +873,8 @@ export const associationProspects = pgTable("association_prospects", {
   websiteCondition: associationWebsiteCondition("website_condition").default("unassessed").notNull(),
   reviewStatus: associationReviewStatus("review_status").default("needs_review").notNull(),
   publicContacts: jsonb("public_contacts").$type<Array<{ type: "email" | "phone"; value: string; sourceUrl: string }>>().default([]).notNull(),
+  manualContacts: jsonb("manual_contacts").$type<import("../association-prospects/manual-contacts").ManualAssociationContact[]>().default([]).notNull(),
+  outreachReason: text("outreach_reason"),
   evidence: jsonb("evidence").$type<Array<{ kind: string; summary: string; sourceUrl?: string; checkedAt?: string; confidence?: "low" | "medium" | "high" }>>().default([]).notNull(),
   sourceName: varchar("source_name", { length: 120 }).default("IRS Exempt Organizations Business Master File").notNull(),
   sourceUrl: text("source_url"),

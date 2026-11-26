@@ -1,3 +1,4 @@
+import { preferredBusinessContacts } from "@/lib/association-prospects/manual-contacts";
 import { and, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { requireAdmin } from "@/lib/auth";
@@ -6,6 +7,7 @@ import { associationProspects, associationScanJobs } from "@/lib/db/schema";
 import { selectedAssociationWebsite } from "@/lib/association-prospects/worker";
 import { AssociationJobRefresh } from "@/components/admin/association-job-refresh";
 import { addAssociationProspectAction, queueAssociationIrsSampleAction, queueAssociationScansAction, retryAssociationScanAction, reviewAssociationProspectAction } from "./actions";
+import { AssociationContactForm } from "./contact-form";
 
 const conditions = [
   ["unassessed", "Not assessed"],
@@ -54,9 +56,12 @@ export default async function AssociationProspectsPage({ searchParams }: { searc
     if (params.condition && conditions.some(([value]) => value === params.condition)) filters.push(eq(associationProspects.websiteCondition, params.condition as typeof associationProspects.$inferSelect.websiteCondition));
     if (params.review && ["needs_review", "confirmed", "rejected"].includes(params.review)) filters.push(eq(associationProspects.reviewStatus, params.review as typeof associationProspects.$inferSelect.reviewStatus));
     if (params.contact === "phone" || params.contact === "email") {
-      filters.push(sql`${associationProspects.publicContacts} @> ${JSON.stringify([{ type: params.contact }])}::jsonb`);
+      const pattern = JSON.stringify([{ type: params.contact }]);
+      filters.push(sql`(${associationProspects.publicContacts} @> ${pattern}::jsonb or ${associationProspects.manualContacts} @> ${pattern}::jsonb)`);
+    } else if (params.contact === "form") {
+      filters.push(sql`${associationProspects.manualContacts} @> '[{"type":"form"}]'::jsonb`);
     } else if (params.contact === "any") {
-      filters.push(sql`jsonb_array_length(${associationProspects.publicContacts}) > 0`);
+      filters.push(sql`(jsonb_array_length(${associationProspects.publicContacts}) + jsonb_array_length(${associationProspects.manualContacts})) > 0`);
     }
     const where = filters.length ? and(...filters) : undefined;
     const [rows, [stats]] = await Promise.all([
@@ -136,7 +141,7 @@ export default async function AssociationProspectsPage({ searchParams }: { searc
         <label>IRS classification<input name="classification" defaultValue={params.classification} maxLength={4} placeholder="Any" /></label>
         <label>Website condition<select name="condition" defaultValue={params.condition || ""}><option value="">Any condition</option>{conditions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
         <label>Review status<select name="review" defaultValue={params.review || ""}><option value="">Any status</option><option value="needs_review">Needs review</option><option value="confirmed">Confirmed</option><option value="rejected">Rejected</option></select></label>
-        <label>Public contact<select name="contact" defaultValue={params.contact || ""}><option value="">Any</option><option value="any">Phone or email</option><option value="phone">Has phone</option><option value="email">Has email</option></select></label>
+        <label>Public contact<select name="contact" defaultValue={params.contact || ""}><option value="">Any</option><option value="any">Any saved contact</option><option value="phone">Has phone</option><option value="email">Has email</option><option value="form">Has saved contact form</option></select></label>
         <button className="button button-secondary">Filter</button>
       </form>
       {!records.length ? <div className="empty-state"><h3>No prospects in this view</h3><p>Start with a small set of organizations and preserve the source links used to identify them.</p></div> : <div className="association-prospect-list">{records.map((record) => {
@@ -144,9 +149,13 @@ export default async function AssociationProspectsPage({ searchParams }: { searc
         const candidate = record.evidence.find((item) => item.kind === "website_candidate" || item.kind === "search_review" && record.websiteUrl === item.sourceUrl);
         const job = latestJobs.get(record.id);
         const active = job?.status === "queued" || job?.status === "running";
-        const phone = record.publicContacts.find((contact) => contact.type === "phone");
-        const email = record.publicContacts.find((contact) => contact.type === "email");
-        const contactPage = record.evidence.find((item) => item.kind === "public_contact_page")?.sourceUrl;
+        const contacts = preferredBusinessContacts(record.manualContacts, record.publicContacts);
+        const phone = contacts.find((contact) => contact.type === "phone");
+        const email = contacts.find((contact) => contact.type === "email");
+        const form = record.manualContacts.find((contact) => contact.type === "form");
+        const savedPhone = record.manualContacts.find((contact) => contact.type === "phone");
+        const savedEmail = record.manualContacts.find((contact) => contact.type === "email");
+        const contactPage = form?.value || record.evidence.find((item) => item.kind === "public_contact_page")?.sourceUrl;
         return <article className="association-prospect-card" key={record.id}>
         <div className="association-prospect-summary"><div><h3>{record.name}</h3><p>{[record.city, record.state].filter(Boolean).join(", ") || "Location not available"} · EIN {record.ein}{record.classificationCode ? ` · IRS class ${record.classificationCode}` : ""}{record.organizationStatusCode ? ` · IRS status ${record.organizationStatusCode}` : ""}</p></div><span className="status-pill">{conditionLabel.get(record.websiteCondition)}</span></div>
         {record.alternateName && <p className="field-help">Alternate or chapter name: {record.alternateName}</p>}
@@ -159,8 +168,29 @@ export default async function AssociationProspectsPage({ searchParams }: { searc
           {phone && <> <a href={`tel:${phone.value}`}>Call {phone.value}</a> (<a href={phone.sourceUrl} target="_blank" rel="noreferrer">source</a>)</>}
           {phone && email && " · "}
           {email && <> <a href={`mailto:${email.value}`}>Email {email.value}</a> (<a href={email.sourceUrl} target="_blank" rel="noreferrer">source</a>)</>}
-          {contactPage && <> {(phone || email) && " · "}<a href={contactPage} target="_blank" rel="noreferrer">Contact page</a></>}
+          {contactPage && <> {(phone || email) && " · "}<a href={contactPage} target="_blank" rel="noreferrer">{form ? "Contact form" : "Contact page"}</a></>}
         </p>}
+        {record.outreachReason && <p><strong>Why contact them? </strong>{record.outreachReason}</p>}
+        <details>
+          <summary>Edit public contacts and reason</summary>
+          {record.manualContacts.length > 0 && <ul>
+            {record.manualContacts.map((contact) => <li key={contact.type}>
+              {contact.type === "form" ? "Contact form" : contact.type === "email" ? "Email" : "Phone"} verified{" "}
+              <time dateTime={contact.verifiedAt}>{new Date(contact.verifiedAt).toLocaleDateString("en-US", { timeZone: "America/Chicago" })}</time>
+              {" · "}<a href={contact.sourceUrl} target="_blank" rel="noreferrer">Source</a>
+            </li>)}
+          </ul>}
+          <AssociationContactForm disabled={!prospectingEnabled}>
+            <input type="hidden" name="id" value={record.id} />
+            <label>Public phone<input name="phone" type="tel" maxLength={40} defaultValue={savedPhone?.value || ""} /></label>
+            <label>Phone source URL<input name="phoneSource" type="url" maxLength={2000} defaultValue={savedPhone?.sourceUrl || ""} /></label>
+            <label>Public email<input name="email" type="email" maxLength={254} defaultValue={savedEmail?.value || ""} /></label>
+            <label>Email source URL<input name="emailSource" type="url" maxLength={2000} defaultValue={savedEmail?.sourceUrl || ""} /></label>
+            <label className="span-two">Public contact form URL<input name="formUrl" type="url" maxLength={2000} defaultValue={form?.value || ""} /></label>
+            <label className="span-two">Why contact them?<textarea name="outreachReason" rows={3} maxLength={1000} defaultValue={record.outreachReason || ""} placeholder="What did you observe, and what could Orbisy help improve?" /></label>
+            <p className="field-help span-two">Save contact details you verified on a public page. Saved details take priority over scan results. Clear a contact and its source to remove your entry.</p>
+          </AssociationContactForm>
+        </details>
         <p className="field-help"><strong>Review cues (not a lead score):</strong> {reviewCues(record).join(" ") || "No evidence-based priority cue has been recorded yet."}</p>
         {(record.publicContacts.length > 0 || record.evidence.length > 0) && <details className="association-evidence"><summary>Public contacts and supporting evidence ({record.publicContacts.length} contacts, {record.evidence.length} notes)</summary>
           {record.publicContacts.length > 0 && <div><h4>Public business contacts</h4><ul>{record.publicContacts.map((contact, index) => <li key={`${contact.type}-${contact.value}-${index}`}><span>{contact.type === "email" ? "Email" : "Phone"}: </span><a href={`${contact.type === "email" ? "mailto:" : "tel:"}${contact.value}`}>{contact.value}</a> · <a href={contact.sourceUrl} target="_blank" rel="noreferrer">Source page</a></li>)}</ul></div>}
@@ -178,7 +208,7 @@ export default async function AssociationProspectsPage({ searchParams }: { searc
           <label>Condition<select name="websiteCondition" defaultValue={record.websiteCondition}>{conditions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
           <label>Review<select name="reviewStatus" defaultValue={record.reviewStatus}><option value="needs_review">Needs review</option><option value="confirmed">Confirmed</option><option value="rejected">Rejected</option></select></label>
           <label className="span-two">Review note<textarea name="reviewNote" rows={3} maxLength={1000} defaultValue={record.reviewNote || ""} /></label>
-          <p className="field-help span-two">Changing the website or alternate name clears the last scan findings and contacts. Leave the website blank to search again.</p>
+          <p className="field-help span-two">Changing the website or alternate name clears automated findings and contacts. Leave the website blank to search again.</p>
           <button className="button button-secondary" disabled={!prospectingEnabled || active}>Save review</button>
           <button className="button button-secondary" name="queueFresh" value="true" disabled={!scanningEnabled || active}>Save and queue fresh check</button>
         </form></details>
