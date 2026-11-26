@@ -7,6 +7,7 @@ import { requireAdmin } from "@/lib/auth";
 import { getDb } from "@/lib/db";
 import { associationProspects, associationScanJobs } from "@/lib/db/schema";
 import { lockAssociationScanQueue, queueAssociationIrsSample, queueAssociationScanJobs, queueAssociationScansInTransaction, retryAssociationScanJob } from "@/lib/association-prospects/worker";
+import { parseAssociationContactDetails, stampManualContacts } from "@/lib/association-prospects/manual-contacts";
 import { checkAdminMutationLimit } from "@/lib/rate-limit";
 
 const states = "AL AK AS AZ AR CA CO CT DE DC FL GA GU HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO MP MT NE NV NH NJ NM NY NC ND OH OK OR PW PA PR RI SC SD TN TX UT VT VI VA WA WV WI WY FM MH".split(" ");
@@ -91,6 +92,35 @@ export async function reviewAssociationProspectAction(form: FormData) {
     await tx.execute(sql`insert into admin_activity_logs (admin_email, action, entity_type, entity_id, metadata) values (${admin.email}, 'association_prospect.reviewed', 'association_prospect', ${input.id}::uuid, ${JSON.stringify({ condition: websiteCondition, reviewStatus })}::jsonb)`);
   });
   revalidatePath("/admin-portal/association-prospects");
+}
+
+export async function saveAssociationContactDetailsAction(_previous: { success: boolean; message: string }, form: FormData) {
+  const admin = await authorize();
+  const id = z.uuid().parse(form.get("id"));
+  let details;
+  try {
+    details = parseAssociationContactDetails(form);
+  } catch (error) {
+    return { success: false, message: error instanceof z.ZodError ? "Check the contact lengths and try again." : error instanceof Error ? error.message : "Check the contact details and try again." };
+  }
+  const { contacts, outreachReason } = details;
+
+  await getDb().transaction(async (tx) => {
+    const [record] = await tx.select({ manualContacts: associationProspects.manualContacts })
+      .from(associationProspects).where(eq(associationProspects.id, id)).for("update");
+    if (!record) throw new Error("Association prospect not found.");
+    const now = new Date();
+    const manualContacts = stampManualContacts(contacts, record.manualContacts, now);
+    await tx.update(associationProspects)
+      .set({ manualContacts, outreachReason, updatedAt: now })
+      .where(eq(associationProspects.id, id));
+    await tx.execute(sql`insert into admin_activity_logs (admin_email, action, entity_type, entity_id, metadata)
+      values (${admin.email}, 'association_prospect.contact_details_saved', 'association_prospect', ${id}::uuid,
+      ${JSON.stringify({ channels: manualContacts.map((item) => item.type), hasReason: Boolean(outreachReason) })}::jsonb)`);
+  });
+
+  revalidatePath("/admin-portal/association-prospects");
+  return { success: true, message: "Contact details saved." };
 }
 
 export async function queueAssociationScansAction(form: FormData) {

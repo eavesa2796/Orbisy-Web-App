@@ -10,7 +10,7 @@ const formattedPhone = /(?<![\w-])(?:\+?1[ .-]*)?(?:\([2-9]\d{2}\)[ ]*|[2-9]\d{2
 const orgTypes = new Set(["Organization", "NGO", "Corporation", "LocalBusiness", "ProfessionalService", "GovernmentOrganization", "EducationalOrganization"]);
 const unsupportedPage = /\/(?:login|sign[-_]?in|admin|account|checkout|cart|wp-admin|logout|register)(?:\/|$)|\.[a-z0-9]{2,5}$/i;
 
-function normalizePhone(value: string) {
+export function normalizePhone(value: string) {
   const [number, extension] = value.trim().split(/(?:;ext=|\s+(?:ext\.?|x)\s*)/i);
   if (!number || !/^[+\d(). -]+$/.test(number)) return null;
   const digits = number.replace(/\D/g, "").replace(/^1(?=\d{10}$)/, "");
@@ -18,7 +18,7 @@ function normalizePhone(value: string) {
   return `+1${digits}${extension && /^\d{1,8}$/.test(extension) ? `;ext=${extension}` : ""}`;
 }
 
-function normalizeEmail(value: string) {
+export function normalizeEmail(value: string) {
   const email = value.trim().toLowerCase();
   return email.length <= 254 && /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/.test(email)
     && !/\.(png|jpg|jpeg|gif|svg|webp)$|^(?:no[-_.]?reply|do[-_.]?not[-_.]?reply)@|@(?:example\.(?:com|net|org)|sentry\.io)$/i.test(email)
