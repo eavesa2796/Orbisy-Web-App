@@ -1,15 +1,16 @@
-import { and, desc, eq, ilike, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { requireAdmin } from "@/lib/auth";
 import { getDb } from "@/lib/db";
 import { associationProspects, associationScanJobs } from "@/lib/db/schema";
+import { selectedAssociationWebsite } from "@/lib/association-prospects/worker";
 import { AssociationJobRefresh } from "@/components/admin/association-job-refresh";
 import { addAssociationProspectAction, queueAssociationIrsSampleAction, queueAssociationScansAction, retryAssociationScanAction, reviewAssociationProspectAction } from "./actions";
 
 const conditions = [
   ["unassessed", "Not assessed"],
   ["website_not_confirmed", "Website not confirmed"],
-  ["no_major_issues_detected", "No major issues detected on homepage"],
+  ["no_major_issues_detected", "No major issues detected on checked page"],
   ["needs_manual_review", "Needs manual review"],
   ["significant_problems", "Potential significant problems"],
   ["scan_failed", "Scan failed"],
@@ -44,7 +45,10 @@ export default async function AssociationProspectsPage({ searchParams }: { searc
   try {
     const db = getDb();
     const filters = [];
-    if (params.q?.trim()) filters.push(ilike(associationProspects.name, `%${params.q.trim().slice(0, 80)}%`));
+    if (params.q?.trim()) {
+      const name = `%${params.q.trim().slice(0, 80)}%`;
+      filters.push(or(ilike(associationProspects.name, name), ilike(associationProspects.alternateName, name)));
+    }
     if (params.state && /^[A-Z]{2}$/.test(params.state.toUpperCase())) filters.push(eq(associationProspects.state, params.state.toUpperCase()));
     if (params.classification?.trim()) filters.push(eq(associationProspects.classificationCode, params.classification.trim().slice(0, 4).toUpperCase()));
     if (params.condition && conditions.some(([value]) => value === params.condition)) filters.push(eq(associationProspects.websiteCondition, params.condition as typeof associationProspects.$inferSelect.websiteCondition));
@@ -85,7 +89,7 @@ export default async function AssociationProspectsPage({ searchParams }: { searc
     <p className="notice">Report scope: all saved records; the search filters affect the list only. Category percentages use the completed-assessment denominator ({totals.assessed}). Unassessed, blocked, and failed records are excluded. “Website not confirmed” does not mean the organization has no website. A technical finding alone does not establish activity, budget, or buying intent.</p>
     <section className="admin-card association-condition-report"><div className="card-heading"><div><p className="eyebrow">Website condition breakdown</p><h2>Counts and percentages</h2></div><span className="field-help">Denominator: {totals.assessed} assessed</span></div>
       <div className="table-wrap"><table><thead><tr><th>Category</th><th>Count</th><th>Percent of assessed</th></tr></thead><tbody>
-        {[ ["Website not confirmed", totals.notConfirmed], ["No major issues detected on the homepage", totals.healthy], ["Needs manual review", totals.manual], ["Potential significant problems", totals.problems] ].map(([label, count]) => <tr key={label}><td>{label}</td><td>{count}</td><td>{totals.assessed ? `${Math.round(Number(count) / totals.assessed * 100)}%` : "—"}</td></tr>)}
+        {[ ["Website not confirmed", totals.notConfirmed], ["No major issues detected on the checked page", totals.healthy], ["Needs manual review", totals.manual], ["Potential significant problems", totals.problems] ].map(([label, count]) => <tr key={label}><td>{label}</td><td>{count}</td><td>{totals.assessed ? `${Math.round(Number(count) / totals.assessed * 100)}%` : "—"}</td></tr>)}
         <tr><td>Not assessed</td><td>{totals.unassessed}</td><td>Excluded</td></tr><tr><td>Scan failed</td><td>{totals.failed}</td><td>Excluded</td></tr><tr><td>Blocked</td><td>{totals.blocked}</td><td>Excluded</td></tr>
       </tbody></table></div>
     </section>
@@ -115,7 +119,7 @@ export default async function AssociationProspectsPage({ searchParams }: { searc
       <div className="table-wrap"><table><thead><tr><th>Work item</th><th>Status</th><th>Progress</th><th>Result</th><th>Action</th></tr></thead><tbody>{recentJobs.map((job) => <tr key={job.id}>
         <td>{job.kind === "irs_sample" ? `IRS ${job.sourceState} sample (${job.sampleLimit})` : records.find((record) => record.id === job.prospectId)?.name || "Website scan"}</td>
         <td>{job.status.replaceAll("_", " ")}</td><td>{job.step.replaceAll("_", " ")}</td>
-        <td>{job.kind === "irs_sample" ? job.status === "completed" ? `${Math.min(job.sampleLimit ?? 0, job.sourcePopulationCount ?? 0)} sampled · ${job.sourceImportedCount ?? 0} new EINs saved · ${job.sourcePopulationCount ?? 0} eligible in filtered file` : `${job.sourcePopulationCount ?? 0} eligible records seen so far` : job.lastError || (job.status === "completed" ? "Homepage checked; evidence saved" : "")}</td>
+        <td>{job.kind === "irs_sample" ? job.status === "completed" ? `${Math.min(job.sampleLimit ?? 0, job.sourcePopulationCount ?? 0)} sampled · ${job.sourceImportedCount ?? 0} new EINs saved · ${job.sourcePopulationCount ?? 0} eligible in filtered file` : `${job.sourcePopulationCount ?? 0} eligible records seen so far` : job.lastError || (job.status === "completed" ? "Discovery or website check finished" : "")}</td>
         <td>{["failed", "blocked"].includes(job.status) && (job.attemptCount < job.maxAttempts ? <form action={retryAssociationScanAction}><input type="hidden" name="jobId" value={job.id} /><button className="button button-secondary" disabled={!prospectingEnabled || (job.kind === "website_scan" && !scanningEnabled)}>Retry</button></form> : <span className="field-help">Attempt limit reached</span>)}</td>
       </tr>)}</tbody></table></div>
     </section>}
@@ -129,9 +133,16 @@ export default async function AssociationProspectsPage({ searchParams }: { searc
         <label>Review status<select name="review" defaultValue={params.review || ""}><option value="">Any status</option><option value="needs_review">Needs review</option><option value="confirmed">Confirmed</option><option value="rejected">Rejected</option></select></label>
         <button className="button button-secondary">Filter</button>
       </form>
-      {!records.length ? <div className="empty-state"><h3>No prospects in this view</h3><p>Start with a small set of organizations and preserve the source links used to identify them.</p></div> : <div className="association-prospect-list">{records.map((record) => <article className="association-prospect-card" key={record.id}>
+      {!records.length ? <div className="empty-state"><h3>No prospects in this view</h3><p>Start with a small set of organizations and preserve the source links used to identify them.</p></div> : <div className="association-prospect-list">{records.map((record) => {
+        const selectedUrl = selectedAssociationWebsite(record);
+        const candidate = record.evidence.find((item) => item.kind === "website_candidate" || item.kind === "search_review" && record.websiteUrl === item.sourceUrl);
+        const job = latestJobs.get(record.id);
+        const active = job?.status === "queued" || job?.status === "running";
+        return <article className="association-prospect-card" key={record.id}>
         <div className="association-prospect-summary"><div><h3>{record.name}</h3><p>{[record.city, record.state].filter(Boolean).join(", ") || "Location not available"} · EIN {record.ein}{record.classificationCode ? ` · IRS class ${record.classificationCode}` : ""}{record.organizationStatusCode ? ` · IRS status ${record.organizationStatusCode}` : ""}</p></div><span className="status-pill">{conditionLabel.get(record.websiteCondition)}</span></div>
-        {record.websiteUrl && <p><a href={record.websiteUrl} target="_blank" rel="noreferrer">{record.websiteUrl}</a></p>}
+        {record.alternateName && <p className="field-help">Alternate or chapter name: {record.alternateName}</p>}
+        {selectedUrl && <p>Selected website: <a href={selectedUrl} target="_blank" rel="noreferrer">{selectedUrl}</a></p>}
+        {!selectedUrl && candidate?.sourceUrl && <p>Suggested website: <a href={candidate.sourceUrl} target="_blank" rel="noreferrer">{candidate.sourceUrl}</a> · {candidate.summary}</p>}
         <p className="field-help">Review: {record.reviewStatus.replaceAll("_", " ")} · Last checked: {record.lastCheckedAt?.toLocaleDateString("en-US") || "not checked"}</p>
         {record.sourceUrl && <p className="field-help">Source: <a href={record.sourceUrl} target="_blank" rel="noreferrer">View source record</a>{record.sourceCheckedAt ? ` · imported ${record.sourceCheckedAt.toLocaleDateString("en-US")}` : ""}</p>}
         <p className="field-help"><strong>Review cues (not a lead score):</strong> {reviewCues(record).join(" ") || "No evidence-based priority cue has been recorded yet."}</p>
@@ -139,20 +150,23 @@ export default async function AssociationProspectsPage({ searchParams }: { searc
           {record.publicContacts.length > 0 && <div><h4>Public business contacts</h4><ul>{record.publicContacts.map((contact, index) => <li key={`${contact.type}-${contact.value}-${index}`}><span>{contact.type === "email" ? "Email" : "Phone"}: </span><a href={`${contact.type === "email" ? "mailto:" : "tel:"}${contact.value}`}>{contact.value}</a> · <a href={contact.sourceUrl} target="_blank" rel="noreferrer">Source page</a></li>)}</ul></div>}
           {record.evidence.length > 0 && <div><h4>Evidence</h4><ul>{record.evidence.map((item, index) => <li key={`${item.kind}-${index}`}><strong>{item.kind.replaceAll("_", " ")}</strong><span> — {item.summary}</span>{item.confidence && <small> · {item.confidence} confidence</small>}{item.checkedAt && <small> · {new Date(item.checkedAt).toLocaleDateString("en-US")}</small>}{item.sourceUrl && <> · <a href={item.sourceUrl} target="_blank" rel="noreferrer">Evidence source</a></>}</li>)}</ul></div>}
         </details>}
-        {(() => { const job = latestJobs.get(record.id); return <div className="association-scan-controls">
+        <div className="association-scan-controls">
           {job && <span className={`status-pill association-job-${job.status}`}>Scan {job.status.replaceAll("_", " ")}{job.status === "running" ? ` · ${job.step.replaceAll("_", " ")}` : ""}</span>}
           {job?.lastError && <span className="field-help">{job.lastError}</span>}
           {job && ["queued", "running"].includes(job.status) ? null : job && ["failed", "blocked"].includes(job.status) ? job.attemptCount < job.maxAttempts ? <form action={retryAssociationScanAction}><input type="hidden" name="jobId" value={job.id} /><button className="button button-secondary" disabled={!scanningEnabled}>Retry scan</button></form> : <span className="field-help">Attempt limit reached</span> : <form action={queueAssociationScansAction}><input type="hidden" name="prospectId" value={record.id} /><button className="button button-secondary" disabled={!scanningEnabled}>Queue website scan</button></form>}
-        </div>; })()}
+        </div>
         <details><summary>Review record</summary><form action={reviewAssociationProspectAction} className="admin-form association-prospect-form">
           <input type="hidden" name="id" value={record.id} />
-          <label>Website URL<input name="websiteUrl" type="url" defaultValue={record.websiteUrl || ""} /></label>
+          <label>Alternate or chapter name<input name="alternateName" maxLength={200} defaultValue={record.alternateName || ""} /></label>
+          <label>Selected website URL<input name="websiteUrl" type="url" defaultValue={selectedUrl || ""} /></label>
           <label>Condition<select name="websiteCondition" defaultValue={record.websiteCondition}>{conditions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
           <label>Review<select name="reviewStatus" defaultValue={record.reviewStatus}><option value="needs_review">Needs review</option><option value="confirmed">Confirmed</option><option value="rejected">Rejected</option></select></label>
           <label className="span-two">Review note<textarea name="reviewNote" rows={3} maxLength={1000} defaultValue={record.reviewNote || ""} /></label>
-          <button className="button button-secondary" disabled={!prospectingEnabled}>Save review</button>
+          <p className="field-help span-two">Changing the website or alternate name clears the last scan findings and contacts. Leave the website blank to search again.</p>
+          <button className="button button-secondary" disabled={!prospectingEnabled || active}>Save review</button>
+          <button className="button button-secondary" name="queueFresh" value="true" disabled={!scanningEnabled || active}>Save and queue fresh check</button>
         </form></details>
-      </article>)}</div>}
+      </article>; })}</div>}
     </section>
   </AdminShell>;
 }

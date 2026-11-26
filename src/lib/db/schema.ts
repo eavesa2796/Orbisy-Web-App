@@ -863,6 +863,7 @@ export const associationProspects = pgTable("association_prospects", {
   id: uuid("id").defaultRandom().primaryKey(),
   ein: varchar("ein", { length: 9 }).notNull(),
   name: varchar("name", { length: 200 }).notNull(),
+  alternateName: varchar("alternate_name", { length: 200 }),
   city: varchar("city", { length: 120 }),
   state: varchar("state", { length: 2 }),
   subsectionCode: varchar("subsection_code", { length: 2 }).default("06").notNull(),

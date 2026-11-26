@@ -1,12 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { eq, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/auth";
 import { getDb } from "@/lib/db";
-import { associationProspects } from "@/lib/db/schema";
-import { queueAssociationIrsSample, queueAssociationScanJobs, retryAssociationScanJob } from "@/lib/association-prospects/worker";
+import { associationProspects, associationScanJobs } from "@/lib/db/schema";
+import { lockAssociationScanQueue, queueAssociationIrsSample, queueAssociationScanJobs, queueAssociationScansInTransaction, retryAssociationScanJob } from "@/lib/association-prospects/worker";
 import { checkAdminMutationLimit } from "@/lib/rate-limit";
 
 const states = "AL AK AS AZ AR CA CO CT DE DC FL GA GU HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO MP MT NE NV NH NJ NM NY NC ND OH OK OR PW PA PR RI SC SD TN TX UT VT VI VA WA WV WI WY FM MH".split(" ");
@@ -53,19 +53,43 @@ export async function reviewAssociationProspectAction(form: FormData) {
   const input = z.object({
     id: z.uuid(),
     websiteUrl: urlSchema,
+    alternateName: z.string().trim().max(200),
     websiteCondition: z.enum(["unassessed", "website_not_confirmed", "no_major_issues_detected", "needs_manual_review", "significant_problems", "scan_failed", "blocked"]),
     reviewStatus: z.enum(["needs_review", "confirmed", "rejected"]),
     reviewNote: z.string().trim().max(1000).optional(),
+    queueFresh: z.literal("true").optional(),
   }).parse(Object.fromEntries(form));
-  const db = getDb();
-  await db.update(associationProspects).set({
-    websiteUrl: input.websiteUrl || null,
-    websiteCondition: input.websiteCondition,
-    reviewStatus: input.reviewStatus,
-    reviewNote: input.reviewNote || null,
-    updatedAt: new Date(),
-  }).where(eq(associationProspects.id, input.id));
-  await db.execute(sql`insert into admin_activity_logs (admin_email, action, entity_type, entity_id, metadata) values (${admin.email}, 'association_prospect.reviewed', 'association_prospect', ${input.id}::uuid, ${JSON.stringify({ condition: input.websiteCondition, reviewStatus: input.reviewStatus })}::jsonb)`);
+  await getDb().transaction(async (tx) => {
+    await lockAssociationScanQueue(tx);
+    const [record] = await tx.select().from(associationProspects).where(eq(associationProspects.id, input.id)).for("update");
+    if (!record) throw new Error("Association prospect not found.");
+    const [activeJob] = await tx.select({ id: associationScanJobs.id }).from(associationScanJobs).where(and(
+      eq(associationScanJobs.prospectId, input.id),
+      inArray(associationScanJobs.status, ["queued", "running"]),
+    )).limit(1);
+    if (activeJob) throw new Error("Wait for the active scan before editing this record.");
+
+    const websiteUrl = input.websiteUrl ? new URL(input.websiteUrl).href : null;
+    const existingUrl = record.websiteUrl ? new URL(record.websiteUrl).href : null;
+    const alternateName = input.alternateName || null;
+    const reset = websiteUrl !== existingUrl || alternateName !== record.alternateName || input.queueFresh === "true";
+    const websiteCondition = reset ? "unassessed" : input.websiteCondition;
+    const reviewStatus = reset && !websiteUrl ? "needs_review" : input.reviewStatus;
+    await tx.update(associationProspects).set({
+      websiteUrl,
+      alternateName,
+      websiteCondition,
+      reviewStatus,
+      reviewNote: input.reviewNote || null,
+      updatedAt: new Date(),
+      ...(reset ? { publicContacts: [], evidence: [], lastCheckedAt: null } : {}),
+    }).where(eq(associationProspects.id, input.id));
+
+    if (input.queueFresh === "true") {
+      await queueAssociationScansInTransaction(tx, [input.id], admin.email);
+    }
+    await tx.execute(sql`insert into admin_activity_logs (admin_email, action, entity_type, entity_id, metadata) values (${admin.email}, 'association_prospect.reviewed', 'association_prospect', ${input.id}::uuid, ${JSON.stringify({ condition: websiteCondition, reviewStatus })}::jsonb)`);
+  });
   revalidatePath("/admin-portal/association-prospects");
 }
 
