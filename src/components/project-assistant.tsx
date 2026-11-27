@@ -21,6 +21,14 @@ const starters = [
   "What should we know before connecting our systems?",
 ];
 
+const pageStarters: Record<string, string[]> = {
+  "/pricing": ["How do the project price ranges work?", "What is included in website care?", "What goes into a written proposal?"],
+  "/association-websites": ["What is included in an association website?", "How do the project price ranges work?", "Can I speak with a developer?"],
+  "/member-portals": ["What member portal workflows can Orbisy build?", "How do the project price ranges work?", "Can I speak with a developer?"],
+  "/integrations": ["What should we know before connecting our systems?", "How do you check integration feasibility?", "Can I speak with a developer?"],
+  "/project-planning": ["What goes into a written proposal?", "What should our board review before approving a project?", "Can I speak with a developer?"],
+};
+
 export function ProjectAssistant() {
   const pathname = usePathname();
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -52,7 +60,7 @@ export function ProjectAssistant() {
   async function send(value = draft) {
     const question = value.trim();
     if (!question || busy) return;
-      const nextMessages: Turn[] = [...messages, { role: "user", content: question }];
+    const nextMessages: Turn[] = [...messages, { role: "user", content: question }];
     setMessages(nextMessages);
     setDraft("");
     setBusy(true);
@@ -69,7 +77,7 @@ export function ProjectAssistant() {
       if (!response.ok) {
         setMessages((current) => [...current, {
           role: "assistant",
-          content: result.error ?? "The assistant is temporarily unavailable. Please use the project request form.",
+          content: result.error ?? result.answer ?? "The assistant is temporarily unavailable. Please use the project request form.",
           handoff: true,
         }]);
       } else {
@@ -139,7 +147,7 @@ export function ProjectAssistant() {
             ))}
             {messages.length === 1 && !busy && (
               <div className="project-assistant-starters" aria-label="Suggested questions">
-                {starters.map((starter) => (
+                {(pageStarters[pathname] ?? starters).map((starter) => (
                   <button type="button" key={starter} onClick={() => void send(starter)}>
                     {starter}
                   </button>
