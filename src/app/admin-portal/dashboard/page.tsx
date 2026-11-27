@@ -1,3 +1,4 @@
+import { EmailWorkerHealth } from "@/components/admin/email-worker-health";
 import Link from "next/link";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { AgencyDashboard } from "@/components/admin/agency-dashboard";
@@ -41,6 +42,7 @@ export default async function DashboardPage() {
           </section>
         </>
       )}
+      <EmailWorkerHealth />
     </AdminShell>
   );
 }

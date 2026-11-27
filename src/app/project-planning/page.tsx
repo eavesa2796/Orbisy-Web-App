@@ -3,6 +3,7 @@ import Link from "next/link";
 import { PublicFooter, PublicHeader } from "@/components/public-site-shell";
 import { ProjectAssistant } from "@/components/project-assistant";
 import { discoveryOffer, publicPackages } from "@/lib/public-pricing";
+import { PrintBrief } from "./print-brief";
 import styles from "./brief.module.css";
 
 export const metadata: Metadata = {
@@ -79,9 +80,9 @@ export default function ProjectPlanningPage() {
               or promise of delivery time.
             </div>
             <p className={styles.shareNote}>
-              Share this page with your budget owner or use your browser’s
-              Print command to save a PDF for discussion.
+              Share this page with your budget owner or save a PDF for your board packet.
             </p>
+            <PrintBrief />
           </div>
         </section>
 

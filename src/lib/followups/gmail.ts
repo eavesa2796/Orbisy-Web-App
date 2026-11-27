@@ -14,7 +14,7 @@ export function decryptGmailToken(value:string){const [v,iv,tag,payload]=value.s
 class GmailRequestError extends Error {
  constructor(readonly operation:"token"|"profile"|"history"|"message",readonly status:number){super(`Gmail ${operation} request failed (HTTP ${status}).`);}
 }
-function safeSyncFailure(error:unknown){
+export function safeSyncFailure(error:unknown){
  if(error instanceof GmailRequestError)return error.message;
  const cause=error instanceof Error?error.cause:undefined;
  const candidate=cause&&typeof cause==="object"&&"code" in cause?cause.code:error&&typeof error==="object"&&"code" in error?error.code:undefined;
@@ -24,6 +24,18 @@ export async function googleTokenRequest(params:Record<string,string>){const res
 export async function gmailGet(path:string,accessToken:string){const response=await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/${path}`,{headers:{Authorization:`Bearer ${accessToken}`},signal:AbortSignal.timeout(8000),cache:"no-store"});if(!response.ok)throw new GmailRequestError(path.startsWith("history?")?"history":path.startsWith("messages/")?"message":"profile",response.status);return response.json();}
 export function mailboxAddresses(value:string){return (value.match(/[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9.-]+\.[a-z]{2,}/gi)||[]).map(v=>v.toLowerCase());}
 export type GmailMetadata={id:string;internalDate?:string;labelIds?:string[];payload?:{headers?:Array<{name:string;value:string}>}};
+// History can reference a message that was permanently removed afterward.
+export async function getGmailMessageMetadata(id: string, accessToken: string, headers: string[]) {
+ const query = new URLSearchParams({format:"metadata"});
+ for (const header of headers) query.append("metadataHeaders", header);
+ try {
+  return await gmailGet(`messages/${encodeURIComponent(id)}?${query}`, accessToken) as GmailMetadata & {threadId?: string};
+ } catch (error) {
+  if (!(error instanceof GmailRequestError) || error.operation !== "message" || error.status !== 404) throw error;
+  console.info("Gmail history message no longer available", {stage:"message metadata", status:404});
+  return null;
+ }
+}
 export async function applyGmailMetadata(message:GmailMetadata){const headers=message.payload?.headers||[];const read=(name:string)=>headers.filter(h=>h.name.toLowerCase()===name).map(h=>h.value).join(",");const from=mailboxAddresses(read("from"));const recipients=mailboxAddresses([read("to"),read("cc"),read("bcc")].join(","));const sent=message.labelIds?.includes("SENT")&&from.includes(FOLLOWUP_MAILBOX);const participants=sent?recipients:from;if(!participants.length)return;
  const at=new Date(Number(message.internalDate));if(!Number.isFinite(at.getTime()))throw Error("Gmail message date missing; synchronization must be reviewed.");
  await getDb().transaction(async tx=>{const conversations=await tx.select({conversation:followupConversations,receivedAt:contactSubmissions.submittedAt}).from(followupConversations).innerJoin(contactSubmissions,eq(followupConversations.submissionId,contactSubmissions.id)).where(ne(followupConversations.state,"closed"));for(const {conversation,receivedAt} of conversations){
@@ -47,7 +59,10 @@ export async function syncGmail(){const settings=await getFollowupSettings();if(
  if(typeof data.historyId!=="string"||!/^\d{1,120}$/.test(data.historyId))throw Error("INVALID_GMAIL_HISTORY");
  const ids=[...new Set((data.history||[]).flatMap(h=>(h.messagesAdded||[]).map(x=>x.message.id)))];if(ids.length>150)throw Error("Gmail backlog needs manual review; no messages will be sent.");
  stage="message metadata";
- for(let i=0;i<ids.length;i+=5){const metadata=await Promise.all(ids.slice(i,i+5).map(async id=>{const query=new URLSearchParams({format:"metadata"});for(const header of ["From","To","Cc","Bcc"])query.append("metadataHeaders",header);return await gmailGet(`messages/${encodeURIComponent(id)}?${query}`,token.access_token) as GmailMetadata;}));for(const message of metadata)await applyGmailMetadata(message);}
+ for(let i=0;i<ids.length;i+=5){
+  const metadata=await Promise.all(ids.slice(i,i+5).map(id=>getGmailMessageMetadata(id,token.access_token,["From","To","Cc","Bcc"])));
+  for(const message of metadata)if(message)await applyGmailMetadata(message);
+ }
  pageToken=data.nextPageToken;
  await getDb().update(followupSettings).set({gmailPageToken:pageToken||null,...(!pageToken?{gmailCursor:data.historyId,gmailSyncedAt:new Date(),gmailError:null}: {gmailError:"Gmail backlog is being synchronized. Sending is paused until complete."})}).where(eq(followupSettings.id,"main"));
  if(!pageToken)return true;

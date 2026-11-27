@@ -223,6 +223,7 @@
   .nextStep { align-items: flex-start; flex-direction: column; padding: 24px; }
 }
 @media print {
+  .printButton { display: none !important; }
   :global(body) { color: #111 !important; background: #fff !important; }
   :global(.site-header),
   :global(.site-footer) { display: none !important; }

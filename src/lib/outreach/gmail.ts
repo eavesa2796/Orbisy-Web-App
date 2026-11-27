@@ -2,7 +2,7 @@ import "server-only";
 import {and,eq,inArray,ne} from "drizzle-orm";
 import {getDb} from "@/lib/db";
 import {leads,outreachSettings,outreachEnrollments,outreachMessages,outreachEvents} from "@/lib/db/schema";
-import {encryptGmailToken,decryptGmailToken,googleTokenRequest,gmailGet,mailboxAddresses,type GmailMetadata} from "@/lib/followups/gmail";
+import {encryptGmailToken,decryptGmailToken,googleTokenRequest,gmailGet,getGmailMessageMetadata,safeSyncFailure,mailboxAddresses,type GmailMetadata} from "@/lib/followups/gmail";
 import {getOutreachSettings,lockOutreach,stopOutreach} from "./service";
 export const OUTREACH_SCOPES=["https://www.googleapis.com/auth/gmail.metadata","https://www.googleapis.com/auth/gmail.send"];
 export const OUTREACH_MAILBOX="info@orbisy.com";
@@ -39,14 +39,19 @@ export async function applyOutreachMetadata(message:GmailMetadata & {threadId?:s
   if(deliveryNotice&&!sent&&!matched){await tx.update(outreachSettings).set({sendingEnabled:false,gmailError:"An unmatched delivery notification needs a Gmail review. Outreach sending was paused."}).where(eq(outreachSettings.id,"main"));await tx.insert(outreachEvents).values({externalKey:`delivery-review:${message.id}`,kind:"delivery_review",detail:"A delivery notification could not be matched safely using headers. Outreach sending paused for administrator review.",occurredAt:at}).onConflictDoNothing();}
  });
 }
-export async function syncOutreachMailbox(accessToken:string){const settings=await getOutreachSettings();if(!settings.gmailCursor)return false;try{
+export async function syncOutreachMailbox(accessToken:string){const settings=await getOutreachSettings();if(!settings.gmailCursor)return false;let stage="mailbox history";try{
  let pageToken=settings.gmailPageToken||undefined;
  // Continue a backlog across runs, and keep sending blocked until fully caught up.
  const params=new URLSearchParams({startHistoryId:settings.gmailCursor,historyTypes:"messageAdded",maxResults:"20"});if(pageToken)params.set("pageToken",pageToken);
  const history=await gmailGet(`history?${params}`,accessToken) as {history?:Array<{messagesAdded?:Array<{message:{id:string}}>}>;historyId:string;nextPageToken?:string};
  if(!/^\d{1,120}$/.test(history.historyId))throw Error("INVALID_OUTREACH_HISTORY");
  const ids=[...new Set((history.history||[]).flatMap(h=>(h.messagesAdded||[]).map(m=>m.message.id)))];if(ids.length>100)throw Error("OUTREACH_BACKLOG");
- for(let i=0;i<ids.length;i+=5){const metadata=await Promise.all(ids.slice(i,i+5).map(id=>{const query=new URLSearchParams({format:"metadata"});for(const header of ["From","To","Cc","Bcc","Message-ID","In-Reply-To","References","Auto-Submitted","X-Failed-Recipients"])query.append("metadataHeaders",header);return gmailGet(`messages/${encodeURIComponent(id)}?${query}`,accessToken) as Promise<GmailMetadata & {threadId?:string}>;}));for(const message of metadata)await applyOutreachMetadata(message);}
+ stage="message metadata";
+ for(let i=0;i<ids.length;i+=5){
+  const metadata=await Promise.all(ids.slice(i,i+5).map(id=>getGmailMessageMetadata(id,accessToken,["From","To","Cc","Bcc","Message-ID","In-Reply-To","References","Auto-Submitted","X-Failed-Recipients"])));
+  for(const message of metadata)if(message)await applyOutreachMetadata(message);
+ }
+ stage="sync progress";
  pageToken=history.nextPageToken;
  await getDb().update(outreachSettings).set({gmailPageToken:pageToken||null,...(!pageToken?{gmailCursor:history.historyId,gmailSyncedAt:new Date(),gmailError:null}:{gmailError:"Mailbox history is catching up. Sending is paused."})}).where(eq(outreachSettings.id,"main"));return !pageToken;
- }catch{await getDb().update(outreachSettings).set({gmailError:"Outreach mailbox sync needs attention. Reconnect if necessary; sending is blocked."}).where(eq(outreachSettings.id,"main"));return false;}}
+ }catch(error){const reason=safeSyncFailure(error);console.error("Orbisy outreach Gmail sync failed",{stage,reason});await getDb().update(outreachSettings).set({gmailError:`Outreach sync blocked during ${stage}: ${reason} Sending remains blocked.`}).where(eq(outreachSettings.id,"main"));return false;}}

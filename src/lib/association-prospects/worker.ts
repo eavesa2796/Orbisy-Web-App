@@ -243,12 +243,14 @@ function safeDisplay(code: string) {
   return code.replaceAll("_", " ").slice(0, 180);
 }
 
+export const DAILY_ASSOCIATION_SCAN_ATTEMPTS = 20;
+
 async function claimOneJob(workerId: string) {
   const db = getDb();
   return db.transaction(async (tx) => {
     await tx.execute(sql`select pg_advisory_xact_lock(hashtext('association_scan_attempt_daily_limit'))`);
     const dailyAttempts = await tx.execute<{ count: number }>(sql`select count(*)::int as count from admin_activity_logs where action = 'association_scan.attempt_claimed' and created_at >= date_trunc('day', now())`);
-    if (Number(dailyAttempts[0]?.count || 0) >= 20) return null;
+    if (Number(dailyAttempts[0]?.count || 0) >= DAILY_ASSOCIATION_SCAN_ATTEMPTS) return null;
     await tx.execute(sql`
       update association_scan_jobs set
         status = case when attempt_count >= max_attempts then 'failed'::association_scan_job_status else 'queued'::association_scan_job_status end,
@@ -369,19 +371,17 @@ export async function processAssociationScanJob(job: typeof associationScanJobs.
     evidence.push({ kind: "search_query", summary: "Search used the saved organization name, alternate name and location when available.", sourceUrl: searchSourceUrl, checkedAt });
   }
 
-  // Keep discovery evidence even when the eventual HTTP request fails.
-  await db.update(associationProspects).set({
-    websiteUrl: submittedUrl,
-    websiteCondition: candidate?.canScan ? "unassessed" : "website_not_confirmed",
-    publicContacts: [],
-    evidence,
-    lastCheckedAt: now,
-    updatedAt: now,
-  }).where(eq(associationProspects.id, prospect.id));
-
+  const hadAssessment = ["needs_manual_review", "significant_problems", "no_major_issues_detected"].includes(prospect.websiteCondition);
   if (!candidate?.canScan) {
-    await db.update(associationScanJobs).set({ status: "completed", step: "complete", completedAt: now, lastError: null, errorClassification: null, updatedAt: now }).where(eq(associationScanJobs.id, job.id));
+    await db.transaction(async (tx) => {
+      await tx.update(associationProspects).set({ websiteUrl: submittedUrl, websiteCondition: "website_not_confirmed", publicContacts: [], evidence, lastCheckedAt: now, updatedAt: now }).where(eq(associationProspects.id, prospect.id));
+      await tx.update(associationScanJobs).set({ status: "completed", step: "complete", completedAt: now, lastError: null, errorClassification: null, updatedAt: now }).where(eq(associationScanJobs.id, job.id));
+    });
     return { status: "completed", step: "complete" };
+  }
+
+  if (!hadAssessment) {
+    await db.update(associationProspects).set({ evidence, updatedAt: now }).where(eq(associationProspects.id, prospect.id));
   }
 
   const normalizedUrl = new URL(candidate.url);
@@ -404,7 +404,7 @@ export async function processAssociationScanJob(job: typeof associationScanJobs.
   }
   if (robotsBlocked) {
     evidence.push({ kind: "robots_policy", summary: "The site's robots.txt disallows the homepage path; content fetching stopped.", sourceUrl: new URL("/robots.txt", normalizedUrl).toString(), checkedAt, confidence: "high" });
-    await db.update(associationProspects).set({ websiteCondition: "blocked", evidence, lastCheckedAt: now, updatedAt: now }).where(eq(associationProspects.id, prospect.id));
+    if (!hadAssessment) await db.update(associationProspects).set({ websiteCondition: "blocked", evidence, lastCheckedAt: now, updatedAt: now }).where(eq(associationProspects.id, prospect.id));
     await db.update(associationScanJobs).set({ status: "blocked", step: "blocked", completedAt: now, lastError: "Website scan stopped by robots policy.", errorClassification: "website_blocked_by_robots", updatedAt: now }).where(eq(associationScanJobs.id, job.id));
     return { status: "blocked", step: "blocked" };
   }
@@ -423,7 +423,7 @@ export async function processAssociationScanJob(job: typeof associationScanJobs.
   if (!submittedUrl && !pageSupportsAssociationIdentity(prospect, site.body)) {
     evidence.push({ kind: "identity_unverified", summary: "The site’s own title and headings did not corroborate the organization or its local unit.", sourceUrl: site.finalUrl, checkedAt, confidence: "low" });
     await db.transaction(async (tx) => {
-      await tx.update(associationProspects).set({ websiteCondition: "website_not_confirmed", evidence }).where(eq(associationProspects.id, prospect.id));
+      await tx.update(associationProspects).set({ websiteUrl: submittedUrl, websiteCondition: "website_not_confirmed", publicContacts: [], evidence, lastCheckedAt: now, updatedAt: now }).where(eq(associationProspects.id, prospect.id));
       await tx.update(associationScanJobs).set({ status: "completed", step: "complete", completedAt: new Date(), updatedAt: new Date() }).where(eq(associationScanJobs.id, job.id));
     });
     return { status: "completed", step: "complete" };
@@ -470,7 +470,7 @@ export async function processAssociationScanJob(job: typeof associationScanJobs.
   const contacts = mergePublicContacts(...contactSources);
   const robotsCaveat = evidence.some((item) => item.kind === "robots_unavailable");
   evidence.push({ kind: "automated_scope", summary: `This automated screen checked one public page. ${robotsCaveat ? "robots.txt was unavailable; manual review is recommended." : "A single-page check does not assess the entire site or confirm usability, current activity, budget, or buying intent."}`, sourceUrl: site.finalUrl, checkedAt, confidence: "low" });
-  await db.update(associationProspects).set({ websiteCondition, publicContacts: contacts, evidence: evidence.slice(-100), lastCheckedAt: now, updatedAt: now }).where(eq(associationProspects.id, prospect.id));
+  await db.update(associationProspects).set({ websiteUrl: submittedUrl, websiteCondition, publicContacts: contacts, evidence: evidence.slice(-100), lastCheckedAt: now, updatedAt: now }).where(eq(associationProspects.id, prospect.id));
   await db.update(associationScanJobs).set({ status: "completed", step: "complete", completedAt: now, lastError: null, errorClassification: null, updatedAt: now }).where(eq(associationScanJobs.id, job.id));
   return { status: "completed", step: "complete" };
 }
@@ -488,7 +488,7 @@ export async function runAssociationProspectWorker(workerId: string) {
     const blocked = classification.includes("blocked") || classification.includes("safety_policy") || classification === "cross_domain_redirect" || classification === "search_not_configured";
     const status = blocked ? "blocked" : "failed";
     console.error("[association-prospect-worker] job failed", { jobId: job.id, classification });
-    if (job.prospectId) await getDb().update(associationProspects).set({ websiteCondition: blocked ? "blocked" : "scan_failed", lastCheckedAt: new Date(), updatedAt: new Date() }).where(eq(associationProspects.id, job.prospectId));
+    if (job.prospectId) await getDb().update(associationProspects).set({ websiteCondition: blocked ? "blocked" : "scan_failed", lastCheckedAt: new Date(), updatedAt: new Date() }).where(and(eq(associationProspects.id, job.prospectId), sql`${associationProspects.websiteCondition} not in ('needs_manual_review','significant_problems','no_major_issues_detected')`));
     await getDb().update(associationScanJobs).set({ status, step: status, completedAt: new Date(), lastError: safeDisplay(classification), errorClassification: classification, updatedAt: new Date() }).where(eq(associationScanJobs.id, job.id));
     return { claimed: 1, processed: 1, status };
   }
@@ -500,15 +500,14 @@ export async function lockAssociationScanQueue(tx: AssociationTransaction) {
   await tx.execute(sql`select pg_advisory_xact_lock(hashtext('association_scan_daily_limit'))`);
 }
 
+export const MAX_ASSOCIATION_SCAN_BATCH = 25;
+
 export async function queueAssociationScansInTransaction(tx: AssociationTransaction, prospectIds: string[], actor: string) {
   if (!process.env.BRAVE_SEARCH_API_KEY?.trim()) throw new Error("Website discovery is not configured.");
-  const ids = [...new Set(prospectIds)].slice(0, 5);
+  const ids = [...new Set(prospectIds)].slice(0, MAX_ASSOCIATION_SCAN_BATCH);
   const prospects = await tx.select({ id: associationProspects.id }).from(associationProspects).where(inArray(associationProspects.id, ids));
-  const countResult = await tx.execute<{ count: number }>(sql`select count(*)::int as count from association_scan_jobs where kind = 'website_scan' and created_at >= date_trunc('day', now())`);
-  const remaining = Math.max(0, 20 - Number(countResult[0]?.count || 0));
-  if (!remaining) throw new Error("Daily association website-scan limit reached. Try again tomorrow.");
   let added = 0;
-  for (const prospect of prospects.slice(0, remaining)) {
+  for (const prospect of prospects) {
     const inserted = await tx.insert(associationScanJobs).values({ prospectId: prospect.id, createdBy: actor, maxAttempts: 3 }).onConflictDoNothing().returning({ id: associationScanJobs.id });
     added += inserted.length;
   }
