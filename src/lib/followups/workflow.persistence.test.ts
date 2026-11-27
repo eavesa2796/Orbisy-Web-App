@@ -41,6 +41,24 @@ describe("Private inbound follow-up workflow",()=>{
   expect(settings.gmailError).toContain("mailbox history: Gmail history request failed (HTTP 404)");
   expect(JSON.stringify([settings.gmailError,logs.mock.calls])).not.toContain("PRIVATE_PROVIDER_DETAILS");
  });
+ it("processes later replies when a message referenced by history is no longer available",async()=>{
+  const {submission,conversation}=await enroll();
+  await healthyGmail();
+  const provider=mockedProvider();
+  const log=vi.spyOn(console,"info").mockImplementation(()=>{});
+  vi.stubGlobal("fetch",vi.fn(async(input:RequestInfo|URL,init?:RequestInit)=>{
+   const url=String(input);
+   if(url.includes("/history?"))return Response.json({historyId:"102",history:[{messagesAdded:[{message:{id:"deleted"}},{message:{id:"reply"}}]}]});
+   if(url.includes("/messages/deleted?"))return new Response("PRIVATE_PROVIDER_DETAILS",{status:404});
+   if(url.includes("/messages/reply?"))return Response.json({id:"reply",internalDate:String(Date.now()+1000),payload:{headers:[{name:"From",value:submission.email}]}});
+   return provider.request(input,init);
+  }));
+  expect(await syncGmail()).toBe(true);
+  expect((await getFollowupSettings()).gmailCursor).toBe("102");
+  const [saved]=await mocks.db.select().from(schema.followupConversations).where(eq(schema.followupConversations.id,conversation.id));
+  expect(saved.state).toBe("paused");
+  expect(JSON.stringify(log.mock.calls)).not.toMatch(/deleted|PRIVATE_PROVIDER_DETAILS/);
+ });
  it("keeps token refresh failures distinct from metadata failures and redacts raw exception text",async()=>{
   await healthyGmail();const provider=mockedProvider();const logs=vi.spyOn(console,"error").mockImplementation(()=>{});
   vi.stubGlobal("fetch",vi.fn(async()=>Response.json({error:"PRIVATE_TOKEN_RESPONSE"},{status:400})));

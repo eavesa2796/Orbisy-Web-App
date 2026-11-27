@@ -4,9 +4,10 @@ import { AdminShell } from "@/components/admin/admin-shell";
 import { requireAdmin } from "@/lib/auth";
 import { getDb } from "@/lib/db";
 import { associationProspects, associationSalesStage, associationScanJobs } from "@/lib/db/schema";
-import { selectedAssociationWebsite } from "@/lib/association-prospects/worker";
+import { DAILY_ASSOCIATION_SCAN_ATTEMPTS, selectedAssociationWebsite } from "@/lib/association-prospects/worker";
 import { AssociationJobRefresh } from "@/components/admin/association-job-refresh";
 import { addAssociationProspectAction, queueAssociationIrsSampleAction, queueAssociationScansAction, retryAssociationScanAction, reviewAssociationProspectAction } from "./actions";
+import { AssociationBulkScanForm } from "./bulk-scan-form";
 import { AssociationProspectForm } from "./prospect-form";
 import { associationStageLabels } from "@/lib/association-prospects/pipeline";
 import { chicagoParts } from "@/lib/followups/model";
@@ -49,10 +50,15 @@ export default async function AssociationProspectsPage({ searchParams }: { searc
   let recentJobs: typeof associationScanJobs.$inferSelect[] = [];
   let totals = { total: 0, assessed: 0, notConfirmed: 0, healthy: 0, manual: 0, problems: 0, unassessed: 0, failed: 0, blocked: 0 };
   let loadError = false;
+  let dailyLimitReached = false;
   let pipelineCounts = { due: 0, ready: 0 };
   try {
     const db = getDb();
     const filters = [];
+    const eligible = sql<boolean>`${associationProspects.reviewStatus} = 'confirmed'
+      and nullif(btrim(${associationProspects.outreachReason}), '') is not null
+      and exists (select 1 from jsonb_array_elements(${associationProspects.manualContacts} || ${associationProspects.publicContacts}) contact
+        where nullif(btrim(contact->>'value'), '') is not null and nullif(btrim(contact->>'sourceUrl'), '') is not null)`;
     if (params.q?.trim()) {
       const name = `%${params.q.trim().slice(0, 80)}%`;
       filters.push(or(ilike(associationProspects.name, name), ilike(associationProspects.alternateName, name)));
@@ -70,9 +76,10 @@ export default async function AssociationProspectsPage({ searchParams }: { searc
       filters.push(sql`(jsonb_array_length(${associationProspects.publicContacts}) + jsonb_array_length(${associationProspects.manualContacts})) > 0`);
     }
     if (selectedStage) filters.push(eq(associationProspects.salesStage, selectedStage));
+    if (selectedStage === "ready_to_contact") filters.push(eligible);
     if (dueOnly) filters.push(and(ne(associationProspects.salesStage, "skip"), lte(associationProspects.salesNextActionDate, today)));
     const where = filters.length ? and(...filters) : undefined;
-    const [rows, [stats]] = await Promise.all([
+    const [rows, [stats], [usage]] = await Promise.all([
       db.select().from(associationProspects).where(where).orderBy(
         ...(dueOnly ? [asc(associationProspects.salesNextActionDate)] : []),
         desc(associationProspects.updatedAt),
@@ -80,7 +87,7 @@ export default async function AssociationProspectsPage({ searchParams }: { searc
       db.select({
         total: sql<number>`count(*)::int`,
         due: sql<number>`count(*) filter (where sales_stage <> 'skip' and sales_next_action_date <= ${today}::date)::int`,
-        ready: sql<number>`count(*) filter (where sales_stage = 'ready_to_contact')::int`,
+        ready: sql<number>`count(*) filter (where sales_stage = 'ready_to_contact' and ${eligible})::int`,
         assessed: sql<number>`count(*) filter (where website_condition in ('website_not_confirmed','no_major_issues_detected','needs_manual_review','significant_problems'))::int`,
         notConfirmed: sql<number>`count(*) filter (where website_condition = 'website_not_confirmed')::int`,
         healthy: sql<number>`count(*) filter (where website_condition = 'no_major_issues_detected')::int`,
@@ -90,7 +97,9 @@ export default async function AssociationProspectsPage({ searchParams }: { searc
         failed: sql<number>`count(*) filter (where website_condition = 'scan_failed')::int`,
         blocked: sql<number>`count(*) filter (where website_condition = 'blocked')::int`,
       }).from(associationProspects),
+      db.execute<{ attempts: number }>(sql`select count(*)::int as attempts from admin_activity_logs where action = 'association_scan.attempt_claimed' and created_at >= date_trunc('day', now())`),
     ]);
+    dailyLimitReached = Number(usage?.attempts || 0) >= DAILY_ASSOCIATION_SCAN_ATTEMPTS;
     records = rows;
     pipelineCounts = { due: Number(stats?.due || 0), ready: Number(stats?.ready || 0) };
     recentJobs = await db.select().from(associationScanJobs).orderBy(desc(associationScanJobs.createdAt)).limit(15);
@@ -165,12 +174,18 @@ export default async function AssociationProspectsPage({ searchParams }: { searc
         <label>Next action due<select name="due" defaultValue={dueOnly ? "1" : ""}><option value="">Any date</option><option value="1">Today or overdue</option></select></label>
         <button className="button button-secondary">Filter</button>
       </form>
+      {records.length > 0 && <AssociationBulkScanForm disabled={!scanningEnabled} />}
       {!records.length ? <div className="empty-state"><h3>No prospects in this view</h3><p>{dueOnly ? "There are no due actions that match these filters." : "Change the filters to see more prospects."}</p></div> : <div className="association-prospect-list">{records.map((record) => {
         const selectedUrl = selectedAssociationWebsite(record);
         const candidate = record.evidence.find((item) => item.kind === "website_candidate" || item.kind === "search_review" && record.websiteUrl === item.sourceUrl);
         const job = latestJobs.get(record.id);
         const active = job?.status === "queued" || job?.status === "running";
         const contacts = preferredBusinessContacts(record.manualContacts, record.publicContacts);
+        const missing = [
+          record.reviewStatus !== "confirmed" && "confirm the record",
+          !contacts.some((contact) => contact.value.trim() && contact.sourceUrl.trim()) && "save a sourced contact",
+          !record.outreachReason?.trim() && "add a reason to reach out",
+        ].filter(Boolean);
         const phone = contacts.find((contact) => contact.type === "phone");
         const email = contacts.find((contact) => contact.type === "email");
         const form = record.manualContacts.find((contact) => contact.type === "form");
@@ -192,7 +207,9 @@ export default async function AssociationProspectsPage({ searchParams }: { searc
           {contactPage && <> {(phone || email) && " · "}<a href={contactPage} target="_blank" rel="noreferrer">{form ? "Contact form" : "Contact page"}</a></>}
         </p>}
         {record.outreachReason && <p><strong>Why contact them? </strong>{record.outreachReason}</p>}
+        {!active && <p><label><input type="checkbox" name="prospectId" value={record.id} form="association-bulk-scans" disabled={!scanningEnabled} /> Select {record.name} for a website recheck</label></p>}
         <p><strong>Sales stage: </strong>{associationStageLabels[record.salesStage]}</p>
+        {record.salesStage === "ready_to_contact" && missing.length > 0 && <p>Action needed before this prospect returns to the ready list: {missing.join(", ")}.</p>}
         {record.salesNextAction && <p><strong>Next action: </strong>{record.salesNextAction}
           {record.salesNextActionDate && <> · <time dateTime={record.salesNextActionDate}>{record.salesNextActionDate}</time>{record.salesStage !== "skip" && record.salesNextActionDate <= today && (record.salesNextActionDate === today ? " · Due today" : " · Overdue")}</>}
         </p>}
@@ -234,7 +251,7 @@ export default async function AssociationProspectsPage({ searchParams }: { searc
           {record.evidence.length > 0 && <div><h4>Evidence</h4><ul>{record.evidence.map((item, index) => <li key={`${item.kind}-${index}`}><strong>{item.kind.replaceAll("_", " ")}</strong><span> — {item.summary}</span>{item.confidence && <small> · {item.confidence} confidence</small>}{item.checkedAt && <small> · {new Date(item.checkedAt).toLocaleDateString("en-US")}</small>}{item.sourceUrl && <> · <a href={item.sourceUrl} target="_blank" rel="noreferrer">Evidence source</a></>}</li>)}</ul></div>}
         </details>}
         <div className="association-scan-controls">
-          {job && <span className={`status-pill association-job-${job.status}`}>Scan {job.status.replaceAll("_", " ")}{job.status === "running" ? ` · ${job.step.replaceAll("_", " ")}` : ""}</span>}
+          {job && <span className={`status-pill association-job-${job.status}`}>Scan {job.status === "queued" && dailyLimitReached ? "deferred until daily reset" : job.status.replaceAll("_", " ")}{job.status === "running" ? ` · ${job.step.replaceAll("_", " ")}` : ""}</span>}
           {job?.lastError && <span className="field-help">{job.lastError}</span>}
           {job && ["queued", "running"].includes(job.status) ? null : job && ["failed", "blocked"].includes(job.status) ? job.attemptCount < job.maxAttempts ? <form action={retryAssociationScanAction}><input type="hidden" name="jobId" value={job.id} /><button className="button button-secondary" disabled={!scanningEnabled}>Retry scan</button></form> : <span className="field-help">Attempt limit reached</span> : <form action={queueAssociationScansAction}><input type="hidden" name="prospectId" value={record.id} /><button className="button button-secondary" disabled={!scanningEnabled}>Queue website scan</button></form>}
         </div>

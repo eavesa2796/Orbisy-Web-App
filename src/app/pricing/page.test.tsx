@@ -3,10 +3,15 @@ import { describe, expect, it } from "vitest";
 import PricingPage, { metadata } from "@/app/pricing/page";
 import { findPublicPackage, publicPackages, supportingOffers } from "@/lib/public-pricing";
 describe("Association pricing", () => {
- it("uses project quotes and retains only the limited published care price", async () => {
+ it("renders current planning ranges and the limited published care price", async () => {
  const html = renderToStaticMarkup(await PricingPage({searchParams: Promise.resolve({})}));
  for (const offer of [...publicPackages, ...supportingOffers]) expect(html).toContain(`/pricing?package=${offer.id}#contact`);
- expect(publicPackages.every(offer => offer.price === "Project quote")).toBe(true);
+ const text = new DOMParser().parseFromString(html, "text/html").body.textContent;
+ for (const offer of publicPackages) {
+   expect(text).toContain(offer.price);
+   expect(offer.billing).toContain("planning range");
+ }
+ expect(text).toContain("These are one-time USD planning ranges");
  expect(html).toContain("$125"); expect(html).toContain("Up to 30 minutes");
  for (const retired of ["$299", "$999", "$2,499", "Google Ads", "Local SEO"]) expect(html).not.toContain(retired);
  expect(metadata.alternates).toEqual({canonical: "/pricing"});

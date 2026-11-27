@@ -12,7 +12,7 @@ const mocks=vi.hoisted(()=>({db:null as unknown as ReturnType<typeof getDb>,admi
 vi.mock("@/lib/db",()=>({getDb:()=>mocks.db}));vi.mock("@/lib/auth",()=>({requireAdmin:mocks.admin,getAdminIdentity:mocks.identity}));vi.mock("next/cache",()=>({revalidatePath:vi.fn()}));vi.mock("next/headers",()=>({cookies:async()=>({get:(name:string)=>mocks.cookies.has(name)?{value:mocks.cookies.get(name)}:undefined,set:(name:string,value:string)=>mocks.cookies.set(name,value)})}));
 import {createOutreachCampaign,addOutreachProspect,approveOutreachSequence,getOutreachSettings,pauseOutreach} from "./service";
 import {outreachDefaults} from "./model";
-import {connectOutreachMailbox,applyOutreachMetadata,messageIdentity,OUTREACH_SCOPES} from "./gmail";
+import {connectOutreachMailbox,applyOutreachMetadata,messageIdentity,OUTREACH_SCOPES,syncOutreachMailbox} from "./gmail";
 import {dispatchOutreach,runOutreachWorker,outreachMime} from "./worker";
 import {outreachStopUrl} from "./security";
 import {verifyUnsubscribeToken} from "@/lib/followups/security";
@@ -33,6 +33,21 @@ function sendProvider(){const send=vi.fn().mockResolvedValue(new Response(JSON.s
 async function refresh(){await mocks.db.update(schema.outreachSettings).set({gmailSyncedAt:new Date(),gmailError:null});}
 
 describe("Reviewed outbound outreach",()=>{
+ it("detects a reply after an individually missing history message",async()=>{
+  const {e}=await ready();
+  sendProvider();
+  expect(await dispatchOutreach("access")).toBe(true);
+  vi.spyOn(console,"info").mockImplementation(()=>{});
+  vi.stubGlobal("fetch",vi.fn(async(input:RequestInfo|URL)=>{
+   const url=String(input);
+   if(url.includes("/history?"))return Response.json({historyId:"102",history:[{messagesAdded:[{message:{id:"deleted"}},{message:{id:"reply"}}]}]});
+   if(url.includes("/messages/deleted?"))return new Response("unavailable",{status:404});
+   return Response.json({id:"reply",threadId:"thread-1",internalDate:String(Date.now()+1000),payload:{headers:[{name:"From",value:e.recipientEmail}]}});
+  }));
+  expect(await syncOutreachMailbox("access")).toBe(true);
+  expect((await getOutreachSettings()).gmailCursor).toBe("102");
+  expect((await mocks.db.select().from(schema.outreachEnrollments))[0].state).toBe("replied");
+ });
  it("starts paused, preserves existing inquiry settings on Google connection, and keeps secrets out of the overview",async()=>{
   await mocks.db.insert(schema.followupSettings).values({id:"main",sendingEnabled:true,enrollmentEnabled:true,autoAcknowledge:true,activatedAt:new Date(),gmailTokenCiphertext:"inbound-secret-marker"});
   vi.stubGlobal("fetch",vi.fn().mockResolvedValue(new Response(JSON.stringify({emailAddress:"info@orbisy.com",historyId:"100"}))));

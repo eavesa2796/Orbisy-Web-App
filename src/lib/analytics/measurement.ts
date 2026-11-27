@@ -23,7 +23,7 @@ export function classifyMeasurementLink(href: string, origin: string, area: "hea
  let url:URL; try{url=new URL(href,origin);}catch{return undefined;}
  if(url.origin !== origin)return undefined;
  if(url.hash === "#contact")return {event:"primary_cta_click" as const,component:`${area}_consultation`};
- const components:Record<string,string>={"/association-websites":"service_association_websites","/member-portals":"service_member_portals","/integrations":"service_integrations","/ongoing-support":"service_ongoing_support","/work":"portfolio_link","/pricing":"project_pricing_link","/associations":"association_approach_link"};
+ const components:Record<string,string>={"/association-websites":"service_association_websites","/member-portals":"service_member_portals","/integrations":"service_integrations","/ongoing-support":"service_ongoing_support","/work":"portfolio_link","/pricing":"project_pricing_link","/project-planning":"project_decision_brief_link","/associations":"association_approach_link"};
  const component=components[url.pathname.replace(/\/$/,"")];
  return component ? {event:"secondary_cta_click" as const,component} : undefined;
 }

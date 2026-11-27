@@ -224,9 +224,7 @@ behavior. PGlite supplies the test database; external providers are mocked in
 automated tests. Real delivery, OAuth, and opt-out behavior need separately
 controlled end-to-end verification.
 
-Vercel creates preview/production builds from the GitHub workflow. The complete
-lint/type/test/build command is explicit; the repository does not currently
-include a GitHub Actions workflow running that full suite on every PR.
+Vercel creates preview/production builds from the GitHub workflow. The GitHub Actions verification workflow runs lint, TypeScript, tests, and the production build on pull requests. Configure the repository branch rules to require the Verify check before merging.
 
 ## Security and operating boundaries
 

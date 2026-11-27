@@ -6,7 +6,7 @@ import { z } from "zod";
 import { requireAdmin } from "@/lib/auth";
 import { getDb } from "@/lib/db";
 import { associationProspects, associationScanJobs } from "@/lib/db/schema";
-import { lockAssociationScanQueue, queueAssociationIrsSample, queueAssociationScanJobs, queueAssociationScansInTransaction, retryAssociationScanJob } from "@/lib/association-prospects/worker";
+import { MAX_ASSOCIATION_SCAN_BATCH, lockAssociationScanQueue, queueAssociationIrsSample, queueAssociationScanJobs, queueAssociationScansInTransaction, retryAssociationScanJob } from "@/lib/association-prospects/worker";
 import { parseAssociationContactDetails, stampManualContacts } from "@/lib/association-prospects/manual-contacts";
 import { associationPipelineInput } from "@/lib/association-prospects/pipeline";
 import { checkAdminMutationLimit } from "@/lib/rate-limit";
@@ -167,9 +167,18 @@ export async function saveAssociationPipelineAction(_previous: { success: boolea
 
 export async function queueAssociationScansAction(form: FormData) {
   const admin = await authorize();
-  const ids = z.array(z.uuid()).min(1).max(5).parse(form.getAll("prospectId").map(String));
+  const ids = z.array(z.uuid()).min(1).max(MAX_ASSOCIATION_SCAN_BATCH).parse(form.getAll("prospectId").map(String));
   await queueAssociationScanJobs(ids, admin.email);
   revalidatePath("/admin-portal/association-prospects");
+}
+
+export async function queueSelectedAssociationScansAction(_previous: { success: boolean; message: string }, form: FormData) {
+  const admin = await authorize();
+  const parsed = z.array(z.uuid()).min(1).max(MAX_ASSOCIATION_SCAN_BATCH).safeParse(form.getAll("prospectId"));
+  if (!parsed.success) return { success: false, message: `Select 1 to ${MAX_ASSOCIATION_SCAN_BATCH} prospects.` };
+  const count = await queueAssociationScanJobs(parsed.data, admin.email);
+  revalidatePath("/admin-portal/association-prospects");
+  return { success: count > 0, message: count ? `${count} scans queued. The worker processes them within the daily limit.` : "No new scans queued. The selected records may already have active jobs." };
 }
 
 export async function retryAssociationScanAction(form: FormData) {
