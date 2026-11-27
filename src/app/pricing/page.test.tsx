@@ -11,7 +11,7 @@ describe("Association pricing", () => {
    expect(text).toContain(offer.price);
    expect(offer.billing).toContain("planning range");
  }
- expect(text).toContain("One-time USD planning ranges");
+ expect(text).toContain("These are one-time USD planning ranges");
  expect(html).toContain("$125"); expect(html).toContain("Up to 30 minutes");
  for (const retired of ["$299", "$999", "$2,499", "Google Ads", "Local SEO"]) expect(html).not.toContain(retired);
  expect(metadata.alternates).toEqual({canonical: "/pricing"});

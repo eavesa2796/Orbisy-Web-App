@@ -30,15 +30,17 @@ describe("Association public positioning", () => {
  for (const detail of service.deliverables) expect(doc.body.textContent).toContain(detail);
  }
  });
- it("preserves dated before/after examples without inventing association projects", () => {
+ it("features the dashboard first and links the single tow redesign screenshot to the live site", () => {
  const doc = new DOMParser().parseFromString(renderToStaticMarkup(<WorkPage/>),"text/html");
  const comparison=doc.querySelector('#rescue-tow-truck-comparison')!;
- expect(comparison.querySelectorAll('figure')).toHaveLength(2);
- expect(comparison.textContent).toContain('October 29, 2026');
- expect(comparison.textContent).toContain('does not claim measured changes');
+ expect(comparison.querySelectorAll('figure')).toHaveLength(1);
+ expect(comparison.querySelector('figure a')?.getAttribute('href')).toBe('https://www.rescuetowtruck.com/');
+ expect(comparison.textContent).toContain('not a report of measured changes');
  expect(doc.body.textContent).toContain('does not yet have association case studies');
- expect(doc.querySelectorAll('.portfolio-project')).toHaveLength(4);
- expect(doc.querySelector('#orbisy-operations-dashboard')?.textContent).toContain('Not a live application');
+ expect(doc.querySelectorAll('.portfolio-project')).toHaveLength(5);
+ const dashboard = doc.querySelector('#orbisy-operations-dashboard')!;
+ expect(dashboard.textContent).toContain('Illustrative dashboard concept with sample data');
+ expect(dashboard.compareDocumentPosition(comparison) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
  });
  it("keeps private, archived and retired routes out of discovery", async () => {
  const paths=(await sitemap()).map(entry=>new URL(entry.url).pathname);
